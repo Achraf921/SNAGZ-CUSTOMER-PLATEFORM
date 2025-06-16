@@ -1,0 +1,131 @@
+/* Empty CSS file for MainPage.jsx - styles may need to be added if they existed previously */ 
+
+/* Styles for MainPage.jsx - Main Portal Selection Screen (Aesthetic Refinements) */
+
+/* General container for the main page when portal selection is visible */
+.main-page-no-card-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* Pushed down by header */
+    min-height: 100vh;
+    width: 100%;
+    background-color: #ffffff; /* White background as requested */
+    padding-top: 160px; /* Further increased padding-top to move content down */
+    padding-bottom: 4rem; /* Add some padding at the bottom so content isn't flush with footer */
+    font-family: 'Open Sans', sans-serif; /* Default body font */
+}
+
+/* Container for the actual selection elements - no card background */
+.portal-selection-fullscreen-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    max-width: 1100px; /* Adjusted max-width slightly */
+    padding: 2rem 1rem; /* Padding for smaller screens */
+}
+
+.main-page-titles {
+    margin-bottom: 0.75rem; /* Reduced margin slightly */
+}
+
+/* Unified title style */
+.main-page-title-unified {
+    font-family: 'Montserrat', sans-serif; /* Heading font */
+    font-size: 2.5rem; 
+    font-weight: 700;
+    color: #0047AB; /* Darker SNA GZ Blue from Header */
+    line-height: 1.2;
+    margin-bottom: 0.75rem; /* Add some space before the subtitle */
+}
+
+.main-page-subtitle {
+    font-family: 'Open Sans', sans-serif; /* Explicitly body font */
+    font-size: 1.125rem;
+    color: #4b5563;
+    margin-bottom: 3rem; /* Increased margin */
+}
+
+.portal-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); /* Narrower min for more squared items */
+    gap: 2rem; /* Increased gap */
+    width: 100%;
+    max-width: 900px; /* Max width for the grid */
+}
+
+.portal-btn-styled {
+    background-color: #ffffff;
+    color: #1f2937;
+    padding: 1.25rem 1rem; /* Adjusted padding */
+    border-radius: 6px; /* Slightly less squared than 4px, more than 8px */
+    border: 1px solid #dee2e6; /* Slightly darker, more defined border */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0,0,0,0.04); /* More pronounced shadow */
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-width: 280px; /* Constrain width to make it more square-like with height */
+    margin-left: auto; /* Center buttons within grid cells if they don't fill */
+    margin-right: auto;
+}
+
+.portal-btn-styled:hover {
+    transform: translateY(-4px); /* More lift on hover */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.09), 0 4px 8px rgba(0,0,0,0.06); /* Enhanced hover shadow */
+}
+
+.portal-btn-styled::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 4px;
+    background-color: #0047AB; /* Darker SNA GZ Blue */
+    transition: width 0.3s ease-out, left 0.3s ease-out;
+}
+
+.portal-btn-styled:hover::after {
+    width: 100%;
+    left: 0;
+}
+
+.portal-btn-title {
+    font-family: 'Montserrat', sans-serif; /* Heading font */
+    font-size: 1.125rem; /* Slightly smaller */
+    font-weight: 600;
+    color: #0047AB; /* Darker SNA GZ Blue */
+    margin-bottom: 0.4rem;
+}
+
+.portal-btn-description {
+    font-family: 'Open Sans', sans-serif; /* Explicitly body font */
+    font-size: 0.875rem;
+    color: #4b5563;
+    line-height: 1.4; /* Adjusted line height */
+    flex-grow: 1;
+}
+
+/* Styles for the login view (when LoginCard is active) - copied from previous working version */
+.login-view-container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.login-view-container .main-content.full-width-content {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    /* background-color: #f9fafb; */ /* Removed to allow LoginCard's bg to take full effect */
+} 
