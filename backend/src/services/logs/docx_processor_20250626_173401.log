@@ -1,0 +1,19 @@
+[2025-06-26 17:34:01] Script started
+[2025-06-26 17:34:01] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/Intro - Textes _ CLIENT _ PROJET.docx
+[2025-06-26 17:34:01] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/PROCESSED_Intro - Textes _ TST _ BATACLAN.docx
+[2025-06-26 17:34:01] Encoded data length: 604 characters
+[2025-06-26 17:34:01] Decoding base64 data...
+[2025-06-26 17:34:01] Successfully decoded base64 data
+[2025-06-26 17:34:01] [DEBUG] Type of shop_data_string after decode: <class 'str'>
+[2025-06-26 17:34:01] [DEBUG] First 100 chars of shop_data_string: {"nomProjet":"Bataclan","typeProjet":"shop","commercial":"Achraf","raisonSociale":"TsT","compteClien...
+[2025-06-26 17:34:01] Parsing JSON data...
+[2025-06-26 17:34:01] Successfully parsed JSON data
+[2025-06-26 17:34:01] [DEBUG] Type of shop_data after json.loads: <class 'dict'>
+[2025-06-26 17:34:01] [DEBUG] shop_data keys: ['nomProjet', 'typeProjet', 'commercial', 'raisonSociale', 'compteClientRef', 'contactsClient', 'dateMiseEnLigne', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicaceEnvisagee', 'shopifyPlanMonthlySelected', 'shopifyPlanYearlySelected', 'boutiqueEnLigne', 'chefProjet', 'dateDemarageProjet']
+[2025-06-26 17:34:01] Starting document processing...
+[2025-06-26 17:34:01] Starting document processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/Intro - Textes _ CLIENT _ PROJET.docx
+[2025-06-26 17:34:01] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/PROCESSED_Intro - Textes _ TST _ BATACLAN.docx
+[2025-06-26 17:34:01] Successfully loaded document: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/Intro - Textes _ CLIENT _ PROJET.docx
+[2025-06-26 17:34:01] [DEBUG - Inside replace_placeholders_and_format] Type of shop_data: <class 'dict'>
+[2025-06-26 17:34:01] [DEBUG - Inside replace_placeholders_and_format] Content of shop_data: {'nomProjet': 'Bataclan', 'typeProjet': 'shop', 'commercial': 'Achraf', 'raisonSociale': 'TsT', 'compteClientRef': '887459', 'contactsClient': 'achrafbavi@gmail.com', 'dateMiseEnLigne': '05/06/2025', 'dateCommercialisation': '05/06/2025', 'dateSortieOfficielle': '05/06/2025', 'precommande': True, 'dedicaceEnvisagee': True, 'shopifyPlanMonthlySelected': True, 'shopifyPlanYearlySelected': False, 'boutiqueEnLigne': 'OUI', 'chefProjet': 'Jhon Doe', 'dateDemarageProjet': '09/09/2025'}
+[2025-06-26 17:34:01] Document processing completed successfully

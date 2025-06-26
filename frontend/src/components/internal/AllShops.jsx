@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import ShopDetails from './ShopDetails'; // Assuming ShopDetails is in the same directory
+import ShopDetails from "./ShopDetails"; // Assuming ShopDetails is in the same directory
 
 const AllShops = () => {
   const [shops, setShops] = useState([]);
@@ -25,6 +25,8 @@ const AllShops = () => {
             clientId: shop.clientId,
             productsCount: shop.productsCount,
             status: shop.status,
+            hasShopify: shop.hasShopify,
+            documented: shop.documented,
           }))
         );
       } catch (err) {
@@ -42,9 +44,9 @@ const AllShops = () => {
   );
 
   const toggleRow = (shopId) => {
-    setExpandedRows(prev => ({
+    setExpandedRows((prev) => ({
       ...prev,
-      [shopId]: !prev[shopId]
+      [shopId]: !prev[shopId],
     }));
   };
 
@@ -89,13 +91,19 @@ const AllShops = () => {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Produits
+                  Statut
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Statut
+                  Documenté
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Shopify
                 </th>
                 <th scope="col" className="relative px-6 py-3">
                   <span className="sr-only">Actions</span>
@@ -105,38 +113,55 @@ const AllShops = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredShops.map((shop) => (
                 <React.Fragment key={shop.id}>
-                  <tr
-                    className="hover:bg-gray-50 transition-colors"
-                  >
+                  <tr className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {shop.name || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {shop.clientName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shop.productsCount}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${shop.status === "valid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
+                      >
+                        {shop.status === "valid" ? "Validée" : "En attente"}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${shop.status === 'valid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          shop.documented === "documented"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
                       >
-                        {shop.status === 'valid' ? 'Validée' : 'En attente'}
+                        {shop.documented === "documented" ? "Oui" : "Non"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          shop.hasShopify
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {shop.hasShopify ? "Oui" : "Non"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button 
+                      <button
                         onClick={() => toggleRow(shop.id)}
                         className="text-sna-primary hover:underline"
                       >
-                        {expandedRows[shop.id] ? 'Masquer' : 'Voir Détails'}
+                        {expandedRows[shop.id] ? "Masquer" : "Voir Détails"}
                       </button>
                     </td>
                   </tr>
                   {expandedRows[shop.id] && (
                     <tr>
-                      <td colSpan="5" className="px-6 py-4 bg-gray-50">
-                        <ShopDetails 
+                      <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                        <ShopDetails
                           clientId={shop.clientId}
                           shopId={shop.id}
                         />

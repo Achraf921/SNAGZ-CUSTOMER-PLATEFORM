@@ -1,4 +1,5 @@
 import React from "react";
+import { FaShopify } from "react-icons/fa";
 // import Header from "../Header.jsx"; // No longer needed
 
 const InternalLayout = ({ children }) => {
@@ -26,6 +27,11 @@ const InternalLayout = ({ children }) => {
           d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
         />
       ),
+    },
+    {
+      name: "Configuration Shopify",
+      href: "/internal/configuration-shopify",
+      icon: <FaShopify />,
     },
     {
       name: "Documentation",
@@ -123,14 +129,20 @@ const InternalLayout = ({ children }) => {
                     href={item.href}
                     className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50`}
                   >
-                    <svg
-                      className="mr-3 h-5 w-5 flex-shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      {item.icon}
-                    </svg>
+                    {item.icon?.type === FaShopify ? (
+                      React.cloneElement(item.icon, {
+                        className: "mr-3 h-5 w-5 flex-shrink-0",
+                      })
+                    ) : (
+                      <svg
+                        className="mr-3 h-5 w-5 flex-shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        {item.icon}
+                      </svg>
+                    )}
                     {item.name}
                   </a>
                 ))}

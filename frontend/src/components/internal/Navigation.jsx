@@ -7,6 +7,7 @@ const Navigation = () => {
     { name: "Dashboard", href: "/internal" },
     { name: "Clients", href: "/internal/clients" },
     { name: "Boutiques", href: "/internal/boutiques" },
+    { name: "Configuration Shopify", href: "/internal/configuration-shopify" },
     { name: "Statistiques", href: "/internal/statistiques" },
   ];
 

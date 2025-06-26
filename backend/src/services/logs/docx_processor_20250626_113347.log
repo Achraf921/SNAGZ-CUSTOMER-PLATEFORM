@@ -1,0 +1,19 @@
+[2025-06-26 11:33:47] Script started
+[2025-06-26 11:33:47] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/MODELE.FICHE.PROJET_CLIENT_PROJET_AAAAMMJJ.docx
+[2025-06-26 11:33:47] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE_PROJET_685d13930cb18736f7914108.docx
+[2025-06-26 11:33:47] Encoded data length: 516 characters
+[2025-06-26 11:33:47] Decoding base64 data...
+[2025-06-26 11:33:47] Successfully decoded base64 data
+[2025-06-26 11:33:47] [DEBUG] Type of shop_data_string after decode: <class 'str'>
+[2025-06-26 11:33:47] [DEBUG] First 100 chars of shop_data_string: {"nomProjet":"TESTJeudi","typeProjet":"dsasfsfs","commercial":"Achraf","clientName":"44455591_GZ","r...
+[2025-06-26 11:33:47] Parsing JSON data...
+[2025-06-26 11:33:47] Successfully parsed JSON data
+[2025-06-26 11:33:47] [DEBUG] Type of shop_data after json.loads: <class 'dict'>
+[2025-06-26 11:33:47] [DEBUG] shop_data keys: ['nomProjet', 'typeProjet', 'commercial', 'clientName', 'raisonSociale', 'compteClientRef', 'contactsClient', 'dateMiseEnLigne', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicaceEnvisagee', 'shopifyPlanMonthlySelected', 'shopifyPlanYearlySelected']
+[2025-06-26 11:33:47] Starting document processing...
+[2025-06-26 11:33:47] Starting document processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/MODELE.FICHE.PROJET_CLIENT_PROJET_AAAAMMJJ.docx
+[2025-06-26 11:33:47] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE_PROJET_685d13930cb18736f7914108.docx
+[2025-06-26 11:33:47] Successfully loaded document: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/MODELE.FICHE.PROJET_CLIENT_PROJET_AAAAMMJJ.docx
+[2025-06-26 11:33:47] [DEBUG - Inside replace_placeholders_and_format] Type of shop_data: <class 'dict'>
+[2025-06-26 11:33:47] [DEBUG - Inside replace_placeholders_and_format] Content of shop_data: {'nomProjet': 'TESTJeudi', 'typeProjet': 'dsasfsfs', 'commercial': 'Achraf', 'clientName': '44455591_GZ', 'raisonSociale': 'GZ', 'compteClientRef': '44455591', 'contactsClient': 'achrafbayi@icloud.com', 'dateMiseEnLigne': '13/06/2025', 'dateCommercialisation': '', 'dateSortieOfficielle': '', 'precommande': False, 'dedicaceEnvisagee': True, 'shopifyPlanMonthlySelected': False, 'shopifyPlanYearlySelected': False}
+[2025-06-26 11:33:47] Document processing completed successfully

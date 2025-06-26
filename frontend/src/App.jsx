@@ -26,6 +26,8 @@ import ShopDetails from "./components/internal/ShopDetails.jsx";
 import AllShops from "./components/internal/AllShops.jsx";
 import BoutiquesAValider from "./components/internal/BoutiquesAValider.jsx"; // Import BoutiquesAValider component
 import DocumentationSection from "./components/internal/DocumentationSection.jsx"; // Import DocumentationSection component
+import ShopifyBoutiques from "./pages/internal/ShopifyBoutiques.jsx"; // Import ShopifyBoutiques component
+import ShopifyConfiguration from "./components/internal/shopify/ShopifyConfiguration.jsx";
 // import ClientForm from "./components/internal/ClientForm.jsx"; // If used as a standalone page
 
 // Admin components
@@ -148,6 +150,14 @@ const App = () => {
     LayoutComponent = InternalLayout;
     ComponentToRender = FeatureUnderConstruction;
     pageProps = { returnPath: "/internal/clients" };
+  } else if (pathname === "/internal/shopify") {
+    LayoutComponent = InternalLayout;
+    ComponentToRender = ShopifyBoutiques;
+    pageProps = { returnPath: "/internal/shopify" };
+  } else if (pathname === "/internal/configuration-shopify") {
+    LayoutComponent = InternalLayout;
+    ComponentToRender = ShopifyConfiguration;
+    pageProps = { returnPath: "/internal/configuration-shopify" };
   } else if (pathname === "/internal/creation-comptes-client") {
     LayoutComponent = InternalLayout;
     ComponentToRender = FeatureUnderConstruction;

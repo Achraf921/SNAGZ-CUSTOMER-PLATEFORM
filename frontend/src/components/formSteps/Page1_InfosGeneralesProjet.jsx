@@ -73,6 +73,66 @@ const Page1_InfosGeneralesProjet = ({ formData, handleChange }) => {
           </div>
         </div>
 
+        <div className="sm:col-span-3">
+          <label
+            htmlFor="demarrageProjet"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Démarrage du projet <span className="text-red-500">*</span>
+          </label>
+          <div className="mt-1">
+            <input
+              type="date"
+              name="demarrageProjet"
+              id="demarrageProjet"
+              value={formData.demarrageProjet}
+              onChange={handleChange}
+              required
+              className="shadow-sm focus:ring-sna-primary focus:border-sna-primary block w-full sm:text-sm border-gray-300 rounded-md"
+            />
+          </div>
+        </div>
+
+        <div className="sm:col-span-3">
+          <label
+            htmlFor="nomChefProjet"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Nom chef de projet <span className="text-red-500">*</span>
+          </label>
+          <div className="mt-1">
+            <input
+              type="text"
+              name="nomChefProjet"
+              id="nomChefProjet"
+              value={formData.nomChefProjet}
+              onChange={handleChange}
+              required
+              className="shadow-sm focus:ring-sna-primary focus:border-sna-primary block w-full sm:text-sm border-gray-300 rounded-md"
+            />
+          </div>
+        </div>
+
+        <div className="sm:col-span-3">
+          <label
+            htmlFor="prenomChefProjet"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Prénom chef de projet <span className="text-red-500">*</span>
+          </label>
+          <div className="mt-1">
+            <input
+              type="text"
+              name="prenomChefProjet"
+              id="prenomChefProjet"
+              value={formData.prenomChefProjet}
+              onChange={handleChange}
+              required
+              className="shadow-sm focus:ring-sna-primary focus:border-sna-primary block w-full sm:text-sm border-gray-300 rounded-md"
+            />
+          </div>
+        </div>
+
         <div className="sm:col-span-6">
           <hr className="my-4" />
           <h4 className="text-md leading-6 font-medium text-gray-800">
@@ -118,25 +178,6 @@ const Page1_InfosGeneralesProjet = ({ formData, handleChange }) => {
               placeholder="ex: email@example.com"
               pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
               title="Veuillez entrer une adresse email valide."
-              className="shadow-sm focus:ring-sna-primary focus:border-sna-primary block w-full sm:text-sm border-gray-300 rounded-md"
-            />
-          </div>
-        </div>
-
-        <div className="sm:col-span-3">
-          <label
-            htmlFor="compteClientRef"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Référence Compte Client (si existant)
-          </label>
-          <div className="mt-1">
-            <input
-              type="text"
-              name="compteClientRef"
-              id="compteClientRef"
-              value={formData.compteClientRef}
-              onChange={handleChange}
               className="shadow-sm focus:ring-sna-primary focus:border-sna-primary block w-full sm:text-sm border-gray-300 rounded-md"
             />
           </div>

@@ -5,6 +5,8 @@ const DocumentationSection = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [generatingShops, setGeneratingShops] = useState(new Set()); // Track shops currently generating documentation
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchShops = async () => {
@@ -47,6 +49,11 @@ const DocumentationSection = () => {
   }, []);
 
   const handleDocumentationAction = async (shopId, action) => {
+    // Show loading state for SharePoint generation
+    if (action === "document") {
+      setGeneratingShops((prev) => new Set(prev).add(shopId));
+    }
+
     try {
       const response = await fetch(
         `/api/customer/shop/${shopId}/documentation`,
@@ -59,8 +66,13 @@ const DocumentationSection = () => {
         }
       );
 
-      if (!response.ok)
-        throw new Error("Erreur lors de la mise à jour de la documentation");
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Erreur lors de la mise à jour de la documentation"
+        );
+      }
 
       // Update local state
       setShops((prevShops) =>
@@ -68,28 +80,31 @@ const DocumentationSection = () => {
           shop.shopId === shopId
             ? {
                 ...shop,
-                documented:
-                  action === "document" || action === "mark_documented"
-                    ? "documented"
-                    : "undocumented",
+                documented: result.documented,
               }
             : shop
         )
       );
 
-      // Show success message
+      // Show success message using the message from backend
       setNotification({
         type: "success",
-        message:
-          action === "document" || action === "mark_documented"
-            ? "La documentation a été générée avec succès"
-            : "La documentation a été supprimée avec succès",
+        message: result.message,
       });
     } catch (err) {
       setNotification({
         type: "error",
         message: "Erreur: " + err.message,
       });
+    } finally {
+      // Remove loading state
+      if (action === "document") {
+        setGeneratingShops((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(shopId);
+          return newSet;
+        });
+      }
     }
   };
 
@@ -248,93 +263,152 @@ const DocumentationSection = () => {
         </div>
       )}
 
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Générer la documentation
-        </h2>
-        <p className="mt-2 text-sm text-gray-600">
-          Seules les boutiques validées des clients actifs peuvent être
-          documentées.
-        </p>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Générer la documentation
+          </h2>
+          <input
+            type="text"
+            placeholder="Rechercher une boutique ou un client..."
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                Seules les boutiques{" "}
+                <span className="font-semibold">validées</span> des clients{" "}
+                <span className="font-semibold">actifs</span> peuvent être
+                documentées.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <ul className="divide-y divide-gray-200">
-          {shops.map((shop) => (
-            <li key={shop.shopId} className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-sna-primary truncate">
-                      {shop.nomProjet}
-                    </p>
-                    <div className="ml-2 flex-shrink-0 flex">
-                      <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Boutique validée
+          {shops
+            .filter(
+              (shop) =>
+                shop.nomProjet
+                  ?.toLowerCase()
+                  .includes(searchTerm.toLowerCase()) ||
+                shop.customerName
+                  ?.toLowerCase()
+                  .includes(searchTerm.toLowerCase())
+            )
+            .map((shop) => (
+              <li key={shop.shopId} className="px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-sna-primary truncate">
+                        {shop.nomProjet}
                       </p>
+                      <div className="ml-2 flex-shrink-0 flex">
+                        <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                          Boutique validée
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-between">
+                      <div className="sm:flex">
+                        <p className="flex items-center text-sm text-gray-500">
+                          Client: {shop.customerName}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                        <p>
+                          Statut documentation:{" "}
+                          <span
+                            className={`font-medium ${
+                              shop.documented === "documented"
+                                ? "text-green-600"
+                                : "text-yellow-600"
+                            }`}
+                          >
+                            {shop.documented === "documented"
+                              ? "Documentée"
+                              : "Non documentée"}
+                          </span>
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-2 flex justify-between">
-                    <div className="sm:flex">
-                      <p className="flex items-center text-sm text-gray-500">
-                        Client: {shop.customerName}
-                      </p>
-                    </div>
-                    <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                      <p>
-                        Statut documentation:{" "}
-                        <span
-                          className={`font-medium ${
-                            shop.documented === "documented"
-                              ? "text-green-600"
-                              : "text-yellow-600"
+                  <div className="ml-4 flex-shrink-0 flex space-x-4">
+                    {shop.documented === "undocumented" ? (
+                      <>
+                        <button
+                          onClick={() =>
+                            handleActionConfirmation(
+                              shop.shopId,
+                              "mark_documented"
+                            )
+                          }
+                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sna-primary"
+                        >
+                          Boutique déjà documentée
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleActionConfirmation(shop.shopId, "document")
+                          }
+                          disabled={generatingShops.has(shop.shopId)}
+                          className={`inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sna-primary ${
+                            generatingShops.has(shop.shopId)
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-sna-primary hover:bg-sna-primary/90"
                           }`}
                         >
-                          {shop.documented === "documented"
-                            ? "Documentée"
-                            : "Non documentée"}
-                        </span>
-                      </p>
-                    </div>
+                          {generatingShops.has(shop.shopId) ? (
+                            <>
+                              <svg
+                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Génération en cours...
+                            </>
+                          ) : (
+                            "Générer documentation SharePoint"
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          handleActionConfirmation(shop.shopId, "undocument")
+                        }
+                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Supprimer documentation
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div className="ml-4 flex-shrink-0 flex space-x-4">
-                  {shop.documented === "undocumented" ? (
-                    <>
-                      <button
-                        onClick={() =>
-                          handleActionConfirmation(
-                            shop.shopId,
-                            "mark_documented"
-                          )
-                        }
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sna-primary"
-                      >
-                        Boutique déjà documentée
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleActionConfirmation(shop.shopId, "document")
-                        }
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-sna-primary hover:bg-sna-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sna-primary"
-                      >
-                        Générer documentation SharePoint
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() =>
-                        handleActionConfirmation(shop.shopId, "undocument")
-                      }
-                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      Supprimer documentation
-                    </button>
-                  )}
-                </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            ))}
         </ul>
       </div>
     </div>

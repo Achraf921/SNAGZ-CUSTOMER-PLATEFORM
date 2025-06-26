@@ -13,17 +13,21 @@ export default function BoutiquesAValider() {
   const [validationInProgress, setValidationInProgress] = useState(null);
   const [showUnvalidateConfirm, setShowUnvalidateConfirm] = useState(false);
   const [shopToUnvalidate, setShopToUnvalidate] = useState(null);
+  const [searchTermPending, setSearchTermPending] = useState("");
+  const [searchTermValid, setSearchTermValid] = useState("");
 
   const validationFields = [
     "nomProjet",
     "typeProjet",
     "commercial",
+    "demarrageProjet",
+    "nomChefProjet",
+    "prenomChefProjet",
     "estBoutiqueEnLigne",
     "clientName",
     "createdAt",
     "nomClient",
     "contactsClient",
-    "compteClientRef",
     "dateMiseEnLigne",
     "dateCommercialisation",
     "dateSortieOfficielle",
@@ -55,7 +59,7 @@ export default function BoutiquesAValider() {
       setValidationInProgress(shop.shopId);
 
       const response = await fetch(
-        `/api/customer/clients/${shop.clientId}/shops/${shop.shopId}`,
+        `/api/internal/clients/${shop.clientId}/shops/${shop.shopId}`,
         {
           method: "PUT",
           headers: {
@@ -243,334 +247,521 @@ export default function BoutiquesAValider() {
     );
   }
 
-  return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">
-          Boutiques à Valider
-        </h1>
-        <p className="text-gray-600">
-          Liste complète des boutiques en attente de validation
-        </p>
-      </div>
+  // Filter functions for search
+  const filteredPendingShops = shops.pending.filter((shop) => {
+    if (!searchTermPending) return true;
+    const searchLower = searchTermPending.toLowerCase();
+    return (
+      shop.name.toLowerCase().includes(searchLower) ||
+      shop.clientName.toLowerCase().includes(searchLower)
+    );
+  });
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Pending Shops Column */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-yellow-700 bg-yellow-50 p-3 rounded-lg">
-            Boutiques en attente ({shops.pending.length})
-          </h2>
-          {shops.pending.length === 0 ? (
+  const filteredValidShops = shops.valid.filter((shop) => {
+    if (!searchTermValid) return true;
+    const searchLower = searchTermValid.toLowerCase();
+    return (
+      shop.name.toLowerCase().includes(searchLower) ||
+      shop.clientName.toLowerCase().includes(searchLower)
+    );
+  });
+
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">
+        Validation des Boutiques
+      </h1>
+
+      <div className="space-y-8">
+        {/* Pending Shops Section */}
+        <div>
+          <div className="mb-6 flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-yellow-700">
+              Boutiques en attente ({shops.pending.length})
+            </h2>
+            <input
+              type="text"
+              placeholder="Rechercher une boutique en attente..."
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
+              value={searchTermPending}
+              onChange={(e) => setSearchTermPending(e.target.value)}
+            />
+          </div>
+
+          {filteredPendingShops.length === 0 ? (
             <div className="bg-white p-6 rounded-lg shadow text-center">
-              <p className="text-gray-600">Aucune boutique en attente</p>
+              <p className="text-gray-600">
+                {searchTermPending
+                  ? "Aucune boutique en attente trouvée avec ce terme de recherche"
+                  : "Aucune boutique en attente"}
+              </p>
             </div>
           ) : (
-            shops.pending.map((shop) => (
-              <div
-                key={shop.shopId}
-                className="bg-white rounded-lg shadow overflow-hidden"
-              >
-                <div
-                  className="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50"
-                  onClick={() => toggleShop(shop)}
-                >
-                  <div>
-                    <h3 className="font-semibold text-lg flex items-center">
-                      <FaStore className="mr-2 text-blue-600" />
-                      {shop.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">{shop.clientName}</p>
-                  </div>
-                  <div className="flex items-center">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        shop.status === "valid"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-yellow-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      {shop.status === "valid" ? "Validée" : "En attente"}
-                    </span>
-                    <button
-                      onClick={() => toggleShop(shop)}
-                      className="ml-4 px-3 py-1 rounded text-white bg-green-500 hover:bg-green-600"
+                      Nom de la Boutique
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      {validationInProgress === shop.shopId
-                        ? "En cours..."
-                        : "Valider"}
-                    </button>
-                  </div>
-                </div>
-
-                {expandedShop === shop.shopId && (
-                  <div className="p-4 bg-gray-50">
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">
-                          Informations du Projet
-                        </h4>
-                        {validationFields.map((field) => (
-                          <div
-                            key={field}
-                            className="flex items-start py-3 border-b border-gray-100"
-                          >
-                            <span className="font-medium w-1/3 text-gray-700">
-                              {field === "nomProjet"
-                                ? "Nom Projet"
-                                : field === "typeProjet"
-                                ? "Type Projet"
-                                : field === "commercial"
-                                ? "Commercial"
-                                : field === "estBoutiqueEnLigne"
-                                ? "Est Boutique En Ligne"
-                                : field === "clientName"
-                                ? "Client"
-                                : field === "createdAt"
-                                ? "Date de Création"
-                                : field === "nomClient"
-                                ? "Nom Client"
-                                : field === "contactsClient"
-                                ? "Contacts Client"
-                                : field === "compteClientRef"
-                                ? "Compte Client Ref"
-                                : field === "dateMiseEnLigne"
-                                ? "Date Mise En Ligne"
-                                : field === "dateCommercialisation"
-                                ? "Date Commercialisation"
-                                : field === "dateSortieOfficielle"
-                                ? "Date Sortie Officielle"
-                                : field === "precommande"
-                                ? "Precommande"
-                                : field === "dedicaceEnvisagee"
-                                ? "Dédicace Envisagée"
-                                : field === "typeAbonnementShopify"
-                                ? "Type Abonnement Shopify"
-                                : field === "snaResponsableDesign"
-                                ? "SNA Responsable Design"
-                                : field === "moduleDelivengo"
-                                ? "Module Delivengo"
-                                : "Module Mondial Relay"}
+                      Client
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Statut
+                    </th>
+                    <th scope="col" className="relative px-6 py-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredPendingShops.map((shop) => (
+                    <React.Fragment key={shop.shopId}>
+                      <tr className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <FaStore className="mr-2 text-blue-700" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {shop.name}
                             </span>
-                            <div className="flex-1 flex flex-col">
-                              <span
-                                className={`px-3 py-2 rounded bg-gray-50 border ${
-                                  validatedFields[shop.shopId]?.[field]
-                                    ? "bg-green-50 border-green-200"
-                                    : ""
-                                }`}
-                              >
-                                {shop[field] || shop.shop?.[field] || "-"}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() =>
-                                toggleFieldValidation(shop.shopId, field)
-                              }
-                              className="ml-2 p-2 rounded-full hover:bg-gray-200 flex-shrink-0"
-                            >
-                              {validatedFields[shop.shopId]?.[field] ? (
-                                <FaCheckCircle className="text-green-500 text-lg" />
-                              ) : (
-                                <FaRegCheckCircle className="text-gray-400" />
-                              )}
-                            </button>
                           </div>
-                        ))}
-                      </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {shop.clientName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            En attente
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => toggleShop(shop)}
+                            className={`font-medium ${
+                              expandedShop === shop.shopId
+                                ? "text-blue-600 hover:text-blue-900"
+                                : "text-green-600 hover:text-green-900"
+                            }`}
+                          >
+                            {expandedShop === shop.shopId
+                              ? "Fermer"
+                              : "Valider"}
+                          </button>
+                        </td>
+                      </tr>
+                      {expandedShop === shop.shopId && (
+                        <tr className="bg-gray-50">
+                          <td colSpan="4" className="p-6">
+                            <div className="space-y-4">
+                              <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">
+                                Informations du Projet
+                              </h4>
+                              {validationFields.map((field) => (
+                                <div
+                                  key={field}
+                                  className="flex items-start py-3 border-b border-gray-100"
+                                >
+                                  <span className="font-medium w-1/3 text-gray-700">
+                                    {field === "nomProjet"
+                                      ? "Nom Projet"
+                                      : field === "typeProjet"
+                                        ? "Type Projet"
+                                        : field === "commercial"
+                                          ? "Commercial"
+                                          : field === "demarrageProjet"
+                                            ? "Démarrage du projet"
+                                            : field === "nomChefProjet"
+                                              ? "Nom chef de projet"
+                                              : field === "prenomChefProjet"
+                                                ? "Prénom chef de projet"
+                                                : field === "estBoutiqueEnLigne"
+                                                  ? "Est Boutique En Ligne"
+                                                  : field === "clientName"
+                                                    ? "Client"
+                                                    : field === "createdAt"
+                                                      ? "Date de Création"
+                                                      : field === "nomClient"
+                                                        ? "Nom Client"
+                                                        : field ===
+                                                            "contactsClient"
+                                                          ? "Contacts Client"
+                                                          : field ===
+                                                              "dateMiseEnLigne"
+                                                            ? "Date Mise En Ligne"
+                                                            : field ===
+                                                                "dateCommercialisation"
+                                                              ? "Date Commercialisation"
+                                                              : field ===
+                                                                  "dateSortieOfficielle"
+                                                                ? "Date Sortie Officielle"
+                                                                : field ===
+                                                                    "precommande"
+                                                                  ? "Precommande"
+                                                                  : field ===
+                                                                      "dedicaceEnvisagee"
+                                                                    ? "Dédicace Envisagée"
+                                                                    : field ===
+                                                                        "typeAbonnementShopify"
+                                                                      ? "Type Abonnement Shopify"
+                                                                      : field ===
+                                                                          "snaResponsableDesign"
+                                                                        ? "SNA Responsable Design"
+                                                                        : field ===
+                                                                            "moduleDelivengo"
+                                                                          ? "Module Delivengo"
+                                                                          : "Module Mondial Relay"}
+                                  </span>
+                                  <div className="flex-1 flex flex-col">
+                                    <span
+                                      className={`px-3 py-2 rounded bg-gray-50 border ${
+                                        validatedFields[shop.shopId]?.[field]
+                                          ? "bg-green-50 border-green-200"
+                                          : ""
+                                      }`}
+                                    >
+                                      {(() => {
+                                        const value =
+                                          shop[field] || shop.shop?.[field];
+                                        // Handle boolean fields that should display Oui/Non
+                                        if (
+                                          field === "moduleDelivengo" ||
+                                          field === "moduleMondialRelay" ||
+                                          field === "estBoutiqueEnLigne" ||
+                                          field === "dedicaceEnvisagee" ||
+                                          field === "precommande"
+                                        ) {
+                                          if (
+                                            value === true ||
+                                            value === "true" ||
+                                            value === "Oui"
+                                          )
+                                            return "Oui";
+                                          if (
+                                            value === false ||
+                                            value === "false" ||
+                                            value === "Non" ||
+                                            value === "" ||
+                                            value === null ||
+                                            value === undefined
+                                          )
+                                            return "Non";
+                                        }
+                                        // Handle date formatting for Date Sortie Officielle, Date de Création, and Démarrage du projet
+                                        if (
+                                          (field === "dateSortieOfficielle" ||
+                                            field === "createdAt" ||
+                                            field === "demarrageProjet") &&
+                                          value
+                                        ) {
+                                          const date = new Date(value);
+                                          if (!isNaN(date.getTime())) {
+                                            return date
+                                              .toISOString()
+                                              .split("T")[0]; // YYYY-MM-DD format
+                                          }
+                                        }
+                                        return value || "-";
+                                      })()}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() =>
+                                      toggleFieldValidation(shop.shopId, field)
+                                    }
+                                    className="ml-2 p-2 rounded-full hover:bg-gray-200 flex-shrink-0"
+                                  >
+                                    {validatedFields[shop.shopId]?.[field] ? (
+                                      <FaCheckCircle className="text-green-500 text-lg" />
+                                    ) : (
+                                      <FaRegCheckCircle className="text-gray-400" />
+                                    )}
+                                  </button>
+                                </div>
+                              ))}
 
-                      <div className="mt-6 flex justify-end">
-                        <button
-                          onClick={() => validateShop(shop)}
-                          disabled={!allFieldsValidated(shop.shopId)}
-                          className={`px-4 py-2 rounded ${
-                            allFieldsValidated(shop.shopId)
-                              ? "bg-green-500 hover:bg-green-600 text-white"
-                              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                          }`}
-                        >
-                          {validationInProgress === shop.shopId
-                            ? "Validation en cours..."
-                            : "Valider la boutique"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
+                              <div className="mt-6 flex justify-end">
+                                <button
+                                  onClick={() => validateShop(shop)}
+                                  disabled={!allFieldsValidated(shop.shopId)}
+                                  className={`px-4 py-2 rounded ${
+                                    allFieldsValidated(shop.shopId)
+                                      ? "bg-green-500 hover:bg-green-600 text-white"
+                                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                  }`}
+                                >
+                                  {validationInProgress === shop.shopId
+                                    ? "Validation en cours..."
+                                    : "Valider la boutique"}
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-
-        {/* Valid Shops Column */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-green-700 bg-green-50 p-3 rounded-lg">
-            Boutiques validées ({shops.valid.length})
-          </h2>
-          {shops.valid.length === 0 ? (
+        {/* Valid Shops Section */}
+        <div>
+          <div className="mb-6 flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-green-700">
+              Boutiques validées ({shops.valid.length})
+            </h2>
+            <input
+              type="text"
+              placeholder="Rechercher une boutique validée..."
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
+              value={searchTermValid}
+              onChange={(e) => setSearchTermValid(e.target.value)}
+            />
+          </div>
+          {filteredValidShops.length === 0 ? (
             <div className="bg-white p-6 rounded-lg shadow text-center">
-              <p className="text-gray-600">Aucune boutique validée</p>
+              <p className="text-gray-600">
+                {searchTermValid
+                  ? "Aucune boutique validée trouvée avec ce terme de recherche"
+                  : "Aucune boutique validée"}
+              </p>
             </div>
           ) : (
-            shops.valid.map((shop) => (
-              <div
-                key={shop.shopId}
-                className="bg-white rounded-lg shadow overflow-hidden border border-gray-200"
-              >
-                <div
-                  className="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50"
-                  onClick={() => toggleShop(shop)}
-                >
-                  <div>
-                    <h3 className="font-semibold text-lg flex items-center">
-                      <FaStore className="mr-2 text-blue-600" />
-                      {shop.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">{shop.clientName}</p>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Validée
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        confirmUnvalidate(shop);
-                      }}
-                      className="ml-4 px-3 py-1 rounded text-yellow-800 bg-yellow-100 hover:bg-yellow-200"
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-green-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Annuler la validation
-                    </button>
-                  </div>
-                </div>
-
-                {expandedShop === shop.shopId && (
-                  <div className="p-4 bg-gray-50">
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">
-                          Informations du Projet
-                        </h4>
-                        {validationFields.map((field) => (
-                          <div
-                            key={field}
-                            className="flex items-start py-3 border-b border-gray-100"
-                          >
-                            <span className="font-medium w-1/3 text-gray-700">
-                              {field === "nomProjet"
-                                ? "Nom Projet"
-                                : field === "typeProjet"
-                                ? "Type Projet"
-                                : field === "commercial"
-                                ? "Commercial"
-                                : field === "estBoutiqueEnLigne"
-                                ? "Est Boutique En Ligne"
-                                : field === "clientName"
-                                ? "Client"
-                                : field === "createdAt"
-                                ? "Date de Création"
-                                : field === "nomClient"
-                                ? "Nom Client"
-                                : field === "contactsClient"
-                                ? "Contacts Client"
-                                : field === "compteClientRef"
-                                ? "Compte Client Ref"
-                                : field === "dateMiseEnLigne"
-                                ? "Date Mise En Ligne"
-                                : field === "dateCommercialisation"
-                                ? "Date Commercialisation"
-                                : field === "dateSortieOfficielle"
-                                ? "Date Sortie Officielle"
-                                : field === "precommande"
-                                ? "Precommande"
-                                : field === "dedicaceEnvisagee"
-                                ? "Dédicace Envisagée"
-                                : field === "typeAbonnementShopify"
-                                ? "Type Abonnement Shopify"
-                                : field === "snaResponsableDesign"
-                                ? "SNA Responsable Design"
-                                : field === "moduleDelivengo"
-                                ? "Module Delivengo"
-                                : "Module Mondial Relay"}
+                      Nom de la Boutique
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Client
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Statut
+                    </th>
+                    <th scope="col" className="relative px-6 py-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredValidShops.map((shop) => (
+                    <React.Fragment key={shop.shopId}>
+                      <tr className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <FaStore className="mr-2 text-blue-700" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {shop.name}
                             </span>
-                            <div className="flex-1 flex flex-col">
-                              <span
-                                className={`px-3 py-2 rounded bg-gray-50 border ${
-                                  validatedFields[shop.shopId]?.[field]
-                                    ? "bg-green-50 border-green-200"
-                                    : ""
-                                }`}
-                              >
-                                {shop[field] || shop.shop?.[field] || "-"}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() =>
-                                toggleFieldValidation(shop.shopId, field)
-                              }
-                              className="ml-2 p-2 rounded-full hover:bg-gray-200 flex-shrink-0"
-                            >
-                              {validatedFields[shop.shopId]?.[field] ? (
-                                <FaCheckCircle className="text-green-500 text-lg" />
-                              ) : (
-                                <FaRegCheckCircle className="text-gray-400" />
-                              )}
-                            </button>
                           </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-6 flex justify-end">
-                        <button
-                          onClick={() => validateShop(shop)}
-                          disabled={!allFieldsValidated(shop.shopId)}
-                          className={`px-4 py-2 rounded ${
-                            allFieldsValidated(shop.shopId)
-                              ? "bg-green-500 hover:bg-green-600 text-white"
-                              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                          }`}
-                        >
-                          {validationInProgress === shop.shopId
-                            ? "Validation en cours..."
-                            : "Valider la boutique"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {shop.clientName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Validée
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => toggleShop(shop)}
+                            className="text-blue-600 hover:text-blue-900 font-medium mr-4"
+                          >
+                            {expandedShop === shop.shopId
+                              ? "Fermer"
+                              : "Voir détails"}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              confirmUnvalidate(shop);
+                            }}
+                            className="text-red-600 hover:text-red-900 font-medium"
+                          >
+                            Annuler validation
+                          </button>
+                        </td>
+                      </tr>
+                      {expandedShop === shop.shopId && (
+                        <tr className="bg-gray-50">
+                          <td colSpan="4" className="p-6">
+                            <div className="space-y-4">
+                              <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">
+                                Informations du Projet - Boutique validée
+                              </h4>
+                              {validationFields.map((field) => (
+                                <div
+                                  key={field}
+                                  className="flex items-start py-3 border-b border-gray-100"
+                                >
+                                  <span className="font-medium w-1/3 text-gray-700">
+                                    {field === "nomProjet"
+                                      ? "Nom Projet"
+                                      : field === "typeProjet"
+                                        ? "Type Projet"
+                                        : field === "commercial"
+                                          ? "Commercial"
+                                          : field === "demarrageProjet"
+                                            ? "Démarrage du projet"
+                                            : field === "nomChefProjet"
+                                              ? "Nom chef de projet"
+                                              : field === "prenomChefProjet"
+                                                ? "Prénom chef de projet"
+                                                : field === "estBoutiqueEnLigne"
+                                                  ? "Est Boutique En Ligne"
+                                                  : field === "clientName"
+                                                    ? "Client"
+                                                    : field === "createdAt"
+                                                      ? "Date de Création"
+                                                      : field === "nomClient"
+                                                        ? "Nom Client"
+                                                        : field ===
+                                                            "contactsClient"
+                                                          ? "Contacts Client"
+                                                          : field ===
+                                                              "dateMiseEnLigne"
+                                                            ? "Date Mise En Ligne"
+                                                            : field ===
+                                                                "dateCommercialisation"
+                                                              ? "Date Commercialisation"
+                                                              : field ===
+                                                                  "dateSortieOfficielle"
+                                                                ? "Date Sortie Officielle"
+                                                                : field ===
+                                                                    "precommande"
+                                                                  ? "Precommande"
+                                                                  : field ===
+                                                                      "dedicaceEnvisagee"
+                                                                    ? "Dédicace Envisagée"
+                                                                    : field ===
+                                                                        "typeAbonnementShopify"
+                                                                      ? "Type Abonnement Shopify"
+                                                                      : field ===
+                                                                          "snaResponsableDesign"
+                                                                        ? "SNA Responsable Design"
+                                                                        : field ===
+                                                                            "moduleDelivengo"
+                                                                          ? "Module Delivengo"
+                                                                          : "Module Mondial Relay"}
+                                  </span>
+                                  <div className="flex-1 flex flex-col">
+                                    <span className="px-3 py-2 rounded bg-green-50 border border-green-200">
+                                      {(() => {
+                                        const value =
+                                          shop[field] || shop.shop?.[field];
+                                        // Handle boolean fields that should display Oui/Non
+                                        if (
+                                          field === "moduleDelivengo" ||
+                                          field === "moduleMondialRelay" ||
+                                          field === "estBoutiqueEnLigne" ||
+                                          field === "dedicaceEnvisagee" ||
+                                          field === "precommande"
+                                        ) {
+                                          if (
+                                            value === true ||
+                                            value === "true" ||
+                                            value === "Oui"
+                                          )
+                                            return "Oui";
+                                          if (
+                                            value === false ||
+                                            value === "false" ||
+                                            value === "Non" ||
+                                            value === "" ||
+                                            value === null ||
+                                            value === undefined
+                                          )
+                                            return "Non";
+                                        }
+                                        // Handle date formatting for Date Sortie Officielle, Date de Création, and Démarrage du projet
+                                        if (
+                                          (field === "dateSortieOfficielle" ||
+                                            field === "createdAt" ||
+                                            field === "demarrageProjet") &&
+                                          value
+                                        ) {
+                                          const date = new Date(value);
+                                          if (!isNaN(date.getTime())) {
+                                            return date
+                                              .toISOString()
+                                              .split("T")[0]; // YYYY-MM-DD format
+                                          }
+                                        }
+                                        return value || "-";
+                                      })()}
+                                    </span>
+                                  </div>
+                                  <div className="ml-2 p-2 flex-shrink-0">
+                                    <FaCheckCircle className="text-green-500 text-lg" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
 
       {/* Unvalidate Confirmation Modal */}
       {showUnvalidateConfirm && (
-  <div className="fixed inset-0 z-50 flex justify-center items-center">
-    {/* Overlay */}
-    <div className="absolute inset-0 bg-black opacity-50"></div>
-    {/* Modal */}
-    <div className="relative bg-white rounded-lg shadow p-6 z-10 min-w-[320px]">
-      <h2 className="text-lg font-bold text-gray-800 mb-2">Confirmation</h2>
-      <p className="text-gray-600 mb-4">
-        Êtes-vous sûr de vouloir annuler la validation de cette boutique ?
-      </p>
-      <div className="flex justify-end">
-        <button
-          onClick={cancelUnvalidate}
-          className="px-4 py-2 rounded bg-gray-300 text-gray-500 hover:bg-gray-400"
-        >
-          Annuler
-        </button>
-        <button
-          onClick={() => unvalidateShop(shopToUnvalidate)}
-          className="ml-4 px-4 py-2 rounded bg-yellow-500 hover:bg-yellow-600 text-white"
-        >
-          Confirmer
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+        <div className="fixed inset-0 z-50 flex justify-center items-center">
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black opacity-50"></div>
+          {/* Modal */}
+          <div className="relative bg-white rounded-lg shadow p-6 z-10 min-w-[320px]">
+            <h2 className="text-lg font-bold text-gray-800 mb-2">
+              Confirmation
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Êtes-vous sûr de vouloir annuler la validation de cette boutique ?
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={cancelUnvalidate}
+                className="px-4 py-2 rounded bg-gray-300 text-gray-500 hover:bg-gray-400"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => unvalidateShop(shopToUnvalidate)}
+                className="ml-4 px-4 py-2 rounded bg-yellow-500 hover:bg-yellow-600 text-white"
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

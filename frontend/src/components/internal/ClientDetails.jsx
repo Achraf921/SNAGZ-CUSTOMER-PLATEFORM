@@ -4,7 +4,6 @@ import { FiEdit2, FiX, FiCheck, FiCalendar } from "react-icons/fi";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-
 const ClientDetails = (props) => {
   const params = useParams();
   const clientId = props.clientId || params.clientId || params.id;
@@ -39,12 +38,18 @@ const ClientDetails = (props) => {
       const apiUrl = `http://localhost:3000/api/internal/clients/${clientId}`;
       const response = await fetch(apiUrl, {
         method: "GET",
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+        },
         credentials: "include",
       });
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || `Erreur lors de la récupération du client (${response.status})`);
+        throw new Error(
+          errorText ||
+            `Erreur lors de la récupération du client (${response.status})`
+        );
       }
       const data = await response.json();
       if (!data.success || !data.customer) {
@@ -54,7 +59,9 @@ const ClientDetails = (props) => {
       setPendingChanges({}); // Reset pending changes on fresh fetch
       setHasUnsavedChanges(false);
     } catch (err) {
-      setError(`Erreur: ${err.message || "Impossible de charger les détails du client"}`);
+      setError(
+        `Erreur: ${err.message || "Impossible de charger les détails du client"}`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +78,11 @@ const ClientDetails = (props) => {
 
   const getInputType = (field, value) => {
     if (field.toLowerCase().includes("email")) return "email";
-    if (field.toLowerCase().includes("phone") || field.toLowerCase().includes("tel")) return "tel";
+    if (
+      field.toLowerCase().includes("phone") ||
+      field.toLowerCase().includes("tel")
+    )
+      return "tel";
     if (field.toLowerCase().includes("date")) return "date";
     if (typeof value === "boolean") return "checkbox";
     if (typeof value === "number") return "number";
@@ -81,7 +92,10 @@ const ClientDetails = (props) => {
   const startEditing = (field, currentValue) => {
     setEditingField(field);
     // Use value from pendingChanges if available, otherwise from client state
-    const valueToEdit = pendingChanges[field] !== undefined ? pendingChanges[field] : currentValue;
+    const valueToEdit =
+      pendingChanges[field] !== undefined
+        ? pendingChanges[field]
+        : currentValue;
     setTempValue(valueToEdit);
   };
 
@@ -125,21 +139,29 @@ const ClientDetails = (props) => {
       const url = `http://localhost:3000/api/internal/clients/${clientId}`;
       const response = await fetch(url, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+        },
         credentials: "include",
         body: JSON.stringify(pendingChanges),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || `Erreur lors de la sauvegarde (${response.status} ${response.statusText})`);
+        throw new Error(
+          errorText ||
+            `Erreur lors de la sauvegarde (${response.status} ${response.statusText})`
+        );
       }
 
       // Update client state with successfully saved changes
       setClient((prevClient) => ({ ...prevClient, ...pendingChanges }));
       setPendingChanges({});
       setHasUnsavedChanges(false);
-      setSaveMessage("Toutes les modifications ont été enregistrées avec succès !");
+      setSaveMessage(
+        "Toutes les modifications ont été enregistrées avec succès !"
+      );
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (err) {
       setSaveMessage(`Erreur lors de la sauvegarde: ${err.message}`);
@@ -162,7 +184,13 @@ const ClientDetails = (props) => {
       <div className="p-4 bg-red-50 text-red-700 rounded-md">
         <p className="font-medium">Erreur</p>
         <p>{error}</p>
-        <button onClick={() => { setIsLoading(true); fetchClientDetails(); }} className="mt-2 text-sm text-red-600 hover:underline">
+        <button
+          onClick={() => {
+            setIsLoading(true);
+            fetchClientDetails();
+          }}
+          className="mt-2 text-sm text-red-600 hover:underline"
+        >
           Réessayer
         </button>
       </div>
@@ -178,23 +206,37 @@ const ClientDetails = (props) => {
   }
 
   const excludeFields = [
-    "_id", "__v", "createdAt", "updatedAt", 
-    "password", "hashedPassword", "salt", 
-    "shops", "userId", "status", "submittedAt",
-    "dateSoumission", "nomSoumission", "fonctionSoumission"
+    "_id",
+    "__v",
+    "createdAt",
+    "updatedAt",
+    "password",
+    "hashedPassword",
+    "salt",
+    "shops",
+    "userId",
+    "status",
+    "submittedAt",
+    "dateSoumission",
+    "nomSoumission",
+    "fonctionSoumission",
+    "documented",
   ];
 
   return (
     <div className="flex-1 overflow-auto p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        Détails du client: {client.raisonSociale || client.nomSoumission || clientId}
+        Détails du client:{" "}
+        {client.raisonSociale || client.nomSoumission || clientId}
       </h1>
 
       {/* Global Save Button and Message Area */}
       {(hasUnsavedChanges || saveMessage) && (
         <div className="mb-4 p-4 sticky top-0 bg-white z-10 shadow-sm rounded-md">
           {saveMessage && (
-            <div className={`mb-2 p-3 rounded-md text-sm ${saveMessage.includes("Erreur") ? "bg-red-100 text-red-800" : (saveMessage.includes("Aucune modification") ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800")}`}>
+            <div
+              className={`mb-2 p-3 rounded-md text-sm ${saveMessage.includes("Erreur") ? "bg-red-100 text-red-800" : saveMessage.includes("Aucune modification") ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}`}
+            >
               {saveMessage}
             </div>
           )}
@@ -209,7 +251,9 @@ const ClientDetails = (props) => {
                   <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
                   Enregistrement...
                 </>
-              ) : "Enregistrer les modifications"}
+              ) : (
+                "Enregistrer les modifications"
+              )}
             </button>
           )}
         </div>
@@ -222,31 +266,46 @@ const ClientDetails = (props) => {
               .filter(([key]) => !excludeFields.includes(key))
               .map(([field, value]) => {
                 const originalValue = client && client[field];
-                const currentValue = pendingChanges[field] !== undefined ? pendingChanges[field] : originalValue;
+                const currentValue =
+                  pendingChanges[field] !== undefined
+                    ? pendingChanges[field]
+                    : originalValue;
                 const isEditing = editingField === field;
                 const inputType = getInputType(field, currentValue);
 
                 let displayValue;
-                if (typeof currentValue === 'boolean') {
-                  displayValue = currentValue ? 'Oui' : 'Non';
-                } else if (currentValue instanceof Date || (typeof currentValue === 'string' && field.toLowerCase().includes('date'))) {
+                if (typeof currentValue === "boolean") {
+                  displayValue = currentValue ? "Oui" : "Non";
+                } else if (
+                  currentValue instanceof Date ||
+                  (typeof currentValue === "string" &&
+                    field.toLowerCase().includes("date"))
+                ) {
                   try {
                     // Ensure date is valid before formatting
                     const dateObj = new Date(currentValue);
                     if (isNaN(dateObj.getTime())) {
                       displayValue = currentValue || "-"; // Show original string if invalid date
                     } else {
-                      displayValue = dateObj.toLocaleDateString('fr-FR');
+                      displayValue = dateObj.toLocaleDateString("fr-FR");
                     }
                   } catch (e) {
                     displayValue = currentValue || "-";
                   }
                 } else {
-                  displayValue = currentValue === null || currentValue === undefined || currentValue === '' ? "-" : String(currentValue);
+                  displayValue =
+                    currentValue === null ||
+                    currentValue === undefined ||
+                    currentValue === ""
+                      ? "-"
+                      : String(currentValue);
                 }
 
                 return (
-                  <div key={field} className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 border-b border-gray-100 hover:bg-gray-50 group relative">
+                  <div
+                    key={field}
+                    className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 border-b border-gray-100 hover:bg-gray-50 group relative"
+                  >
                     <dt className="text-sm font-medium text-gray-500 flex items-center">
                       {formatFieldName(field)}
                     </dt>
@@ -255,12 +314,22 @@ const ClientDetails = (props) => {
                         <div className="flex items-center w-full">
                           {inputType === "checkbox" ? (
                             <div className="flex items-center space-x-2">
-                              <input type="checkbox" checked={!!tempValue} onChange={handleFieldChange} className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+                              <input
+                                type="checkbox"
+                                checked={!!tempValue}
+                                onChange={handleFieldChange}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
                             </div>
                           ) : inputType === "date" ? (
                             <div className="relative w-full">
                               <DatePicker
-                                selected={tempValue && !isNaN(new Date(tempValue).getTime()) ? new Date(tempValue) : null}
+                                selected={
+                                  tempValue &&
+                                  !isNaN(new Date(tempValue).getTime())
+                                    ? new Date(tempValue)
+                                    : null
+                                }
                                 onChange={handleDateChange}
                                 dateFormat="dd/MM/yyyy"
                                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -272,16 +341,28 @@ const ClientDetails = (props) => {
                           ) : (
                             <input
                               type={inputType}
-                              value={tempValue === null || tempValue === undefined ? "" : tempValue}
+                              value={
+                                tempValue === null || tempValue === undefined
+                                  ? ""
+                                  : tempValue
+                              }
                               onChange={handleFieldChange}
                               className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                               autoFocus
                             />
                           )}
-                          <button onClick={() => handleConfirmFieldEdit(field)} className="ml-2 p-1 text-green-600 hover:bg-green-100 rounded-full" title="Confirmer">
+                          <button
+                            onClick={() => handleConfirmFieldEdit(field)}
+                            className="ml-2 p-1 text-green-600 hover:bg-green-100 rounded-full"
+                            title="Confirmer"
+                          >
                             <FiCheck size={20} />
                           </button>
-                          <button onClick={cancelEditing} className="ml-1 p-1 text-red-600 hover:bg-red-100 rounded-full" title="Annuler">
+                          <button
+                            onClick={cancelEditing}
+                            className="ml-1 p-1 text-red-600 hover:bg-red-100 rounded-full"
+                            title="Annuler"
+                          >
                             <FiX size={20} />
                           </button>
                         </div>
@@ -290,7 +371,11 @@ const ClientDetails = (props) => {
                           <span className="flex-grow break-words">
                             {displayValue}
                           </span>
-                          <button onClick={() => startEditing(field, currentValue)} className="ml-2 p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity rounded-full hover:bg-gray-100" title="Modifier">
+                          <button
+                            onClick={() => startEditing(field, currentValue)}
+                            className="ml-2 p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity rounded-full hover:bg-gray-100"
+                            title="Modifier"
+                          >
                             <FiEdit2 size={16} />
                           </button>
                         </>

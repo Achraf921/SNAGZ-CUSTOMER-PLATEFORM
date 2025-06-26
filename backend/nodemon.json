@@ -1,14 +1,18 @@
 {
+  "watch": ["src/"],
+  "ext": "js,json",
   "ignore": [
-    ".git",
+    "node_modules/**/*.js",
     "node_modules/**/node_modules",
+    "src/tests/**/*.js",
+    ".git",
     "build",
     "../build",
     "../src",
     "../public"
   ],
-  "watch": [
-    "src/"
-  ],
-  "ext": "js,json"
-} 
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "exec": "node -r dotenv/config"
+}

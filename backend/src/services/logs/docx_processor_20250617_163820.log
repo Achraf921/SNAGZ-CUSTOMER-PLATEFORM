@@ -1,0 +1,20 @@
+[2025-06-17 16:38:20] Script started
+[2025-06-17 16:38:20] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/MODELE.FICHE.PROJET_CLIENT_PROJET_AAAAMMJJ.docx
+[2025-06-17 16:38:20] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE_PROJET_6847f3d2f58ca94b3e6a5ba4.docx
+[2025-06-17 16:38:20] Encoded data length: 520 characters
+[2025-06-17 16:38:20] Decoding base64 data...
+[2025-06-17 16:38:20] Successfully decoded base64 data
+[2025-06-17 16:38:20] [DEBUG] Type of shop_data_string after decode: <class 'str'>
+[2025-06-17 16:38:20] [DEBUG] First 100 chars of shop_data_string: {"nomProjet":"TEST2","typeProjet":"TEST","commercial":"Achraf","clientName":"678910_GZ","raisonSocia...
+[2025-06-17 16:38:20] Parsing JSON data...
+[2025-06-17 16:38:20] Successfully parsed JSON data
+[2025-06-17 16:38:20] [DEBUG] Type of shop_data after json.loads: <class 'dict'>
+[2025-06-17 16:38:20] [DEBUG] shop_data keys: ['nomProjet', 'typeProjet', 'commercial', 'clientName', 'raisonSociale', 'compteClientRef', 'contactsClient', 'dateMiseEnLigne', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicaceEnvisagee', 'shopifyPlanMonthlySelected', 'shopifyPlanYearlySelected']
+[2025-06-17 16:38:20] Starting document processing...
+[2025-06-17 16:38:20] Starting document processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/MODELE.FICHE.PROJET_CLIENT_PROJET_AAAAMMJJ.docx
+[2025-06-17 16:38:20] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE_PROJET_6847f3d2f58ca94b3e6a5ba4.docx
+[2025-06-17 16:38:20] Failed to load document: Package not found at '/Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/MODELE.FICHE.PROJET_CLIENT_PROJET_AAAAMMJJ.docx'
+[2025-06-17 16:38:20] Error processing document: Package not found at '/Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/MODELE.FICHE.PROJET_CLIENT_PROJET_AAAAMMJJ.docx'
+[2025-06-17 16:38:20] Error type: PackageNotFoundError
+[2025-06-17 16:38:20] Error args: ("Package not found at '/Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/MODELE.FICHE.PROJET_CLIENT_PROJET_AAAAMMJJ.docx'",)
+[2025-06-17 16:38:20] Fatal error: Package not found at '/Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/MODELE.FICHE.PROJET_CLIENT_PROJET_AAAAMMJJ.docx'

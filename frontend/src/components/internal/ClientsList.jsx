@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 // Removed: import { Link } from "react-router-dom";
 import ClientForm from "./ClientForm";
-import ClientShopsDisplay from './ClientShopsDisplay'; // Import ClientShopsDisplay
+import ClientShopsDisplay from "./ClientShopsDisplay"; // Import ClientShopsDisplay
 
 const ClientsList = () => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -9,7 +9,8 @@ const ClientsList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedClientIdForShops, setSelectedClientIdForShops] = useState(null);
+  const [selectedClientIdForShops, setSelectedClientIdForShops] =
+    useState(null);
   const [shopsOfSelectedClient, setShopsOfSelectedClient] = useState([]);
   const [isLoadingShops, setIsLoadingShops] = useState(false);
   const [errorLoadingShops, setErrorLoadingShops] = useState(null);
@@ -18,20 +19,26 @@ const ClientsList = () => {
     // Fetch clients data from backend
     const fetchClients = async () => {
       try {
-        const response = await fetch(`/api/customer/all?details=true&_=${new Date().getTime()}`, { headers: { 'Cache-Control': 'no-cache' } });
-        if (!response.ok) throw new Error("Erreur lors du chargement des clients");
+        const response = await fetch(
+          `/api/customer/all?details=true&_=${new Date().getTime()}`,
+          { headers: { "Cache-Control": "no-cache" } }
+        );
+        if (!response.ok)
+          throw new Error("Erreur lors du chargement des clients");
         const data = await response.json();
         // Expecting data.customers to be an array
         setClients(
-          (data.customers || []).map(c => {
+          (data.customers || []).map((c) => {
             // Use the customer's own status field, defaulting to 'inactive' if not present.
-            const status = c.status || 'inactive';
+            const status = c.status || "inactive";
 
             return {
               id: c._id || c.id,
               name: c.raisonSociale || c.name || "-",
               email: c.email || "-",
-              shopsCount: Array.isArray(c.shops) ? c.shops.length : (c.shopsCount || 0),
+              shopsCount: Array.isArray(c.shops)
+                ? c.shops.length
+                : c.shopsCount || 0,
               status: status,
             };
           })
@@ -62,47 +69,67 @@ const ClientsList = () => {
       const apiUrl = `http://localhost:3000/api/internal/clients/${clientId}`;
       const response = await fetch(apiUrl, {
         method: "GET",
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+        },
         credentials: "include",
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || `Erreur lors de la récupération des boutiques du client (${response.status})`);
+        throw new Error(
+          errorText ||
+            `Erreur lors de la récupération des boutiques du client (${response.status})`
+        );
       }
       const data = await response.json();
       if (!data.success || !data.customer) {
         throw new Error("Données du client non valides ou manquantes.");
       }
       // If shops array is missing or not an array (e.g. for a client with 0 shops), default to an empty array.
-      const shopsData = Array.isArray(data.customer.shops) ? data.customer.shops : [];
+      const shopsData = Array.isArray(data.customer.shops)
+        ? data.customer.shops
+        : [];
       setShopsOfSelectedClient(shopsData);
     } catch (err) {
-      setErrorLoadingShops(`Erreur: ${err.message || "Impossible de charger les boutiques du client"}`);
+      setErrorLoadingShops(
+        `Erreur: ${
+          err.message || "Impossible de charger les boutiques du client"
+        }`
+      );
       setShopsOfSelectedClient([]); // Ensure shops are cleared on error
     } finally {
       setIsLoadingShops(false);
     }
   };
 
-  const handleShopDeletedInList = (deletedShopId, updatedClientDataWithShops) => {
+  const handleShopDeletedInList = (
+    deletedShopId,
+    updatedClientDataWithShops
+  ) => {
     let newShopsCount = 0;
-    if (updatedClientDataWithShops && Array.isArray(updatedClientDataWithShops.shops)) {
+    if (
+      updatedClientDataWithShops &&
+      Array.isArray(updatedClientDataWithShops.shops)
+    ) {
       setShopsOfSelectedClient(updatedClientDataWithShops.shops);
       newShopsCount = updatedClientDataWithShops.shops.length;
     } else {
       // Fallback if the structure is different or shops are missing - this part might be tricky if updatedClientDataWithShops is not reliable
       let updatedShopsArray = [];
-      setShopsOfSelectedClient(prevShops => {
-        updatedShopsArray = prevShops.filter(shop => String(shop.shopId || shop._id) !== String(deletedShopId));
+      setShopsOfSelectedClient((prevShops) => {
+        updatedShopsArray = prevShops.filter(
+          (shop) => String(shop.shopId || shop._id) !== String(deletedShopId)
+        );
         return updatedShopsArray;
       });
       newShopsCount = updatedShopsArray.length; // This might be slightly off if prevShops wasn't perfectly in sync, but better than nothing
     }
 
     // Update the shopsCount in the main clients list
-    setClients(prevClients =>
-      prevClients.map(c =>
+    setClients((prevClients) =>
+      prevClients.map((c) =>
         c.id === selectedClientIdForShops
           ? { ...c, shopsCount: newShopsCount }
           : c
@@ -110,31 +137,55 @@ const ClientsList = () => {
     );
   };
 
-  const handleShopUpdatedInList = (updatedShopResponse) => {
-    if (updatedShopResponse && updatedShopResponse.success && updatedShopResponse.updatedShop) {
-      const { updatedShop, updatedClient } = updatedShopResponse;
-      // Update the list of shops currently being displayed for the selected client
-      setShopsOfSelectedClient(prevShops => 
-        prevShops.map(shop => 
-          String(shop.shopId || shop._id) === String(updatedShop.shopId || updatedShop._id) 
-            ? { ...shop, ...updatedShop } // Merge updates into the existing shop object
-            : shop
-        )
-      );
+  const handleShopUpdatedInList = async (updatedShopResponse) => {
+    if (updatedShopResponse && updatedShopResponse.success) {
+      try {
+        // Fetch fresh data for the client's shops
+        const response = await fetch(
+          `http://localhost:3000/api/internal/clients/${selectedClientIdForShops}?_=${new Date().getTime()}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            },
+            credentials: "include",
+          }
+        );
 
-      // Update the shopsCount in the main clients list if the full updatedClient is available
-      if (updatedClient && Array.isArray(updatedClient.shops)) {
-        setClients(prevClients =>
-          prevClients.map(c =>
+        if (!response.ok) {
+          throw new Error("Failed to refresh shop data");
+        }
+
+        const data = await response.json();
+        if (!data.success || !data.customer) {
+          throw new Error("Invalid client data received");
+        }
+
+        // Update the shops list with fresh data
+        const shopsData = Array.isArray(data.customer.shops)
+          ? data.customer.shops
+          : [];
+        setShopsOfSelectedClient(shopsData);
+
+        // Update the shopsCount in the main clients list
+        setClients((prevClients) =>
+          prevClients.map((c) =>
             c.id === selectedClientIdForShops
-              ? { ...c, shopsCount: updatedClient.shops.length } // Or a more specific count if needed
+              ? { ...c, shopsCount: shopsData.length }
               : c
           )
         );
+      } catch (error) {
+        console.error("Error refreshing shop data:", error);
+        setErrorLoadingShops(`Error refreshing data: ${error.message}`);
       }
     } else {
-      console.error("Failed to update shop in list due to invalid response:", updatedShopResponse);
-      // Optionally, trigger a re-fetch of shops for the client if data is inconsistent
+      console.error(
+        "Failed to update shop in list due to invalid response:",
+        updatedShopResponse
+      );
     }
   };
 
@@ -212,12 +263,12 @@ const ClientsList = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          client.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                          client.status === "active"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
                         }`}
                       >
-                        {client.status === 'active' ? 'Validé' : 'En attente'}
+                        {client.status === "active" ? "Validé" : "En attente"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -225,7 +276,9 @@ const ClientsList = () => {
                         onClick={() => handleManageShops(client.id)}
                         className="text-indigo-600 hover:text-indigo-900 font-medium mr-4"
                       >
-                        {selectedClientIdForShops === client.id ? 'Fermer boutiques' : 'Gérer les boutiques'}
+                        {selectedClientIdForShops === client.id
+                          ? "Fermer boutiques"
+                          : "Gérer les boutiques"}
                       </button>
                       <a
                         href={`/internal/clients/${client.id}`}
@@ -239,9 +292,12 @@ const ClientsList = () => {
                     <tr className="bg-gray-100">
                       <td colSpan="5" className="p-4">
                         {isLoadingShops && <p>Chargement des boutiques...</p>}
-                        {errorLoadingShops && <p className="text-red-500">{errorLoadingShops}</p>}
-                        {!isLoadingShops && !errorLoadingShops && (
-                          shopsOfSelectedClient.length > 0 ? (
+                        {errorLoadingShops && (
+                          <p className="text-red-500">{errorLoadingShops}</p>
+                        )}
+                        {!isLoadingShops &&
+                          !errorLoadingShops &&
+                          (shopsOfSelectedClient.length > 0 ? (
                             <ClientShopsDisplay
                               shops={shopsOfSelectedClient}
                               clientId={selectedClientIdForShops}
@@ -250,8 +306,7 @@ const ClientsList = () => {
                             />
                           ) : (
                             <p>Ce client n'a pas de boutiques enregistrées.</p>
-                          )
-                        )}
+                          ))}
                         <button
                           onClick={() => setSelectedClientIdForShops(null)}
                           className="mt-2 text-sm text-gray-600 hover:text-gray-800 py-1 px-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50"

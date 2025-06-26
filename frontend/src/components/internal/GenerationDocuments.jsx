@@ -5,6 +5,7 @@ const GenerationDocuments = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
+  const [generatingShops, setGeneratingShops] = useState(new Set()); // Track shops currently generating documentation
 
   useEffect(() => {
     const fetchUndocumentedShops = async () => {
@@ -12,7 +13,8 @@ const GenerationDocuments = () => {
         const res = await fetch(
           "/api/internal/undocumented-shops" // Placeholder endpoint, to be implemented in backend later
         );
-        if (!res.ok) throw new Error("Erreur lors du chargement des boutiques.");
+        if (!res.ok)
+          throw new Error("Erreur lors du chargement des boutiques.");
         const data = await res.json();
         setShops(data.shops || []);
       } catch (err) {
@@ -24,24 +26,44 @@ const GenerationDocuments = () => {
     fetchUndocumentedShops();
   }, []);
 
-  const handleGenerate = async (shopId, action) => {
-    // action: "generate" | "exists"
+  const handleGenerate = async (shopId, actionType) => {
+    const action = actionType === "generate" ? "document" : "mark_documented";
+
+    // Show loading state for SharePoint generation
+    if (action === "document") {
+      setGeneratingShops((prev) => new Set(prev).add(shopId));
+    }
+
     try {
-      // Placeholder call – adjust endpoint and payload as needed
-      await fetch(`/api/internal/shops/${shopId}/documentation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      setConfirmation(
-        action === "generate"
-          ? "La génération de la documentation a été lancée avec succès."
-          : "La documentation a été marquée comme déjà existante."
+      const response = await fetch(
+        `/api/customer/shop/${shopId}/documentation`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        }
       );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Erreur lors de l'opération");
+      }
+
+      setConfirmation(result.message);
       // Optimistically remove shop from list
       setShops((prev) => prev.filter((s) => s.shopId !== shopId));
     } catch (err) {
-      setError("Erreur lors de l'opération. Veuillez réessayer.");
+      setError("Erreur: " + err.message);
+    } finally {
+      // Remove loading state
+      if (action === "document") {
+        setGeneratingShops((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(shopId);
+          return newSet;
+        });
+      }
     }
   };
 
@@ -55,7 +77,9 @@ const GenerationDocuments = () => {
       </h1>
 
       <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 rounded">
-        La documentation ne peut être générée que pour les boutiques <span className="font-semibold">validées</span> et dont le compte client est également <span className="font-semibold">validé</span>.
+        La documentation ne peut être générée que pour les boutiques{" "}
+        <span className="font-semibold">validées</span> et dont le compte client
+        est également <span className="font-semibold">validé</span>.
       </div>
 
       {confirmation && (
@@ -94,9 +118,40 @@ const GenerationDocuments = () => {
                   <td className="px-6 py-4 whitespace-nowrap space-x-4">
                     <button
                       onClick={() => handleGenerate(shop.shopId, "generate")}
-                      className="px-3 py-1 bg-sna-primary text-white rounded hover:bg-sna-primary-dark"
+                      disabled={generatingShops.has(shop.shopId)}
+                      className={`px-3 py-1 text-white rounded inline-flex items-center ${
+                        generatingShops.has(shop.shopId)
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-sna-primary hover:bg-sna-primary-dark"
+                      }`}
                     >
-                      Générer dans SharePoint
+                      {generatingShops.has(shop.shopId) ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Génération en cours...
+                        </>
+                      ) : (
+                        "Générer dans SharePoint"
+                      )}
                     </button>
                     <button
                       onClick={() => handleGenerate(shop.shopId, "exists")}

@@ -1,18 +1,61 @@
+console.log('Starting server.js...');
+console.log('Current working directory:', process.cwd());
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
+console.log('Loading express...');
 const express = require('express');
+console.log('Express loaded');
+
+console.log('Loading cors...');
 const cors = require('cors');
+console.log('CORS loaded');
+
+console.log('Loading helmet...');
 const helmet = require('helmet');
+console.log('Helmet loaded');
+
+console.log('Loading morgan...');
 const morgan = require('morgan');
+console.log('Morgan loaded');
+
+console.log('Loading path...');
 const path = require('path');
+console.log('Path loaded');
+
+console.log('Loading dotenv...');
 require('dotenv').config();
-// const { Issuer, generators } = require('openid-client'); // No longer needed for login
+console.log('Dotenv loaded');
+
+console.log('Loading session...');
 const session = require('express-session');
-const AWS = require('aws-sdk'); // Added AWS SDK
-const crypto = require('crypto'); // Added crypto module for SECRET_HASH
-const { connectToDatabase } = require('./config/db'); // MongoDB connection
+console.log('Session loaded');
+
+console.log('Loading AWS SDK...');
+const AWS = require('aws-sdk');
+console.log('AWS SDK loaded');
+
+console.log('Loading crypto...');
+const crypto = require('crypto');
+console.log('Crypto loaded');
+
+console.log('Loading database config...');
+const { connectToDatabase } = require('./config/db');
+console.log('Database config loaded');
+
+console.log('Loading customer routes...');
+const customerRoutes = require('./routes/customer');
+console.log('Customer routes loaded');
+
+console.log('Loading shopify routes...');
+const shopifyRoutes = require('./routes/shopify');
+console.log('Shopify routes loaded');
+
+// const { Issuer, generators } = require('openid-client'); // No longer needed for login
+// const crypto = require('crypto'); // Added crypto module for SECRET_HASH
+// const { connectToDatabase } = require('./config/db'); // MongoDB connection
 
 // Routes
 // const authRoutes = require('./routes/auth');
-const customerRoutes = require('./routes/customer');
 
 const app = express();
 // const ADMIN_CALLBACK_PATH = '/auth/cognito/callback-admin';
@@ -99,6 +142,7 @@ app.get('/api/health', (req, res) => {
 // Customer routes
 app.use('/api/customer', customerRoutes);
 app.use('/api/internal', customerRoutes);
+app.use('/api/shopify', shopifyRoutes);
 
 // Add debug logging for route registration
 console.log('Registered routes:');
@@ -120,6 +164,14 @@ console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT);
 console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
 console.log('COGNITO_REGION:', process.env.COGNITO_REGION ? 'Set' : 'Not set');
+
+// Add SharePoint configuration logging
+console.log('\nSharePoint Configuration:');
+console.log('SHAREPOINT_TENANT_ID:', process.env.SHAREPOINT_TENANT_ID ? 'Set' : 'Not set');
+console.log('SHAREPOINT_CLIENT_ID:', process.env.SHAREPOINT_CLIENT_ID ? 'Set' : 'Not set');
+console.log('SHAREPOINT_CLIENT_SECRET:', process.env.SHAREPOINT_CLIENT_SECRET ? 'Set' : 'Not set');
+console.log('SHAREPOINT_HOSTNAME:', process.env.SHAREPOINT_HOSTNAME || 'Not set');
+console.log('SHAREPOINT_SITE_PATH:', process.env.SHAREPOINT_SITE_PATH || 'Not set');
 
 // Connect to MongoDB when the server starts
 connectToDatabase()

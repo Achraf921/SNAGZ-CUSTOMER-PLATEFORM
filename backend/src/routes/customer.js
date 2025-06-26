@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getCustomersCollection } = require('../config/db');
 const { ObjectId } = require('mongodb');
+const { generateDocumentation } = require('../services/sharepointService');
 
 // Route to get all shops for all customers (for internal portal)
 router.get('/all-shops', async (req, res) => {
@@ -22,6 +23,8 @@ router.get('/all-shops', async (req, res) => {
             clientId,
             productsCount: Array.isArray(shop.products) ? shop.products.length : (shop.productsCount || 0),
             status: shop.status || '-',
+            hasShopify: shop.hasShopify === true || shop.shopifyConfigured === true,
+            documented: shop.documented || 'undocumented'
           });
         });
       }
@@ -71,7 +74,9 @@ router.post('/welcome-form', async (req, res) => {
       ...formData,
       submittedAt: new Date(),
       status: 'inactive',
-      documented: 'undocumented'
+      documented: 'undocumented',
+      CompteClientNumber: '', // To be filled by internal user during validation
+      Payement: '' // To be filled by internal user during validation (vendeur/mandataire)
     };
     
     // Get the customers collection
@@ -350,7 +355,9 @@ router.post('/shops/:userId', async (req, res) => {
       ...shopData,
       shopId: new ObjectId().toString(), // Generate a unique ID for the shop
       createdAt: new Date(),
-      status: 'pending' // Initial status for new shops
+      status: 'pending', // Initial status for new shops
+      hasShopify: false, // Shopify store non générée par défaut
+      documented: 'undocumented', // Initial documentation status
     };
     
     // Initialize shops array if it doesn't exist
@@ -445,26 +452,48 @@ router.put('/shops/:userId/:shopId', async (req, res) => {
       });
     }
     
-    // Preserve shopId and createdAt from the original shop
+    // Preserve original shop data and only update the fields that were provided
     const originalShop = customer.shops[shopIndex];
-    const updatedShop = {
-      ...updatedShopData,
-      shopId: originalShop.shopId,
-      createdAt: originalShop.createdAt,
-      updatedAt: new Date()
-    };
+    const updatedShop = { ...originalShop };
     
+    // Only update fields with meaningful values to avoid overwriting with empty strings/nulls
+    Object.entries(updatedShopData).forEach(([key, value]) => {
+      if (key === '_id' || key === 'shopId') return;
+      // Accept boolean and numeric values even if false/0, but skip undefined/null/empty strings
+      const isEmptyString = typeof value === 'string' && value.trim() === '';
+      if (value === undefined || value === null || isEmptyString) {
+        return;
+      }
+      updatedShop[key] = value;
+    });
+    
+    // Always update the updatedAt timestamp
+    updatedShop.updatedAt = new Date();
+
+    // Log the update if status is being changed
+    if (updatedShopData.status && updatedShopData.status !== originalShop.status) {
+      console.log('Updating shop status:', {
+        shopId: originalShop.shopId,
+        oldStatus: originalShop.status,
+        newStatus: updatedShopData.status,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     // Update the shop in the array
     const updateOperation = {
-      $set: { [`shops.${shopIndex}`]: updatedShop }
+      $set: { 
+        [`shops.${shopIndex}`]: updatedShop,
+        updatedAt: new Date()
+      }
     };
-    
+
     // Update the customer document
     const result = await customersCollection.updateOne(
       { userId },
       updateOperation
     );
-    
+
     if (result.modifiedCount === 0) {
       console.log('FAILURE: Failed to update shop');
       console.log('==== END UPDATE SHOP DEBUG INFO ====');
@@ -478,10 +507,18 @@ router.put('/shops/:userId/:shopId', async (req, res) => {
     console.log('==== END UPDATE SHOP DEBUG INFO ====');
     
     // Return success response
+    const shopResponse = {
+      ...updatedShop,
+      clientId: customer._id.toString(),
+      clientName: customer.raisonSociale || customer.name || '-',
+      createdAt: updatedShop.createdAt || customer.createdAt,
+    };
+
     res.status(200).json({
       success: true,
       message: 'Shop updated successfully',
-      shop: updatedShop
+      shop: shopResponse,
+      updatedClient: await customersCollection.findOne({ _id: new ObjectId(userId) }),
     });
   } catch (error) {
     console.error('Error updating shop:', error);
@@ -552,6 +589,49 @@ router.get('/clients/:clientId', async (req, res) => {
   }
 });
 
+// Route to update a client (for internal portal)
+router.put('/clients/:clientId', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const updatedClientFields = req.body;
+
+    if (!ObjectId.isValid(clientId)) {
+      return res.status(400).json({ success: false, message: 'Invalid client ID format' });
+    }
+
+    // Remove potentially harmful or uneditable fields from the update
+    delete updatedClientFields._id;
+    delete updatedClientFields.userId;
+    delete updatedClientFields.shops; // Prevent direct shops modification
+
+    const customersCollection = await getCustomersCollection();
+    
+    // Update the client document
+    const result = await customersCollection.updateOne(
+      { _id: new ObjectId(clientId) },
+      { $set: updatedClientFields }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Client updated successfully',
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('Error updating client:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update client',
+      error: error.message 
+    });
+  }
+});
+
 // Route to update a specific shop for a client (for internal portal)
 router.put('/clients/:clientId/shops/:shopId', async (req, res) => {
   try {
@@ -561,14 +641,10 @@ router.put('/clients/:clientId/shops/:shopId', async (req, res) => {
     if (!ObjectId.isValid(clientId)) {
       return res.status(400).json({ success: false, message: 'Invalid client ID format' });
     }
-    // shopId might be a string or ObjectId depending on how it's stored/generated.
-    // If shopId is consistently a string (like a UUID or custom ID) generated by your app,
-    // you might not need ObjectId.isValid(shopId). If it's an ObjectId, you would.
-    // For this example, we'll assume shopId is an identifier used to find the shop in the array.
 
     // Remove potentially harmful or uneditable fields from the update
-    delete updatedShopFields._id; // Don't allow changing shop's own _id if it's an ObjectId from a sub-document
-    delete updatedShopFields.clientId; // Prevent changing the parent client ID
+    delete updatedShopFields._id;
+    delete updatedShopFields.clientId;
 
     const customersCollection = await getCustomersCollection();
 
@@ -578,272 +654,90 @@ router.put('/clients/:clientId/shops/:shopId', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Client not found' });
     }
 
-    let shopFound = false;
-    let updatedShop = null;
+    // Find the shop index in the array
+    const shopIndex = client.shops.findIndex(shop => 
+      String(shop.shopId) === String(shopId) || 
+      String(shop._id) === String(shopId) || 
+      String(shop.id) === String(shopId)
+    );
 
-    const updatedShopsArray = client.shops.map(shop => {
-      // Check if this is the shop we want to update
-      if (String(shop._id) === shopId || String(shop.id) === shopId || String(shop.shopId) === shopId) { 
-        shopFound = true;
-        
-        // Log the update
-        console.log('Updating shop status:', {
-          shopId: shop.shopId,
-          oldStatus: shop.status,
-          newStatus: 'valid',
-          timestamp: new Date().toISOString()
-        });
-        
-        // Return the shop with updated status
-        return { 
-          ...shop, 
-          status: 'valid',
-          updatedAt: new Date()
-        };
-      }
-      return shop;
-    });
-
-    if (!shopFound) {
+    if (shopIndex === -1) {
       return res.status(404).json({
         success: false,
         message: 'Shop not found for this client'
       });
     }
 
-    // Update the customer document with the modified shops array
+    // Preserve original shop data and only update the fields that were provided
+    const originalShop = client.shops[shopIndex];
+    const updatedShop = { ...originalShop };
+    
+    // Only update fields with meaningful values to avoid overwriting with empty strings/nulls
+    Object.entries(updatedShopFields).forEach(([key, value]) => {
+      if (key === '_id' || key === 'shopId') return;
+      // Accept boolean and numeric values even if false/0, but skip undefined/null/empty strings
+      const isEmptyString = typeof value === 'string' && value.trim() === '';
+      if (value === undefined || value === null || isEmptyString) {
+        return;
+      }
+      updatedShop[key] = value;
+    });
+    
+    // Always update the updatedAt timestamp
+    updatedShop.updatedAt = new Date();
+
+    // Log the update if status is being changed
+    if (updatedShopFields.status && updatedShopFields.status !== originalShop.status) {
+      console.log('Updating shop status:', {
+        shopId: originalShop.shopId,
+        oldStatus: originalShop.status,
+        newStatus: updatedShopFields.status,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Update the shop in the array
+    const updateOperation = {
+      $set: { 
+        [`shops.${shopIndex}`]: updatedShop,
+        updatedAt: new Date()
+      }
+    };
+
+    // Update the customer document
     const result = await customersCollection.updateOne(
       { _id: new ObjectId(clientId) },
-      { $set: { shops: updatedShopsArray, updatedAt: new Date() } }
+      updateOperation
     );
 
     if (result.matchedCount === 0) {
-      // This should ideally not happen if client was found earlier
       return res.status(404).json({ success: false, message: 'Client not found during update' });
     }
-    if (result.modifiedCount === 0 && shopFound) {
-        // This can happen if the submitted data is identical to existing data.
-        // Still, we can consider it a success as the state matches the request.
-        console.log('Shop update requested but data was identical to existing data.');
+
+    if (result.modifiedCount === 0) {
+      console.log('Shop update requested but data was identical to existing data.');
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: 'Shop updated successfully', 
-      shop: updatedShop // Return the updated shop object
-    });
-
-  } catch (error) {
-    console.error('Error updating shop for client:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'An error occurred while updating the shop.', 
-      error: error.message 
-    });
-  }
-});
-
-
-// Clean PUT route to update a customer by clientId (for internal portal)
-router.put('/clients/:clientId', async (req, res) => {
-  try {
-    const { clientId } = req.params;
-    const updateFields = req.body;
-    // console.log(`[PUT /clients/:clientId] Attempting to update client. Client ID: ${clientId}`);
-    // console.log(`[PUT /clients/:clientId] Update fields:`, updateFields);
-
-    if (!clientId || clientId === 'undefined' || !ObjectId.isValid(clientId)) {
-      // console.error('[PUT /clients/:clientId] Invalid or missing clientId:', clientId);
-      return res.status(400).json({ success: false, message: 'ID client invalide ou manquant' });
-    }
-
-    const customersCollection = await getCustomersCollection();
-    let updatedCustomerDoc;
-
-    // Ensure _id is not in updateFields to prevent attempts to change it
-    if (updateFields._id) {
-      // console.warn('[PUT /clients/:clientId] Attempt to update _id field was blocked.');
-      delete updateFields._id;
-    }
-    // Also remove userId if present, as it should not be changed via this route
-    if (updateFields.userId) {
-        // console.warn('[PUT /clients/:clientId] Attempt to update userId field was blocked.');
-        delete updateFields.userId;
-    }
-
-    const objectIdForUpdate = new ObjectId(clientId);
-    
-    const result = await customersCollection.findOneAndUpdate(
-      { _id: objectIdForUpdate },
-      { $set: updateFields },
-      { returnDocument: 'after' } // Returns the updated document
-    );
-    
-    // The result object itself is the updated document if found, or null if not found (for MongoDB driver v4+).
-    // For older versions or specific configurations, it might be result.value.
-    // Given the previous logs showed 'result' being the document, we'll stick to that, but add a check for 'value' as a fallback.
-    updatedCustomerDoc = result.value !== undefined ? result.value : result;
-
-    if (updatedCustomerDoc) {
-      // console.log(`[PUT /clients/:clientId] Successfully updated client. Client ID: ${clientId}`, updatedCustomerDoc);
-      return res.status(200).json({ success: true, message: 'Client mis à jour avec succès', client: updatedCustomerDoc });
-    } else {
-      // console.warn(`[PUT /clients/:clientId] Client not found by findOneAndUpdate or no document returned. Client ID: ${clientId}`);
-      // Check if the client actually exists if findOneAndUpdate returns null for the value.
-      const checkExistence = await customersCollection.findOne({ _id: objectIdForUpdate });
-      if (!checkExistence) {
-          return res.status(404).json({ success: false, message: 'Client introuvable pour la mise à jour (ID non existant)' });
-      }
-      return res.status(404).json({ success: false, message: 'Client trouvé mais la mise à jour n\'a pas retourné de document modifié (vérifiez les données ou l\'état du document)' });
-    }
-  } catch (error) { // Catches errors from ObjectId creation, DB operations, etc.
-    // console.error(`[PUT /clients/:clientId] General error for client ID ${req.params.clientId}:`, error);
-    res.status(500).json({
-      success: false,
-      message: 'Erreur générale lors de la tentative de mise à jour du client',
-      error: error.message // Provide error message for debugging
-    });
-  }
-});
-
-// Route to delete a specific shop for a client (for internal portal)
-router.delete('/clients/:clientId/shops/:shopId', async (req, res) => {
-try {
-const { clientId, shopId } = req.params;
-const customersCollection = await getCustomersCollection();
-
-let objectIdForClient;
-try {
-  objectIdForClient = new ObjectId(clientId);
-} catch (e) {
-  return res.status(400).json({
-    success: false,
-    message: 'Invalid client ID format for deletion.',
-    error: e.message
-  });
-}
-
-// Pull a shop from the shops array. Assuming shops are identified by a 'shopId' field.
-// If your shops in the array are identified by their own MongoDB '_id',
-// you might need to adjust the $pull condition, e.g., { _id: new ObjectId(shopId) }
-// For now, assuming shopId is a direct comparable value like a string or number in shop.shopId
-const result = await customersCollection.findOneAndUpdate(
-  { _id: objectIdForClient },
-  { $pull: { shops: { shopId: shopId } } }, 
-  { returnDocument: 'after' }
-);
-
-if (!result.value) {
-  // Check if the client exists but the shop was not found (or already deleted)
-  const clientExists = await customersCollection.findOne({ _id: objectIdForClient });
-  if (!clientExists) {
-    return res.status(404).json({
-      success: false,
-      message: 'Client not found.'
-    });
-  }
-  // Client exists, but shop wasn't pulled. Could mean shopId didn't match.
-  return res.status(404).json({
-    success: false,
-    message: 'Shop not found for this client, or already deleted.'
-  });
-}
-
-res.status(200).json({
-  success: true,
-  message: 'Shop deleted successfully.',
-  updatedClient: result.value
-});
-} catch (error) {
-console.error('Error deleting shop:', error);
-res.status(500).json({
-  success: false,
-  message: 'An error occurred while deleting the shop.',
-  error: error.message
-});
-}
-});
-
-// Route to update a specific shop for a client (for internal portal)
-router.put('/clients/:clientId/shops/:shopId', async (req, res) => {
-  try {
-    const { clientId, shopId } = req.params;
-    const updatedShopDetails = req.body; // e.g., { nomProjet: 'Nouveau Nom', status: 'active' }
-    const customersCollection = await getCustomersCollection();
-
-    let objectIdForClient;
-    try {
-      objectIdForClient = new ObjectId(clientId);
-    } catch (e) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid client ID format for shop update.',
-        error: e.message
-      });
-    }
-
-    // Construct the update operation
-    // We want to update fields of a specific shop in the 'shops' array
-    // The shop to update is identified by its 'shopId'
-    const updateQuery = {};
-    for (const key in updatedShopDetails) {
-      if (Object.prototype.hasOwnProperty.call(updatedShopDetails, key)) {
-        // Ensure we don't try to update the shopId itself if it's part of the body
-        // and only update fields that are actually provided.
-        if (key !== 'shopId' && key !== '_id') { 
-          updateQuery[`shops.$[elem].${key}`] = updatedShopDetails[key];
-        }
-      }
-    }
-
-    if (Object.keys(updateQuery).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No valid fields provided for update.'
-      });
-    }
-
-    const result = await customersCollection.findOneAndUpdate(
-      { _id: objectIdForClient },
-      { $set: updateQuery },
-      {
-        arrayFilters: [{ "elem.shopId": shopId }],
-        returnDocument: 'after' // Return the modified document
-      }
-    );
-
-    if (!result.value) {
-      // Check if the client exists but the shop was not found or not updated
-      const clientExists = await customersCollection.findOne({ _id: objectIdForClient });
-      if (!clientExists) {
-        return res.status(404).json({
-          success: false,
-          message: 'Client not found for shop update.'
-        });
-      }
-      // Client exists, but shop wasn't updated. Could mean shopId didn't match or no fields changed.
-      return res.status(404).json({
-        success: false,
-        message: 'Shop not found for this client, or no changes applied.'
-      });
-    }
-
-    // Find the updated shop to return it specifically, if needed by frontend
-    const updatedShop = result.value.shops.find(s => String(s.shopId) === String(shopId));
+    const shopResponse = {
+      ...updatedShop,
+      clientId: client._id.toString(),
+      clientName: client.raisonSociale || client.name || '-',
+      createdAt: updatedShop.createdAt || client.createdAt,
+    };
 
     res.status(200).json({
       success: true,
-      message: 'Shop updated successfully.',
-      updatedClient: result.value, // Contains the full client document with the updated shops array
-      updatedShop: updatedShop // The specific shop that was updated
+      message: 'Shop updated successfully',
+      shop: shopResponse,
+      updatedClient: await customersCollection.findOne({ _id: new ObjectId(clientId) }),
     });
 
   } catch (error) {
     console.error('Error updating shop:', error);
-    res.status(500).json({
-      success: false,
-      message: 'An error occurred while updating the shop.',
-      error: error.message
+    res.status(500).json({ 
+      success: false, 
+      message: 'An error occurred while updating the shop', 
+      error: error.message 
     });
   }
 });
@@ -903,6 +797,9 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
   try {
     const { shopId } = req.params;
     const { action } = req.body;
+    if (!['document','mark_documented','undocument'].includes(action)) {
+      return res.status(400).json({ success: false, message: 'Invalid action' });
+    }
 
     if (!shopId || !action) {
       console.log('Missing required parameters');
@@ -919,6 +816,11 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
     const customer = await customersCollection.findOne({
       'shops.shopId': shopId
     });
+    // Find specific shop object
+    const shop = customer.shops.find(s => s.shopId === shopId);
+    if (!shop) {
+      return res.status(404).json({ success: false, message: 'Shop not found' });
+    }
 
     if (!customer) {
       console.log('Shop not found');
@@ -957,12 +859,51 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
     }
 
     console.log('Successfully updated shop documentation status');
-    res.status(200).json({
-      success: true,
-      message: `Shop documentation status updated to ${newStatus}`,
-      shopId,
-      documented: newStatus
-    });
+    
+    // Handle SharePoint documentation generation
+    if (action === 'document') {
+      try {
+        // Generate SharePoint documentation and wait for completion
+        await generateDocumentation(customer, shop);
+        console.log('Documentation generated in SharePoint');
+        
+        res.status(200).json({
+          success: true,
+          message: `Documentation SharePoint générée avec succès`,
+          shopId,
+          documented: newStatus
+        });
+      } catch (err) {
+        console.error('Error generating documentation:', err);
+        
+        // Revert the documentation status since generation failed
+        await customersCollection.updateOne(
+          { 'shops.shopId': shopId },
+          { 
+            $set: { 
+              'shops.$.documented': 'undocumented',
+              'shops.$.updatedAt': new Date()
+            }
+          }
+        );
+        
+        res.status(500).json({
+          success: false,
+          message: 'Erreur lors de la génération de la documentation SharePoint',
+          error: err.message
+        });
+      }
+    } else {
+      // For other actions (mark_documented, undocument), respond immediately
+      res.status(200).json({
+        success: true,
+        message: action === 'mark_documented' 
+          ? 'Boutique marquée comme documentée'
+          : 'Documentation supprimée avec succès',
+        shopId,
+        documented: newStatus
+      });
+    }
   } catch (error) {
     console.error('Error updating shop documentation status:', error);
     res.status(500).json({

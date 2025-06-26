@@ -23,10 +23,12 @@ const initialFormState = {
   nomProjet: "",
   typeProjet: "",
   commercial: "",
+  demarrageProjet: "",
+  nomChefProjet: "",
+  prenomChefProjet: "",
   estBoutiqueEnLigne: false,
   nomClient: "",
   contactsClient: "",
-  compteClientRef: "",
 
   // Page 2: Planning et Lancement
   dateMiseEnLigne: "",
@@ -75,34 +77,40 @@ const CreateShop = () => {
   // Get user's sub attribute from storage when component mounts
   useEffect(() => {
     // Try to get userInfo from session or local storage
-    let userInfoStr = sessionStorage.getItem("userInfo") || localStorage.getItem("userInfo");
+    let userInfoStr =
+      sessionStorage.getItem("userInfo") || localStorage.getItem("userInfo");
     let sub = null;
-    
+
     try {
       if (userInfoStr) {
         const userInfo = JSON.parse(userInfoStr);
         // Extract the sub attribute - this is the primary identifier we want to use
         sub = userInfo.sub;
         setUserId(sub);
-        
-        console.log('==== CREATE SHOP USER INFO ====');
-        console.log('User sub from storage:', sub);
-        console.log('==== END CREATE SHOP USER INFO ====');
+
+        console.log("==== CREATE SHOP USER INFO ====");
+        console.log("User sub from storage:", sub);
+        console.log("==== END CREATE SHOP USER INFO ====");
       }
     } catch (error) {
-      console.error('Error parsing userInfo:', error);
-      setError('Erreur lors de la récupération des informations utilisateur. Veuillez vous reconnecter.');
+      console.error("Error parsing userInfo:", error);
+      setError(
+        "Erreur lors de la récupération des informations utilisateur. Veuillez vous reconnecter."
+      );
     }
-    
+
     // If no sub found, try to get userId as fallback
     if (!sub) {
-      const fallbackUserId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+      const fallbackUserId =
+        sessionStorage.getItem("userId") || localStorage.getItem("userId");
       if (fallbackUserId) {
-        console.warn('No sub found, using fallback userId:', fallbackUserId);
+        console.warn("No sub found, using fallback userId:", fallbackUserId);
         setUserId(fallbackUserId);
       } else {
-        console.error('No user identifier found in storage');
-        setError('Identifiant utilisateur non trouvé. Veuillez vous reconnecter.');
+        console.error("No user identifier found in storage");
+        setError(
+          "Identifiant utilisateur non trouvé. Veuillez vous reconnecter."
+        );
       }
     }
   }, []);
@@ -112,43 +120,53 @@ const CreateShop = () => {
     if (currentStep !== steps.length) {
       return;
     }
-    
+
     if (!userId) {
-      setError('Identifiant utilisateur non trouvé. Veuillez vous reconnecter.');
+      setError(
+        "Identifiant utilisateur non trouvé. Veuillez vous reconnecter."
+      );
       return;
     }
-    
+
     setIsSubmitting(true);
     setError(null);
     console.log("Nouveau Formulaire Créer Boutique Soumis:", formData);
     console.log("UserId (sub) utilisé pour la création:", userId);
-    
+
     try {
       // Determine API URL based on environment
-      const apiUrl = process.env.NODE_ENV === 'production'
-        ? `/api/customer/shops/${userId}`
-        : `http://localhost:5000/api/customer/shops/${userId}`;
-      
+      const apiUrl =
+        process.env.NODE_ENV === "production"
+          ? `/api/customer/shops/${userId}`
+          : `http://localhost:5000/api/customer/shops/${userId}`;
+
       const response = await fetch(apiUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-        credentials: 'include',
+        credentials: "include",
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.message || `Erreur lors de la création de la boutique (${response.status})`);
+        throw new Error(
+          data.message ||
+            `Erreur lors de la création de la boutique (${response.status})`
+        );
       }
-      
-      console.log('Boutique créée avec succès:', data);
+
+      console.log("Boutique créée avec succès:", data);
+      setIsSubmitting(false); // Clear loading state before redirect
       window.location.href = "/client/boutiques"; // Redirect to boutiques page
     } catch (error) {
       console.error("Erreur soumission formulaire:", error);
-      setError(error.message || 'Une erreur est survenue lors de la création de la boutique');
+      setError(
+        error.message ||
+          "Une erreur est survenue lors de la création de la boutique"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -197,8 +215,8 @@ const CreateShop = () => {
                     step.id < currentStep
                       ? "bg-sna-primary/10"
                       : step.id === currentStep
-                      ? "bg-white"
-                      : "bg-gray-50"
+                        ? "bg-white"
+                        : "bg-gray-50"
                   }`}
                 >
                   <span
@@ -206,8 +224,8 @@ const CreateShop = () => {
                       step.id === currentStep
                         ? "text-sna-primary"
                         : step.id < currentStep
-                        ? "text-sna-success"
-                        : "text-gray-500"
+                          ? "text-sna-success"
+                          : "text-gray-500"
                     }`}
                   >
                     <span className="flex-shrink-0">
@@ -216,8 +234,8 @@ const CreateShop = () => {
                           step.id === currentStep
                             ? "border-sna-primary"
                             : step.id < currentStep
-                            ? "border-sna-success"
-                            : "border-gray-300"
+                              ? "border-sna-success"
+                              : "border-gray-300"
                         }`}
                       >
                         {step.id}
@@ -237,11 +255,14 @@ const CreateShop = () => {
           <div className="px-4 py-3 bg-gray-50 sm:px-6">
             {/* Error message display */}
             {error && (
-              <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <div
+                className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                role="alert"
+              >
                 <span className="block sm:inline">{error}</span>
               </div>
             )}
-            
+
             <div className="flex justify-between">
               {currentStep > 1 && (
                 <button
@@ -266,9 +287,25 @@ const CreateShop = () => {
               >
                 {isSubmitting && currentStep === steps.length ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Création en cours...
                   </>

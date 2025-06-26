@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const ShopForm = ({ shop, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    name: shop?.name || "",
+    name: shop?.nomProjet || shop?.name || "",
     description: shop?.description || "",
     clientName: shop?.clientName || "",
     clientEmail: shop?.clientEmail || "",
@@ -17,14 +17,43 @@ const ShopForm = ({ shop, onClose, onSave }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Update form data when shop prop changes (e.g., when editing different shops)
+  useEffect(() => {
+    if (shop) {
+      setFormData({
+        name: shop?.nomProjet || shop?.name || "",
+        description: shop?.description || "",
+        clientName: shop?.clientName || "",
+        clientEmail: shop?.clientEmail || "",
+        clientPhone: shop?.clientPhone || "",
+        siret: shop?.siret || "",
+        tvaNumber: shop?.tvaNumber || "",
+        colors: shop?.colors || [],
+        fonts: shop?.fonts || [],
+        logo: shop?.logo || null,
+        bannerDesktop: shop?.bannerDesktop || null,
+        bannerMobile: shop?.bannerMobile || null,
+      });
+    }
+  }, [shop]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Map form data to shop structure, ensuring name field is saved as nomProjet
+    const shopData = {
+      ...formData,
+      nomProjet: formData.name, // Map the name field to nomProjet
+    };
+
+    // Remove the name field since we're using nomProjet
+    delete shopData.name;
+
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      onSave(formData);
+      onSave(shopData);
       onClose();
     }, 1000);
   };
@@ -146,6 +175,8 @@ const ShopForm = ({ shop, onClose, onSave }) => {
                   value={formData.name}
                   onChange={handleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sna-primary focus:ring-sna-primary"
+                  autoFocus
+                  onFocus={(e) => e.target.select()}
                   required
                 />
               </div>
