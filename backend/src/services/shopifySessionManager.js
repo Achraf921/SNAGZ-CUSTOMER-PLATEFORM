@@ -17,8 +17,13 @@ function deleteSession(id) {
   sessions.delete(id);
 }
 
+function getAllSessions() {
+  return sessions;
+}
+
 module.exports = {
   createSession,
   getSession,
   deleteSession,
+  getAllSessions,
 }; 

@@ -1,0 +1,83 @@
+[2025-07-03 12:23:11] Merchandising XLSX processor script started
+[2025-07-03 12:23:11] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 12:23:11] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/generated_docs/FICHES_PRODUITS_BBZ_1751538191490.xlsx
+[2025-07-03 12:23:11] Decoding base64 data...
+[2025-07-03 12:23:11] Successfully decoded base64 data
+[2025-07-03 12:23:11] Parsing JSON data...
+[2025-07-03 12:23:11] Successfully parsed JSON data
+[2025-07-03 12:23:11] Starting merchandising XLSX processing...
+[2025-07-03 12:23:11] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 12:23:11] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/generated_docs/FICHES_PRODUITS_BBZ_1751538191490.xlsx
+[2025-07-03 12:23:11] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 12:23:11] Shop data keys: ['nomProjet', 'shopifyDomain', 'dateCommercialisation', 'raisonSociale', 'products']
+[2025-07-03 12:23:11] Found date-related field: 'dateCommercialisation' = '2025-06-05'
+[2025-07-03 12:23:11] Found customer-related field: 'raisonSociale' = 'GZ'
+[2025-07-03 12:23:11] Extracted dates - Sortie: '', Commercialisation: '2025-06-05'
+[2025-07-03 12:23:11] Extracted raison sociale: 'GZ'
+[2025-07-03 12:23:11] Combined dates field: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:23:11] Processing 1 products for shop: BBZ
+[2025-07-03 12:23:11] Processing worksheet: Catalogue en ligne
+[2025-07-03 12:23:11] Replaced 'CLIENT' with 'BBZ' in cell A2
+[2025-07-03 12:23:11] Replaced 'nomProjet' with 'BBZ' in cell B2
+[2025-07-03 12:23:11] Replaced 'shopifyDomain' with 'ejinbc-dn' in cell C2
+[2025-07-03 12:23:11] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-03 12:23:11] Will start inserting product data at row: 5
+[2025-07-03 12:23:11] Starting to add 1 products at row 5
+[2025-07-03 12:23:11] Processing product 1/1: DocTest
+[2025-07-03 12:23:11] Product 1 total stock: 210 from stock_dict: {'default': 210}
+[2025-07-03 12:23:11] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-03 12:23:11] Product 1 colors: [] -> ''
+[2025-07-03 12:23:11] Product 1 sizes: [] -> ''
+[2025-07-03 12:23:11] Successfully added product 1 data at row 5: DocTest
+[2025-07-03 12:23:11] Combined dates field content: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:23:11] Colors field content: ''
+[2025-07-03 12:23:11] Sizes field content: ''
+[2025-07-03 12:23:11] Data written: ['Phono', 'DocTest', 'Test Documentation pour les produits', '27149242', 210, 0, 0, 0, 0, 0, 670, 69.99, 'OUI', 'COMMERCIALISATION (Merch): 2025-06-05', 'GZ', '', '', '', '', '', '']
+[2025-07-03 12:23:11] Finished processing all products. Final row: 5
+[2025-07-03 12:23:11] Processing worksheet: POD
+[2025-07-03 12:23:11] Could not find header rows - using default row 6 with safety buffer
+[2025-07-03 12:23:11] Will start inserting product data at row: 6
+[2025-07-03 12:23:11] Starting to add 1 products at row 6
+[2025-07-03 12:23:11] Processing product 1/1: DocTest
+[2025-07-03 12:23:11] Product 1 total stock: 210 from stock_dict: {'default': 210}
+[2025-07-03 12:23:11] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-03 12:23:11] Product 1 colors: [] -> ''
+[2025-07-03 12:23:11] Product 1 sizes: [] -> ''
+[2025-07-03 12:23:11] Successfully added product 1 data at row 6: DocTest
+[2025-07-03 12:23:11] Combined dates field content: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:23:11] Colors field content: ''
+[2025-07-03 12:23:11] Sizes field content: ''
+[2025-07-03 12:23:11] Data written: ['Phono', 'DocTest', 'Test Documentation pour les produits', '27149242', 210, 0, 0, 0, 0, 0, 670, 69.99, 'OUI', 'COMMERCIALISATION (Merch): 2025-06-05', 'GZ', '', '', '', '', '', '']
+[2025-07-03 12:23:11] Finished processing all products. Final row: 6
+[2025-07-03 12:23:11] Processing worksheet: Feuil1
+[2025-07-03 12:23:11] Could not find header rows - using default row 6 with safety buffer
+[2025-07-03 12:23:11] Will start inserting product data at row: 6
+[2025-07-03 12:23:11] Starting to add 1 products at row 6
+[2025-07-03 12:23:11] Processing product 1/1: DocTest
+[2025-07-03 12:23:11] Product 1 total stock: 210 from stock_dict: {'default': 210}
+[2025-07-03 12:23:11] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-03 12:23:11] Product 1 colors: [] -> ''
+[2025-07-03 12:23:11] Product 1 sizes: [] -> ''
+[2025-07-03 12:23:11] Successfully added product 1 data at row 6: DocTest
+[2025-07-03 12:23:11] Combined dates field content: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:23:11] Colors field content: ''
+[2025-07-03 12:23:11] Sizes field content: ''
+[2025-07-03 12:23:11] Data written: ['Phono', 'DocTest', 'Test Documentation pour les produits', '27149242', 210, 0, 0, 0, 0, 0, 670, 69.99, 'OUI', 'COMMERCIALISATION (Merch): 2025-06-05', 'GZ', '', '', '', '', '', '']
+[2025-07-03 12:23:11] Finished processing all products. Final row: 6
+[2025-07-03 12:23:11] Processing worksheet: NE PAS MODIFIER
+[2025-07-03 12:23:11] Could not find header rows - using default row 6 with safety buffer
+[2025-07-03 12:23:11] Will start inserting product data at row: 6
+[2025-07-03 12:23:11] Starting to add 1 products at row 6
+[2025-07-03 12:23:11] Processing product 1/1: DocTest
+[2025-07-03 12:23:11] Product 1 total stock: 210 from stock_dict: {'default': 210}
+[2025-07-03 12:23:11] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-03 12:23:11] Product 1 colors: [] -> ''
+[2025-07-03 12:23:11] Product 1 sizes: [] -> ''
+[2025-07-03 12:23:11] Successfully added product 1 data at row 6: DocTest
+[2025-07-03 12:23:11] Combined dates field content: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:23:11] Colors field content: ''
+[2025-07-03 12:23:11] Sizes field content: ''
+[2025-07-03 12:23:11] Data written: ['Phono', 'DocTest', 'Test Documentation pour les produits', '27149242', 210, 0, 0, 0, 0, 0, 670, 69.99, 'OUI', 'COMMERCIALISATION (Merch): 2025-06-05', 'GZ', '', '', '', '', '', '']
+[2025-07-03 12:23:11] Finished processing all products. Final row: 6
+[2025-07-03 12:23:11] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/generated_docs/FICHES_PRODUITS_BBZ_1751538191490.xlsx
+[2025-07-03 12:23:11] Merchandising XLSX processing completed successfully

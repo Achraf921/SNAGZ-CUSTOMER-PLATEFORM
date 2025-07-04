@@ -1,0 +1,31 @@
+[2025-06-30 10:28:18] Script started
+[2025-06-30 10:28:18] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-06-30 10:28:18] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ TsT _ TESTDOC _ 887459 _Démarrage Projet.docx
+[2025-06-30 10:28:18] Encoded data length: 600 characters
+[2025-06-30 10:28:18] Decoding base64 data...
+[2025-06-30 10:28:18] Successfully decoded base64 data
+[2025-06-30 10:28:18] [DEBUG] Type of shop_data_string after decode: <class 'str'>
+[2025-06-30 10:28:18] [DEBUG] First 100 chars of shop_data_string: {"nomProjet":"TESTDOC","typeProjet":"test","contactsClient":"achrafbayi@icloud.com","nomClient":"TsT...
+[2025-06-30 10:28:18] Parsing JSON data...
+[2025-06-30 10:28:18] Successfully parsed JSON data
+[2025-06-30 10:28:18] [DEBUG] Type of shop_data after json.loads: <class 'dict'>
+[2025-06-30 10:28:18] [DEBUG] shop_data keys: ['nomProjet', 'typeProjet', 'contactsClient', 'nomClient', 'compteClientRef', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicaceEnvisagee', 'estBoutiqueEnLigne', 'chefProjet', 'demarrageProjet', 'commercial', 'clientName', 'raisonSociale', 'shopifyPlanMonthlySelected', 'shopifyPlanYearlySelected']
+[2025-06-30 10:28:18] Starting document processing...
+[2025-06-30 10:28:18] Starting document processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-06-30 10:28:18] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ TsT _ TESTDOC _ 887459 _Démarrage Projet.docx
+[2025-06-30 10:28:18] Successfully loaded document: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-06-30 10:28:18] [DEBUG - Inside replace_placeholders_and_format] Type of shop_data: <class 'dict'>
+[2025-06-30 10:28:18] [DEBUG - Inside replace_placeholders_and_format] Content of shop_data: {'nomProjet': 'TESTDOC', 'typeProjet': 'test', 'contactsClient': 'achrafbayi@icloud.com', 'nomClient': 'TsT', 'compteClientRef': '887459', 'dateCommercialisation': '', 'dateSortieOfficielle': '', 'precommande': 'NON', 'dedicaceEnvisagee': 'NON', 'estBoutiqueEnLigne': 'NON', 'chefProjet': 'Jhon Doe', 'demarrageProjet': '2025/09/09', 'commercial': 'AchrafB', 'clientName': '887459_TST', 'raisonSociale': 'TsT', 'shopifyPlanMonthlySelected': False, 'shopifyPlanYearlySelected': False}
+[2025-06-30 10:28:18] Found table cell paragraph with placeholder: 'Type de Projet :  XXX2' (cleaned: 'Type de Projet :  XXX2')
+[2025-06-30 10:28:18] Replacing XXX2 with 'test' in table cell
+[2025-06-30 10:28:18] Found table cell paragraph with placeholder: 'Commercial : XXX3' (cleaned: 'Commercial : XXX3')
+[2025-06-30 10:28:18] Replacing XXX3 with 'achrafbayi@icloud.com' in table cell
+[2025-06-30 10:28:18] Found table cell paragraph with placeholder: 'Date Sortie Officielle : XXX9' (cleaned: 'Date Sortie Officielle : XXX9')
+[2025-06-30 10:28:18] Replacing XXX9 with '' in table cell
+[2025-06-30 10:28:18] Found table cell paragraph with placeholder: 'Dédicace : XXX11' (cleaned: 'Dédicace : XXX11')
+[2025-06-30 10:28:18] Replacing XXX1 with 'TESTDOC' in table cell
+[2025-06-30 10:28:18] Replacing XXX11 with 'NON' in table cell
+[2025-06-30 10:28:18] Found table cell paragraph with placeholder: 'DÉMARRAGE DU PROJET XXX14	' (cleaned: 'DÉMARRAGE DU PROJET XXX14	')
+[2025-06-30 10:28:18] Replacing XXX1 with 'TESTDOC' in table cell
+[2025-06-30 10:28:18] Replacing XXX14 with '2025/09/09' in table cell
+[2025-06-30 10:28:18] Document processing completed successfully

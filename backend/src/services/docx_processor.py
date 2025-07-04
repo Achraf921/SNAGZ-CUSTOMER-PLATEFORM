@@ -7,6 +7,10 @@ import sys
 import os
 import base64
 import datetime
+import tempfile
+import zipfile
+import re
+import shutil
 
 # Set up logging to a file
 def setup_logging():
@@ -46,86 +50,228 @@ def replace_placeholders_and_format(docx_path, shop_data, output_path):
         raise ValueError(error_msg)
 
     # Define the mapping from XXXn to shop_data keys
-    # IMPORTANT: Adjust these keys to match your actual shop document structure
-    # Get the raisonSociale from the customer data (passed in shop_data)
-    raison_sociale = shop_data.get("raisonSociale", "") or shop_data.get("clientName", "").split('_')[0]
+    # Values are now pre-formatted from the backend
     
-    # Get boolean values from shop_data and convert to OUI/NON
-    precommande_value = "OUI" if shop_data.get("precommande", False) else "NON"
-    dedicace_value = "OUI" if shop_data.get("dedicaceEnvisagee", False) else "NON"
+    # Function to clean Unicode zero-width characters that might interfere with replacement
+    def clean_text_for_replacement(text):
+        # Remove common zero-width Unicode characters
+        text = text.replace('\u200b', '')  # Zero-width space
+        text = text.replace('\u200c', '')  # Zero-width non-joiner  
+        text = text.replace('\u200d', '')  # Zero-width joiner
+        text = text.replace('\u2060', '')  # Word joiner
+        text = text.replace('\ufeff', '')  # Zero-width no-break space
+        text = text.replace('\u202f', '')  # Narrow no-break space
+        text = text.replace('\u00a0', '')  # Non-breaking space
+        text = text.replace('\u2009', '')  # Thin space
+        text = text.replace('\u200a', '')  # Hair space
+        text = text.replace('\u2028', '')  # Line separator
+        text = text.replace('\u2029', '')  # Paragraph separator
+        return text
+    
+    # More aggressive replacement function that handles Unicode around placeholders
+    def replace_placeholder_with_unicode_handling(text, placeholder, value):
+        # First try normal replacement
+        if placeholder in text:
+            return text.replace(placeholder, str(value))
+        
+        # If normal replacement didn't work, try with Unicode cleaning
+        cleaned = clean_text_for_replacement(text)
+        if placeholder in cleaned:
+            # Find all possible Unicode variations around the placeholder
+            import re
+            # Create a pattern that matches the placeholder with any Unicode characters around it
+            pattern = r'[\u200b\u200c\u200d\u2060\ufeff\u202f\u00a0\u2009\u200a\u2028\u2029]*' + re.escape(placeholder) + r'[\u200b\u200c\u200d\u2060\ufeff\u202f\u00a0\u2009\u200a\u2028\u2029]*'
+            return re.sub(pattern, str(value), text)
+        
+        return text
     
     placeholder_mapping = {
-        "XXX1": shop_data.get("nomProjet", ""),  # Project name
-        "XXX2": shop_data.get("typeProjet", ""),  # Project type
-        "XXX3": shop_data.get("commercial", ""),  # Commercial name
-        "XXX4": raison_sociale,  # Client's raison sociale
-        "XXX5": shop_data.get("compteClientRef", ""),  # Client reference
-        "XXX6": shop_data.get("contactsClient", ""),  # Client contact email
-        "XXX7": shop_data.get("dateMiseEnLigne", ""),  # Go-live date
-        "XXX8": shop_data.get("dateCommercialisation", ""),  # Commercialization date
-        "XXX9": shop_data.get("dateSortieOfficielle", ""),  # Official release date
-        "XXX10": precommande_value,  # Pre-order (OUI/NON)
-        "XXX11": dedicace_value,  # Dedication planned (OUI/NON)
-        "XXX12": shop_data.get("boutiqueEnLigne", ""),  # Boutique en ligne (OUI/NON)
-        "XXX13": shop_data.get("chefProjet", ""),  # Chef de projet (prenom + nom)
-        "XXX14": shop_data.get("dateDemarageProjet", ""),  # Date démarrage projet
-        "COMPTENUM": shop_data.get("compteClientRef", ""),  # Client reference number
+        "XXX1": shop_data.get("nomProjet", ""),  # XXX1: nomProjet
+        "XXX2": shop_data.get("typeProjet", ""),  # XXX2: typeProjet
+        "XXX3": shop_data.get("commercial", ""),  # XXX3: commercial (salesperson)
+        "XXX4": shop_data.get("nomClient", ""),  # XXX4: nomClient (customer raisonSociale)
+        "XXX5": shop_data.get("compteClientRef", ""),  # XXX5: compteClientRef (customer CompteClientNumber)
+        "XXX7": shop_data.get("dateMiseEnLigne", ""),  # XXX7: dateMiseEnLigne (if available)
+        "XXX8": shop_data.get("dateCommercialisation", ""),  # XXX8: dateCommercialisation (YYYY/MM/DD)
+        "XXX9": shop_data.get("dateSortieOfficielle", ""),  # XXX9: dateSortieOfficielle (YYYY/MM/DD)
+        "XXX10": shop_data.get("precommande", ""),  # XXX10: precommande (OUI/NON)
+        "XXX11": shop_data.get("dedicaceEnvisagee", ""),  # XXX11: dedicaceEnvisagee (OUI/NON)
+        "XXX12": shop_data.get("estBoutiqueEnLigne", ""),  # XXX12: estBoutiqueEnLigne (OUI/NON)
+        "XXX13": shop_data.get("chefProjet", ""),  # XXX13: prenomChefProjet + ' ' + nomChefProjet
+        "XXX14": shop_data.get("demarrageProjet", ""),  # XXX14: demarrageProjet (YYYY/MM/DD)
+        "XXX15": shop_data.get("contactsClient", ""),  # XXX15: contactsClient (client email)
+        "COMPTENUM": shop_data.get("compteClientRef", ""),  # COMPTENUM: customer CompteClientNumber
     }
 
-    # Define the contract D2C fields and their corresponding shop_data keys (boolean)
-    # If the shop_data key is False (not selected), the corresponding text will be strikethrough.
-    # IMPORTANT: The 'text' here MUST EXACTLY match the text in your DOCX file for strikethrough.
-    # You will need to ensure these 'condition_key' values match the boolean fields in your shop_data.
+    # -------------------------------------------------------------
+    # Dynamic strikethrough rules for Contract-D2C cost lines
+    # -------------------------------------------------------------
+    type_ab = str(shop_data.get("typeAbonnementShopify", "")).strip().lower()
+    strike_mensuel = type_ab in ("", "aucun", "annuel")  # cross out mensuel when not chosen or when annual chosen
+    strike_annuel  = type_ab in ("", "aucun", "mensuel") # cross out annuel when not chosen or when monthly chosen
+
+    strike_mondial_relay = not bool(shop_data.get("moduleMondialRelay", False))
+    strike_delivengo     = not bool(shop_data.get("moduleDelivengo", False))
+
     contract_d2c_strikethrough_rules = [
-        {"text": "Abonnement mensurel SHOPIFY (12 mois) 948 euro", "condition_key": "shopifyPlanMonthlySelected"},
-        {"text": "Abonnement annuel SHOPIFY (12 mois) 948 euro", "condition_key": "shopifyPlanYearlySelected"},
-        # Add other contract D2C fields here as needed
-        # {"text": "Specific text for Option A", "condition_key": "optionA_selected"},
+        {"text": "Abonnement SHOPIFY mensuel sans engagement = 88€", "strike": strike_mensuel},
+        {"text": "Abonnement SHOPIFY 12 mois = 948€", "strike": strike_annuel},
+        {"text": "Les coûts pour ajouter le module Mondial Relay = 34€", "strike": strike_mondial_relay},
+        {"text": "Les coûts pour ajouter le module Delivengo = 34€", "strike": strike_delivengo},
     ]
 
-    for paragraph in document.paragraphs:
-        # Placeholder replacement
-        for key, value in placeholder_mapping.items():
-            if key in paragraph.text:
-                paragraph.text = paragraph.text.replace(key, str(value))
-        
-        # Strikethrough application
-        for rule in contract_d2c_strikethrough_rules:
-            contract_text = rule["text"]
-            condition_key = rule["condition_key"]
-            is_selected = shop_data.get(condition_key, False) # Default to False if key not present
-
-            if not is_selected and contract_text in paragraph.text:
-                # This is a simple approach. If the text is broken across multiple runs
-                # or interspersed with other formatting, this might not work perfectly.
-                # It will apply strikethrough to any run containing the full contract_text.
-                for run in paragraph.runs:
-                    if contract_text in run.text:
-                        run.font.strike = True
+    # First pass: Replace all placeholders in all runs globally
+    log("Starting global placeholder replacement...")
+    all_runs = []
     
-    # Process tables for placeholders and strikethrough (if applicable)
+    # Collect all runs from paragraphs
+    for paragraph in document.paragraphs:
+        all_runs.extend(paragraph.runs)
+    
+    # Collect all runs from tables
     for table in document.tables:
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
-                    # Placeholder replacement in table cells
-                    for key, value in placeholder_mapping.items():
-                        if key in paragraph.text:
-                            paragraph.text = paragraph.text.replace(key, str(value))
+                    all_runs.extend(paragraph.runs)
+    
+    # Replace placeholders in all runs
+    total_runs = len(all_runs)
+    log(f"Total runs to process: {total_runs}")
+    
+    # Log all runs with text for debugging
+    text_runs = [run for run in all_runs if run.text.strip()]
+    log(f"Runs with non-empty text: {len(text_runs)}")
+    for i, run in enumerate(text_runs[:10]):  # Log first 10 runs
+        log(f"Run {i}: '{run.text}'")
+    
+    for key, value in placeholder_mapping.items():
+        replacements_made = 0
+        log(f"Looking for placeholder: {key} (value: '{value}')")
+        
+        for run in all_runs:
+            if run.text:  # Only process runs with text
+                cleaned_run = clean_text_for_replacement(run.text).strip()
+                if cleaned_run == key:  # Replace only when the entire run equals the placeholder
+                    original_text = run.text
+                    run.text = str(value)
+                    replacements_made += 1
+                    log(f"✅ (run exact) Replaced {key} with '{value}': '{original_text}' → '{run.text}'")
+        
+        log(f"Total replacements made for {key}: {replacements_made}")
+    
+    # Additional method: try replacing across paragraph text directly
+    log("Attempting direct paragraph text replacement...")
+    for paragraph in document.paragraphs:
+        if paragraph.text:
+            original_para_text = paragraph.text
+            for key, value in placeholder_mapping.items():
+                if key in original_para_text or key in clean_text_for_replacement(original_para_text):
+                    log(f"Found {key} in paragraph: '{original_para_text}'")
+                    # Try to replace by reconstructing the paragraph
+                    new_para_text = replace_placeholder_with_unicode_handling(original_para_text, key, str(value))
+                    if new_para_text != original_para_text:
+                        # Clear existing runs and create new one
+                        for run in paragraph.runs:
+                            run.clear()
+                        paragraph.runs[0].text = new_para_text
+                        log(f"✅ Replaced in paragraph: '{original_para_text}' → '{new_para_text}'")
+    
+    # Additional method: try replacing in table cells directly
+    log("Attempting direct table cell text replacement...")
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    if paragraph.text:
+                        original_para_text = paragraph.text
+                        for key, value in placeholder_mapping.items():
+                            if key in original_para_text or key in clean_text_for_replacement(original_para_text):
+                                log(f"Found {key} in table cell: '{original_para_text}'")
+                                # Try to replace by reconstructing the paragraph
+                                new_para_text = replace_placeholder_with_unicode_handling(original_para_text, key, str(value))
+                                if new_para_text != original_para_text:
+                                    # Clear existing runs and create new one
+                                    for run in paragraph.runs:
+                                        run.clear()
+                                    if paragraph.runs:
+                                        paragraph.runs[0].text = new_para_text
+                                    else:
+                                        paragraph.add_run(new_para_text)
+                                    log(f"✅ Replaced in table cell: '{original_para_text}' → '{new_para_text}'")
+        
+        # Strikethrough application
+        for rule in contract_d2c_strikethrough_rules:
+            contract_text = rule["text"]
+            strike = rule["strike"]
+
+            if strike and contract_text in paragraph.text:
+                for run in paragraph.runs:
+                    if contract_text in run.text:
+                        run.font.strike = True
+    
+    # Second pass: Apply strikethrough to contract D2C items in tables (if applicable)
+    log("Starting strikethrough application...")
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
                     
                     # Strikethrough application in table cells
                     for rule in contract_d2c_strikethrough_rules:
                         contract_text = rule["text"]
-                        condition_key = rule["condition_key"]
-                        is_selected = shop_data.get(condition_key, False)
+                        strike = rule["strike"]
 
-                        if not is_selected and contract_text in paragraph.text:
+                        if strike and contract_text in paragraph.text:
                             for run in paragraph.runs:
                                 if contract_text in run.text:
                                     run.font.strike = True
 
     document.save(output_path)
     print(f"Document saved to {output_path}")
+
+    # Perform XML-level replacement for any placeholders still not caught
+    xml_level_replace(output_path, placeholder_mapping)
+
+    log("Document processing completed successfully")
+
+def build_cross_tag_pattern(placeholder: str) -> str:
+    """Return a regex that matches the placeholder even if arbitrary XML tags or zero-width characters are interleaved
+    between its characters (e.g. <w:t>XX</w:t><w:t>X</w:t><w:t>1</w:t>)."""
+    # Characters that may appear between pieces of the placeholder (XML tags or invisible chars)
+    gap = r"(?:<[^>]+>|\s|\u200b|\u200c|\u200d|\u2060|\ufeff|\u202f|\u00a0|\u2009|\u200a|\u2028|\u2029)*"
+    # Join every character in the placeholder with the gap pattern
+    escaped_chars = [re.escape(ch) for ch in placeholder]
+    return gap.join(escaped_chars)
+
+
+def xml_level_replace(docx_path: str, mapping: dict):
+    """Open an existing DOCX file and replace placeholders at the raw XML level using robust regexes."""
+    try:
+        with zipfile.ZipFile(docx_path, 'r') as zin:
+            # Copy all original entries but potentially modified XML files into a new zip
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_fp:
+                temp_path = temp_fp.name
+            with zipfile.ZipFile(temp_path, 'w', zipfile.ZIP_DEFLATED) as zout:
+                for item in zin.infolist():
+                    data = zin.read(item.filename)
+                    if item.filename.endswith('.xml'):
+                        xml_str = data.decode('utf-8', errors='ignore')
+                        original_xml = xml_str
+                        # Replace longer placeholders first to avoid partial matches (e.g. XXX1 inside XXX12)
+                        for key in sorted(mapping.keys(), key=len, reverse=True):
+                            value = mapping[key]
+                            pattern = build_cross_tag_pattern(key)
+                            xml_str, subs = re.subn(pattern, str(value), xml_str)
+                            if subs:
+                                log(f"[XML] Replaced {key} -> '{value}' ({subs} occurrence(s)) in {item.filename}")
+                        data = xml_str.encode('utf-8')
+                    zout.writestr(item, data)
+        # Replace original file with the updated one
+        shutil.move(temp_path, docx_path)
+        log("XML-level placeholder replacement completed.")
+    except Exception as e:
+        log(f"[XML] Error during XML-level replacement: {e}")
 
 if __name__ == "__main__":
     try:

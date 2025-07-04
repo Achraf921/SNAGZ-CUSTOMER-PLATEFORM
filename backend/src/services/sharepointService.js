@@ -5,6 +5,7 @@ const ExcelJS = require("exceljs");
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+const { getCustomersCollection } = require('../config/db');
 require("isomorphic-fetch");
 
 // Ensure these env vars are set
@@ -83,7 +84,7 @@ async function getOrCreateFolder(driveId, parentFolderId, folderName) {
   }
 }
 
-async function uploadFile(driveId, parentId, fileName, content, contentType) {
+async function uploadFile(driveId, parentId, fileName, content, contentType, retryCount = 0) {
   try {
     console.log('Uploading file:', fileName);
     const url = `/drives/${driveId}/items/${parentId}:/${fileName}:/content`;
@@ -91,6 +92,14 @@ async function uploadFile(driveId, parentId, fileName, content, contentType) {
     console.log('Successfully uploaded file');
   } catch (error) {
     console.error('Error uploading file:', error);
+    
+    // If it's a resource locked error and we haven't retried too many times
+    if (error.statusCode === 423 && retryCount < 3) {
+      console.log(`File locked, retrying in ${(retryCount + 1) * 2} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+      return uploadFile(driveId, parentId, fileName, content, contentType, retryCount + 1);
+    }
+    
     throw error;
   }
 }
@@ -133,14 +142,14 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
   try {
     console.log('Creating Box Media folder structure...');
     
-    // Helper function to format dates as DD/MM/YYYY
-    const formatDate = (dateString) => {
+    // Helper function to format dates as YYYY/MM/DD 
+    const formatDateYYYYMMDD = (dateString) => {
       if (!dateString) return '';
       const date = new Date(dateString);
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
+      return `${year}/${month}/${day}`;
     };
     
     // Create Box Media folder with dynamic naming
@@ -174,24 +183,30 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
       const webDesignOutputName = `Intro - Textes _ ${raisonSocialeForFolder} _ ${nomProjetForFolder}.docx`;
       const processedWebDesignPath = path.join(webDesignTemplateDir, `PROCESSED_${webDesignOutputName}`);
       
-      // Prepare shop data for processing (same as main DOCX)
+      // Prepare shop data for processing (same format as main DOCX)
       const shopDataForWebDesign = JSON.stringify({
-        nomProjet: shop.nomProjet,
-        typeProjet: shop.typeProjet,
+        nomProjet: shop.nomProjet, // XXX1
+        typeProjet: shop.typeProjet, // XXX2
+        contactsClient: shop.contactsClient, // XXX3
+        nomClient: customer.raisonSociale || customer.name || '', // XXX4
+        compteClientRef: shop.compteClientRef || customer.CompteClientNumber, // XXX5
+        dateMiseEnLigne: formatDateYYYYMMDD(shop.dateMiseEnLigne), // XXX7
+        dateCommercialisation: formatDateYYYYMMDD(shop.dateCommercialisation), // XXX8
+        dateSortieOfficielle: formatDateYYYYMMDD(shop.dateSortieOfficielle), // XXX9
+        precommande: shop.precommande ? 'OUI' : 'NON', // XXX10
+        dedicaceEnvisagee: shop.dedicaceEnvisagee ? 'OUI' : 'NON', // XXX11
+        estBoutiqueEnLigne: shop.estBoutiqueEnLigne ? 'OUI' : 'NON', // XXX12
+        chefProjet: `${shop.prenomChefProjet || ''} ${shop.nomChefProjet || ''}`.trim(), // XXX13
+        demarrageProjet: formatDateYYYYMMDD(shop.demarrageProjet), // XXX14
+        // Additional fields for backwards compatibility
         commercial: shop.commercial,
         raisonSociale: customer.raisonSociale,
-        compteClientRef: customer.CompteClientNumber, // Use CompteClientNumber from customer document
-        contactsClient: shop.contactsClient,
-        dateMiseEnLigne: formatDate(shop.dateMiseEnLigne),
-        dateCommercialisation: formatDate(shop.dateCommercialisation),
-        dateSortieOfficielle: formatDate(shop.dateSortieOfficielle),
-        precommande: shop.precommande,
-        dedicaceEnvisagee: shop.dedicaceEnvisagee,
         shopifyPlanMonthlySelected: shop.typeAbonnementShopify === 'mensuel',
         shopifyPlanYearlySelected: shop.typeAbonnementShopify === 'annuel',
-        boutiqueEnLigne: shop.estBoutiqueEnLigne ? 'OUI' : 'NON',
-        chefProjet: `${shop.prenomChefProjet || ''} ${shop.nomChefProjet || ''}`.trim(),
-        dateDemarageProjet: formatDate(shop.demarrageProjet),
+        // Fields for conditional strikethrough
+        typeAbonnementShopify: shop.typeAbonnementShopify || '',
+        moduleMondialRelay: !!shop.moduleMondialRelay,
+        moduleDelivengo: !!shop.moduleDelivengo,
       });
 
       const encodedWebDesignData = Buffer.from(shopDataForWebDesign).toString('base64');
@@ -248,8 +263,8 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
       await getOrCreateFolder(driveId, webMerchFolder.id, folderName);
     }
     
-    // Process and upload Web-Merchandising template file
-    const webMerchTemplateDir = path.join(__dirname, 'FileWebMerch');
+    // Process and upload Web-Merchandising template file with product data
+    const webMerchTemplateDir = path.join(__dirname, 'FichesProduitTemplate');
     const webMerchTemplateFile = 'FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx';
     const webMerchTemplatePath = path.join(webMerchTemplateDir, webMerchTemplateFile);
     
@@ -257,32 +272,19 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
       const webMerchOutputName = `FICHES.PRODUITS_SHOPIFY_${raisonSocialeForFolder}_${nomProjetForFolder}.xlsx`;
       const processedWebMerchPath = path.join(webMerchTemplateDir, `PROCESSED_${webMerchOutputName}`);
       
-      // Use the same shop data as Web-Design (already prepared above)
+      // Prepare shop data with products for merchandising
       const shopDataForWebMerch = JSON.stringify({
         nomProjet: shop.nomProjet,
-        typeProjet: shop.typeProjet,
-        commercial: shop.commercial,
-        raisonSociale: customer.raisonSociale,
-        compteClientRef: customer.CompteClientNumber, // Use CompteClientNumber from customer document
-        contactsClient: shop.contactsClient,
-        dateMiseEnLigne: formatDate(shop.dateMiseEnLigne),
-        dateCommercialisation: formatDate(shop.dateCommercialisation),
-        dateSortieOfficielle: formatDate(shop.dateSortieOfficielle),
-        precommande: shop.precommande,
-        dedicaceEnvisagee: shop.dedicaceEnvisagee,
-        shopifyPlanMonthlySelected: shop.typeAbonnementShopify === 'mensuel',
-        shopifyPlanYearlySelected: shop.typeAbonnementShopify === 'annuel',
-        boutiqueEnLigne: shop.estBoutiqueEnLigne ? 'OUI' : 'NON',
-        chefProjet: `${shop.prenomChefProjet || ''} ${shop.nomChefProjet || ''}`.trim(),
-        dateDemarageProjet: formatDate(shop.demarrageProjet),
+        shopifyDomain: shop.shopifyDomain || '',
+        products: shop.products || []
       });
 
       const encodedWebMerchData = Buffer.from(shopDataForWebMerch).toString('base64');
 
-      // Process the Web-Merchandising XLSX file using Python script
+      // Process the Web-Merchandising XLSX file using specialized merchandising Python script
       await new Promise((resolve, reject) => {
-        const command = `python3 "${path.join(__dirname, 'xlsx_processor.py')}" "${webMerchTemplatePath}" "${encodedWebMerchData}" "${processedWebMerchPath}"`;
-        console.log(`Processing Web-Merchandising XLSX: ${command}`);
+        const command = `python3 "${path.join(__dirname, 'merch_xlsx_processor.py')}" "${webMerchTemplatePath}" "${encodedWebMerchData}" "${processedWebMerchPath}"`;
+        console.log(`Processing Web-Merchandising XLSX with products: ${command}`);
 
         exec(command, (error, stdout, stderr) => {
           if (error) {
@@ -309,6 +311,42 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         );
         console.log('Processed Web-Merchandising template file uploaded successfully');
+        
+        // Mark all products as documented after successful merchandising generation
+        if (shop.products && shop.products.length > 0) {
+          try {
+            const customersCollection = await getCustomersCollection();
+            
+            // Update all products in this shop to mark them as documented
+            const updateOperations = {};
+            shop.products.forEach((product, index) => {
+              updateOperations[`shops.$.products.${index}.documented`] = true;
+            });
+            
+            // Find customer by either _id or userId
+            let updateQuery;
+            if (customer._id) {
+              updateQuery = { _id: customer._id, 'shops.shopId': shop.shopId };
+            } else {
+              updateQuery = { userId: customer.userId, 'shops.shopId': shop.shopId };
+            }
+            
+            const result = await customersCollection.updateOne(
+              updateQuery,
+              { $set: updateOperations }
+            );
+            
+            if (result.modifiedCount > 0) {
+              console.log(`Successfully marked ${shop.products.length} products as documented for shop ${shop.shopId}`);
+            } else {
+              console.warn(`Failed to update product documentation status for shop ${shop.shopId}`);
+            }
+          } catch (updateError) {
+            console.error('Error updating product documentation status:', updateError);
+            // Don't throw error - continue with documentation generation
+          }
+        }
+        
         // Clean up temporary file
         fs.unlinkSync(processedWebMerchPath);
       } else {
@@ -395,9 +433,87 @@ async function createContratFolder(driveId, parentFolderId) {
   }
 }
 
-async function generateDocumentation(customer, shop) {
+async function checkDocumentationExists(customer, shop) {
+  try {
+    console.log('Checking if documentation already exists...');
+    
+    // Get site and drive
+    const site = await getSite();
+    const drive = await getDrive(site.id);
+    
+    // Create the same folder paths as generateDocumentation
+    const compteClientNumber = customer.CompteClientNumber || 'NOCLIENTNUM';
+    const raisonSociale = (customer.raisonSociale || customer.name || `Client_${customer._id.toString().substring(0, 8)}`).toUpperCase();
+    const nomProjet = (shop.nomProjet || shop.name || `Shop_${shop.shopId.substring(0, 8)}`).toUpperCase();
+
+    // Format: <CompteClientNumber>_<raisonSociale>
+    const clientFolderName = `${compteClientNumber}_${raisonSociale}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    
+    // Format: <CompteClientNumber>_<nomProjet>
+    const shopFolderName = `${compteClientNumber}_${nomProjet}`.replace(/[^a-zA-Z0-9_]/g, '_');
+
+    // Check if customer folder exists
+    let clientFolder = await findExistingCustomerFolder(drive.id, compteClientNumber);
+    if (!clientFolder) {
+      console.log('No customer folder found, documentation does not exist');
+      return false;
+    }
+
+    // Check if shop folder exists
+    try {
+      const shopFolderResponse = await graphClient.api(`/drives/${drive.id}/items/${clientFolder.id}/children`).get();
+      const shopFolder = shopFolderResponse.value.find(item => 
+        item.folder && item.name === shopFolderName
+      );
+      
+      if (!shopFolder) {
+        console.log('No shop folder found, documentation does not exist');
+        return false;
+      }
+
+      // Check if key documentation files exist in the shop folder
+      const shopContentsResponse = await graphClient.api(`/drives/${drive.id}/items/${shopFolder.id}/children`).get();
+      const files = shopContentsResponse.value.filter(item => !item.folder);
+      
+      // Look for the main FICHE PROJET file
+      const raisonSocialeForFilename = (customer.raisonSociale || 'CLIENT').replace(/[^a-zA-Z0-9]/g, '_');
+      const nomProjetForFilename = (shop.nomProjet || 'PROJET').replace(/[^a-zA-Z0-9]/g, '_');
+      const compteNumForFilename = (customer.CompteClientNumber || 'COMPTENUM').replace(/[^a-zA-Z0-9]/g, '_');
+      const ficheProjetFilename = `FICHE PROJET_ ${raisonSocialeForFilename} _ ${nomProjetForFilename} _ ${compteNumForFilename} _Démarrage Projet.docx`;
+      
+      const ficheProjetExists = files.some(file => file.name === ficheProjetFilename);
+      
+      if (ficheProjetExists) {
+        console.log('FICHE PROJET file found, documentation exists');
+        return true;
+      } else {
+        console.log('FICHE PROJET file not found, documentation does not exist');
+        return false;
+      }
+      
+    } catch (error) {
+      console.log('Error checking shop folder contents, assuming documentation does not exist');
+      return false;
+    }
+    
+  } catch (error) {
+    console.error('Error checking documentation existence:', error);
+    // If we can't check, assume it doesn't exist to be safe
+    return false;
+  }
+}
+
+async function generateDocumentation(customer, shop, forceOverwrite = false) {
   try {
     console.log('Starting documentation generation...');
+    
+    // Check if documentation already exists and forceOverwrite is not set
+    if (!forceOverwrite) {
+      const exists = await checkDocumentationExists(customer, shop);
+      if (exists) {
+        throw new Error('DOCUMENTATION_EXISTS');
+      }
+    }
     
     // Get site and drive
     const site = await getSite();
@@ -446,36 +562,42 @@ async function generateDocumentation(customer, shop) {
     const outputFilename = `FICHE PROJET_ ${raisonSocialeForFilename} _ ${nomProjetForFilename} _ ${compteNumForFilename} _Démarrage Projet.docx`;
     const processedDocxPath = path.join(__dirname, 'DocxAModifier', `PROCESSED_${outputFilename}`);
 
-    // Helper function to format dates as DD/MM/YYYY
-    const formatDate = (dateString) => {
+    // Helper function to format dates as YYYY/MM/DD for Fiche Projet
+    const formatDateYYYYMMDD = (dateString) => {
       if (!dateString) return '';
       const date = new Date(dateString);
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
+      return `${year}/${month}/${day}`;
     };
 
     // Prepare shop data as a JSON string for the Python script
     const shopDataJson = JSON.stringify({
-      nomProjet: shop.nomProjet,
-      typeProjet: shop.typeProjet,
+      nomProjet: shop.nomProjet, // XXX1
+      typeProjet: shop.typeProjet, // XXX2
+      contactsClient: shop.contactsClient, // XXX3
+      nomClient: customer.raisonSociale || customer.name || '', // XXX4 - Client name
+      compteClientRef: shop.compteClientRef || customer.CompteClientNumber, // XXX5 - Prefer shop reference
+      dateMiseEnLigne: formatDateYYYYMMDD(shop.dateMiseEnLigne), // XXX7 - YYYY/MM/DD format
+      dateCommercialisation: formatDateYYYYMMDD(shop.dateCommercialisation), // XXX8 - YYYY/MM/DD format
+      dateSortieOfficielle: formatDateYYYYMMDD(shop.dateSortieOfficielle), // XXX9 - YYYY/MM/DD format
+      precommande: shop.precommande ? 'OUI' : 'NON', // XXX10
+      dedicaceEnvisagee: shop.dedicaceEnvisagee ? 'OUI' : 'NON', // XXX11
+      estBoutiqueEnLigne: shop.estBoutiqueEnLigne ? 'OUI' : 'NON', // XXX12
+      chefProjet: `${shop.prenomChefProjet || ''} ${shop.nomChefProjet || ''}`.trim(), // XXX13
+      demarrageProjet: formatDateYYYYMMDD(shop.demarrageProjet), // XXX14 - YYYY/MM/DD format
+      // Fields for conditional strikethrough
+      typeAbonnementShopify: shop.typeAbonnementShopify || '',
+      moduleMondialRelay: !!shop.moduleMondialRelay,
+      moduleDelivengo: !!shop.moduleDelivengo,
+      // Additional fields for backwards compatibility and other processing
       commercial: shop.commercial,
       clientName: clientFolderName,
-      raisonSociale: customer.raisonSociale, // Add raisonSociale from customer document
-      compteClientRef: customer.CompteClientNumber, // Use CompteClientNumber from customer document
-      contactsClient: shop.contactsClient,
-      dateMiseEnLigne: formatDate(shop.dateMiseEnLigne),
-      dateCommercialisation: formatDate(shop.dateCommercialisation),
-      dateSortieOfficielle: formatDate(shop.dateSortieOfficielle),
-      precommande: shop.precommande,
-      dedicaceEnvisagee: shop.dedicaceEnvisagee,
-      shopifyPlanMonthlySelected: shop.typeAbonnementShopify === 'Mensuel',
-      shopifyPlanYearlySelected: shop.typeAbonnementShopify === 'Annuel',
-      // New fields
-      boutiqueEnLigne: shop.estBoutiqueEnLigne ? 'OUI' : 'NON', // XXX12: boutique en ligne (OUI/NON)
-      chefProjet: `${shop.prenomChefProjet || ''} ${shop.nomChefProjet || ''}`.trim(), // XXX13: merged prenomChefProjet and nomChefProjet
-      dateDemarageProjet: formatDate(shop.demarrageProjet), // XXX14: date démarage projet
+      raisonSociale: customer.raisonSociale,
+      // legacy flags kept for backward compatibility
+      shopifyPlanMonthlySelected: shop.typeAbonnementShopify === 'mensuel',
+      shopifyPlanYearlySelected: shop.typeAbonnementShopify === 'annuel',
     });
 
     // Base64 encode the JSON string to avoid shell escaping issues
@@ -601,4 +723,4 @@ async function generateDocumentation(customer, shop) {
   }
 }
 
-module.exports = { generateDocumentation };
+module.exports = { generateDocumentation, checkDocumentationExists };

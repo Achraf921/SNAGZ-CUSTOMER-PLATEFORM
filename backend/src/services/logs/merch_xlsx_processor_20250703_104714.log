@@ -1,0 +1,89 @@
+[2025-07-03 10:47:14] Merchandising XLSX processor script started
+[2025-07-03 10:47:14] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 10:47:14] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_GZ_BBZ.xlsx
+[2025-07-03 10:47:14] Decoding base64 data...
+[2025-07-03 10:47:14] Successfully decoded base64 data
+[2025-07-03 10:47:14] Parsing JSON data...
+[2025-07-03 10:47:14] Successfully parsed JSON data
+[2025-07-03 10:47:14] Starting merchandising XLSX processing...
+[2025-07-03 10:47:14] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 10:47:14] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_GZ_BBZ.xlsx
+[2025-07-03 10:47:14] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 10:47:14] Shop data keys: ['nomProjet', 'shopifyDomain', 'products']
+[2025-07-03 10:47:14] Processing 2 products for shop: BBZ
+[2025-07-03 10:47:14] Total stock across all products: 5809
+[2025-07-03 10:47:14] Processing worksheet: Catalogue en ligne
+[2025-07-03 10:47:14] Replaced 'CLIENT' with 'BBZ' in cell A2
+[2025-07-03 10:47:14] Replaced 'nomProjet' with 'BBZ' in cell B2
+[2025-07-03 10:47:14] Replaced 'shopifyDomain' with 'ejinbc-dn' in cell C2
+[2025-07-03 10:47:14] Found template row with size placeholders at row 1
+[2025-07-03 10:47:14] Will start inserting product data at row: 2
+[2025-07-03 10:47:14] Starting to add 2 products at row 2
+[2025-07-03 10:47:14] Processing product 1/2: Waffle
+[2025-07-03 10:47:14] Product 1 total stock: 0 from stock_dict: {}
+[2025-07-03 10:47:14] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-03 10:47:14] Successfully added product 1 data at row 2: Waffle
+[2025-07-03 10:47:14] Data written: ['Merch', 'Waffle', 'Waffle', '678910', 0, 0, 0, 0, 0, 0, 400, 7.99, 'NON']
+[2025-07-03 10:47:14] Processing product 2/2: Poulet
+[2025-07-03 10:47:14] Product 2 total stock: 5809 from stock_dict: {'L-Bleu': 123, 'L-Rouge': 324, 'XL-Bleu': 5239, 'XL-Rouge': 123}
+[2025-07-03 10:47:14] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 447, 'XL': 5362}
+[2025-07-03 10:47:14] Skipping merged cell at row 3, column 7
+[2025-07-03 10:47:14] Skipping merged cell at row 3, column 8
+[2025-07-03 10:47:14] Skipping merged cell at row 3, column 9
+[2025-07-03 10:47:14] Skipping merged cell at row 3, column 10
+[2025-07-03 10:47:14] Successfully added product 2 data at row 3: Poulet
+[2025-07-03 10:47:14] Data written: ['Merch', 'Poulet', 'Chicken', '69', 5809, 0, 0, 0, 447, 5362, 800, 9.99, 'NON']
+[2025-07-03 10:47:14] Finished processing all products. Final row: 3
+[2025-07-03 10:47:14] Processing worksheet: POD
+[2025-07-03 10:47:14] Found template row with size placeholders at row 1
+[2025-07-03 10:47:14] Will start inserting product data at row: 2
+[2025-07-03 10:47:14] Starting to add 2 products at row 2
+[2025-07-03 10:47:14] Processing product 1/2: Waffle
+[2025-07-03 10:47:14] Product 1 total stock: 0 from stock_dict: {}
+[2025-07-03 10:47:14] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-03 10:47:14] Skipping merged cell at row 2, column 1
+[2025-07-03 10:47:14] Skipping merged cell at row 2, column 2
+[2025-07-03 10:47:14] Skipping merged cell at row 2, column 3
+[2025-07-03 10:47:14] Skipping merged cell at row 2, column 4
+[2025-07-03 10:47:14] Skipping merged cell at row 2, column 5
+[2025-07-03 10:47:14] Skipping merged cell at row 2, column 6
+[2025-07-03 10:47:14] Successfully added product 1 data at row 2: Waffle
+[2025-07-03 10:47:14] Data written: ['Merch', 'Waffle', 'Waffle', '678910', 0, 0, 0, 0, 0, 0, 400, 7.99, 'NON']
+[2025-07-03 10:47:14] Processing product 2/2: Poulet
+[2025-07-03 10:47:14] Product 2 total stock: 5809 from stock_dict: {'L-Bleu': 123, 'L-Rouge': 324, 'XL-Bleu': 5239, 'XL-Rouge': 123}
+[2025-07-03 10:47:14] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 447, 'XL': 5362}
+[2025-07-03 10:47:14] Successfully added product 2 data at row 3: Poulet
+[2025-07-03 10:47:14] Data written: ['Merch', 'Poulet', 'Chicken', '69', 5809, 0, 0, 0, 447, 5362, 800, 9.99, 'NON']
+[2025-07-03 10:47:14] Finished processing all products. Final row: 3
+[2025-07-03 10:47:14] Processing worksheet: Feuil1
+[2025-07-03 10:47:14] Found template row with size placeholders at row 1
+[2025-07-03 10:47:14] Will start inserting product data at row: 2
+[2025-07-03 10:47:14] Starting to add 2 products at row 2
+[2025-07-03 10:47:14] Processing product 1/2: Waffle
+[2025-07-03 10:47:14] Product 1 total stock: 0 from stock_dict: {}
+[2025-07-03 10:47:14] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-03 10:47:14] Successfully added product 1 data at row 2: Waffle
+[2025-07-03 10:47:14] Data written: ['Merch', 'Waffle', 'Waffle', '678910', 0, 0, 0, 0, 0, 0, 400, 7.99, 'NON']
+[2025-07-03 10:47:14] Processing product 2/2: Poulet
+[2025-07-03 10:47:14] Product 2 total stock: 5809 from stock_dict: {'L-Bleu': 123, 'L-Rouge': 324, 'XL-Bleu': 5239, 'XL-Rouge': 123}
+[2025-07-03 10:47:14] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 447, 'XL': 5362}
+[2025-07-03 10:47:14] Successfully added product 2 data at row 3: Poulet
+[2025-07-03 10:47:14] Data written: ['Merch', 'Poulet', 'Chicken', '69', 5809, 0, 0, 0, 447, 5362, 800, 9.99, 'NON']
+[2025-07-03 10:47:14] Finished processing all products. Final row: 3
+[2025-07-03 10:47:14] Processing worksheet: NE PAS MODIFIER
+[2025-07-03 10:47:14] Found template row with size placeholders at row 1
+[2025-07-03 10:47:14] Will start inserting product data at row: 2
+[2025-07-03 10:47:14] Starting to add 2 products at row 2
+[2025-07-03 10:47:14] Processing product 1/2: Waffle
+[2025-07-03 10:47:14] Product 1 total stock: 0 from stock_dict: {}
+[2025-07-03 10:47:14] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-03 10:47:14] Successfully added product 1 data at row 2: Waffle
+[2025-07-03 10:47:14] Data written: ['Merch', 'Waffle', 'Waffle', '678910', 0, 0, 0, 0, 0, 0, 400, 7.99, 'NON']
+[2025-07-03 10:47:14] Processing product 2/2: Poulet
+[2025-07-03 10:47:14] Product 2 total stock: 5809 from stock_dict: {'L-Bleu': 123, 'L-Rouge': 324, 'XL-Bleu': 5239, 'XL-Rouge': 123}
+[2025-07-03 10:47:14] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 447, 'XL': 5362}
+[2025-07-03 10:47:14] Successfully added product 2 data at row 3: Poulet
+[2025-07-03 10:47:14] Data written: ['Merch', 'Poulet', 'Chicken', '69', 5809, 0, 0, 0, 447, 5362, 800, 9.99, 'NON']
+[2025-07-03 10:47:14] Finished processing all products. Final row: 3
+[2025-07-03 10:47:14] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_GZ_BBZ.xlsx
+[2025-07-03 10:47:14] Merchandising XLSX processing completed successfully

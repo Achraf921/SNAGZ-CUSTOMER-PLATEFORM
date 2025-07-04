@@ -1,0 +1,83 @@
+[2025-07-03 12:19:21] Merchandising XLSX processor script started
+[2025-07-03 12:19:21] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 12:19:21] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/generated_docs/FICHES_PRODUITS_BBZ_1751537961336.xlsx
+[2025-07-03 12:19:21] Decoding base64 data...
+[2025-07-03 12:19:21] Successfully decoded base64 data
+[2025-07-03 12:19:21] Parsing JSON data...
+[2025-07-03 12:19:21] Successfully parsed JSON data
+[2025-07-03 12:19:21] Starting merchandising XLSX processing...
+[2025-07-03 12:19:21] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 12:19:21] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/generated_docs/FICHES_PRODUITS_BBZ_1751537961336.xlsx
+[2025-07-03 12:19:21] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 12:19:21] Shop data keys: ['nomProjet', 'shopifyDomain', 'dateCommercialisation', 'raisonSociale', 'products']
+[2025-07-03 12:19:21] Found date-related field: 'dateCommercialisation' = '2025-06-05'
+[2025-07-03 12:19:21] Found customer-related field: 'raisonSociale' = 'GZ'
+[2025-07-03 12:19:21] Extracted dates - Sortie: '', Commercialisation: '2025-06-05'
+[2025-07-03 12:19:21] Extracted raison sociale: 'GZ'
+[2025-07-03 12:19:21] Combined dates field: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:19:21] Processing 1 products for shop: BBZ
+[2025-07-03 12:19:21] Processing worksheet: Catalogue en ligne
+[2025-07-03 12:19:21] Replaced 'CLIENT' with 'BBZ' in cell A2
+[2025-07-03 12:19:21] Replaced 'nomProjet' with 'BBZ' in cell B2
+[2025-07-03 12:19:21] Replaced 'shopifyDomain' with 'ejinbc-dn' in cell C2
+[2025-07-03 12:19:21] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-03 12:19:21] Will start inserting product data at row: 5
+[2025-07-03 12:19:21] Starting to add 1 products at row 5
+[2025-07-03 12:19:21] Processing product 1/1: Poulet
+[2025-07-03 12:19:21] Product 1 total stock: 5809 from stock_dict: {'L-Bleu': 123, 'L-Rouge': 324, 'XL-Bleu': 5239, 'XL-Rouge': 123}
+[2025-07-03 12:19:21] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 447, 'XL': 5362}
+[2025-07-03 12:19:21] Product 1 colors: ['Bleu', 'Rouge'] -> 'Bleu, Rouge'
+[2025-07-03 12:19:21] Product 1 sizes: ['L', 'XL'] -> 'L, XL'
+[2025-07-03 12:19:21] Successfully added product 1 data at row 5: Poulet
+[2025-07-03 12:19:21] Combined dates field content: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:19:21] Colors field content: 'Bleu, Rouge'
+[2025-07-03 12:19:21] Sizes field content: 'L, XL'
+[2025-07-03 12:19:21] Data written: ['Merch', 'Poulet', 'Chicken', '69', 5809, 0, 0, 0, 447, 5362, 800, 9.99, 'NON', 'COMMERCIALISATION (Merch): 2025-06-05', 'GZ', '', '', '', 'Bleu, Rouge', 'L, XL', '']
+[2025-07-03 12:19:21] Finished processing all products. Final row: 5
+[2025-07-03 12:19:21] Processing worksheet: POD
+[2025-07-03 12:19:21] Could not find header rows - using default row 6 with safety buffer
+[2025-07-03 12:19:21] Will start inserting product data at row: 6
+[2025-07-03 12:19:21] Starting to add 1 products at row 6
+[2025-07-03 12:19:21] Processing product 1/1: Poulet
+[2025-07-03 12:19:21] Product 1 total stock: 5809 from stock_dict: {'L-Bleu': 123, 'L-Rouge': 324, 'XL-Bleu': 5239, 'XL-Rouge': 123}
+[2025-07-03 12:19:21] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 447, 'XL': 5362}
+[2025-07-03 12:19:21] Product 1 colors: ['Bleu', 'Rouge'] -> 'Bleu, Rouge'
+[2025-07-03 12:19:21] Product 1 sizes: ['L', 'XL'] -> 'L, XL'
+[2025-07-03 12:19:21] Successfully added product 1 data at row 6: Poulet
+[2025-07-03 12:19:21] Combined dates field content: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:19:21] Colors field content: 'Bleu, Rouge'
+[2025-07-03 12:19:21] Sizes field content: 'L, XL'
+[2025-07-03 12:19:21] Data written: ['Merch', 'Poulet', 'Chicken', '69', 5809, 0, 0, 0, 447, 5362, 800, 9.99, 'NON', 'COMMERCIALISATION (Merch): 2025-06-05', 'GZ', '', '', '', 'Bleu, Rouge', 'L, XL', '']
+[2025-07-03 12:19:21] Finished processing all products. Final row: 6
+[2025-07-03 12:19:21] Processing worksheet: Feuil1
+[2025-07-03 12:19:21] Could not find header rows - using default row 6 with safety buffer
+[2025-07-03 12:19:21] Will start inserting product data at row: 6
+[2025-07-03 12:19:21] Starting to add 1 products at row 6
+[2025-07-03 12:19:21] Processing product 1/1: Poulet
+[2025-07-03 12:19:21] Product 1 total stock: 5809 from stock_dict: {'L-Bleu': 123, 'L-Rouge': 324, 'XL-Bleu': 5239, 'XL-Rouge': 123}
+[2025-07-03 12:19:21] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 447, 'XL': 5362}
+[2025-07-03 12:19:21] Product 1 colors: ['Bleu', 'Rouge'] -> 'Bleu, Rouge'
+[2025-07-03 12:19:21] Product 1 sizes: ['L', 'XL'] -> 'L, XL'
+[2025-07-03 12:19:21] Successfully added product 1 data at row 6: Poulet
+[2025-07-03 12:19:21] Combined dates field content: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:19:21] Colors field content: 'Bleu, Rouge'
+[2025-07-03 12:19:21] Sizes field content: 'L, XL'
+[2025-07-03 12:19:21] Data written: ['Merch', 'Poulet', 'Chicken', '69', 5809, 0, 0, 0, 447, 5362, 800, 9.99, 'NON', 'COMMERCIALISATION (Merch): 2025-06-05', 'GZ', '', '', '', 'Bleu, Rouge', 'L, XL', '']
+[2025-07-03 12:19:21] Finished processing all products. Final row: 6
+[2025-07-03 12:19:21] Processing worksheet: NE PAS MODIFIER
+[2025-07-03 12:19:21] Could not find header rows - using default row 6 with safety buffer
+[2025-07-03 12:19:21] Will start inserting product data at row: 6
+[2025-07-03 12:19:21] Starting to add 1 products at row 6
+[2025-07-03 12:19:21] Processing product 1/1: Poulet
+[2025-07-03 12:19:21] Product 1 total stock: 5809 from stock_dict: {'L-Bleu': 123, 'L-Rouge': 324, 'XL-Bleu': 5239, 'XL-Rouge': 123}
+[2025-07-03 12:19:21] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 447, 'XL': 5362}
+[2025-07-03 12:19:21] Product 1 colors: ['Bleu', 'Rouge'] -> 'Bleu, Rouge'
+[2025-07-03 12:19:21] Product 1 sizes: ['L', 'XL'] -> 'L, XL'
+[2025-07-03 12:19:21] Successfully added product 1 data at row 6: Poulet
+[2025-07-03 12:19:21] Combined dates field content: 'COMMERCIALISATION (Merch): 2025-06-05'
+[2025-07-03 12:19:21] Colors field content: 'Bleu, Rouge'
+[2025-07-03 12:19:21] Sizes field content: 'L, XL'
+[2025-07-03 12:19:21] Data written: ['Merch', 'Poulet', 'Chicken', '69', 5809, 0, 0, 0, 447, 5362, 800, 9.99, 'NON', 'COMMERCIALISATION (Merch): 2025-06-05', 'GZ', '', '', '', 'Bleu, Rouge', 'L, XL', '']
+[2025-07-03 12:19:21] Finished processing all products. Final row: 6
+[2025-07-03 12:19:21] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/generated_docs/FICHES_PRODUITS_BBZ_1751537961336.xlsx
+[2025-07-03 12:19:21] Merchandising XLSX processing completed successfully

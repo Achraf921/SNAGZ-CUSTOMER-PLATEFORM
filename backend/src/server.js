@@ -50,6 +50,10 @@ console.log('Loading shopify routes...');
 const shopifyRoutes = require('./routes/shopify');
 console.log('Shopify routes loaded');
 
+console.log('Loading internal routes...');
+const internalRoutes = require('./routes/internal');
+console.log('Internal routes loaded');
+
 // const { Issuer, generators } = require('openid-client'); // No longer needed for login
 // const crypto = require('crypto'); // Added crypto module for SECRET_HASH
 // const { connectToDatabase } = require('./config/db'); // MongoDB connection
@@ -141,7 +145,7 @@ app.get('/api/health', (req, res) => {
 
 // Customer routes
 app.use('/api/customer', customerRoutes);
-app.use('/api/internal', customerRoutes);
+app.use('/api/internal', internalRoutes);
 app.use('/api/shopify', shopifyRoutes);
 
 // Add debug logging for route registration

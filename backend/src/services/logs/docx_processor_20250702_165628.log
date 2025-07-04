@@ -1,0 +1,89 @@
+[2025-07-02 16:56:28] Script started
+[2025-07-02 16:56:28] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-07-02 16:56:28] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ GZ _ Bin2 _ 1234567 _Démarrage Projet.docx
+[2025-07-02 16:56:28] Encoded data length: 772 characters
+[2025-07-02 16:56:28] Decoding base64 data...
+[2025-07-02 16:56:28] Successfully decoded base64 data
+[2025-07-02 16:56:28] [DEBUG] Type of shop_data_string after decode: <class 'str'>
+[2025-07-02 16:56:28] [DEBUG] First 100 chars of shop_data_string: {"nomProjet":"Bin2","typeProjet":"Projet cheveux long","contactsClient":"test@email.com","nomClient"...
+[2025-07-02 16:56:28] Parsing JSON data...
+[2025-07-02 16:56:28] Successfully parsed JSON data
+[2025-07-02 16:56:28] [DEBUG] Type of shop_data after json.loads: <class 'dict'>
+[2025-07-02 16:56:28] [DEBUG] shop_data keys: ['nomProjet', 'typeProjet', 'contactsClient', 'nomClient', 'compteClientRef', 'dateMiseEnLigne', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicaceEnvisagee', 'estBoutiqueEnLigne', 'chefProjet', 'demarrageProjet', 'typeAbonnementShopify', 'moduleMondialRelay', 'moduleDelivengo', 'commercial', 'clientName', 'raisonSociale', 'shopifyPlanMonthlySelected', 'shopifyPlanYearlySelected']
+[2025-07-02 16:56:28] Starting document processing...
+[2025-07-02 16:56:28] Starting document processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-07-02 16:56:28] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ GZ _ Bin2 _ 1234567 _Démarrage Projet.docx
+[2025-07-02 16:56:28] Successfully loaded document: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-07-02 16:56:28] [DEBUG - Inside replace_placeholders_and_format] Type of shop_data: <class 'dict'>
+[2025-07-02 16:56:28] [DEBUG - Inside replace_placeholders_and_format] Content of shop_data: {'nomProjet': 'Bin2', 'typeProjet': 'Projet cheveux long', 'contactsClient': 'test@email.com', 'nomClient': 'GZ', 'compteClientRef': '678910', 'dateMiseEnLigne': '2025/06/16', 'dateCommercialisation': '2025/06/17', 'dateSortieOfficielle': '2025/06/19', 'precommande': 'NON', 'dedicaceEnvisagee': 'NON', 'estBoutiqueEnLigne': 'NON', 'chefProjet': 'Jhon Doe', 'demarrageProjet': '', 'typeAbonnementShopify': 'mensuel', 'moduleMondialRelay': False, 'moduleDelivengo': False, 'commercial': 'Achraf', 'clientName': '1234567_GZ', 'raisonSociale': 'GZ', 'shopifyPlanMonthlySelected': True, 'shopifyPlanYearlySelected': False}
+[2025-07-02 16:56:28] Starting global placeholder replacement...
+[2025-07-02 16:56:28] Total runs to process: 78
+[2025-07-02 16:56:28] Runs with non-empty text: 68
+[2025-07-02 16:56:28] Run 0: 'Projet'
+[2025-07-02 16:56:28] Run 1: ' :  '
+[2025-07-02 16:56:28] Run 2: 'Type de Projet'
+[2025-07-02 16:56:28] Run 3: ' :  '
+[2025-07-02 16:56:28] Run 4: 'XXX2'
+[2025-07-02 16:56:28] Run 5: 'Boutique en ligne'
+[2025-07-02 16:56:28] Run 6: ' : '
+[2025-07-02 16:56:28] Run 7: 'Commercial'
+[2025-07-02 16:56:28] Run 8: ' : '
+[2025-07-02 16:56:28] Run 9: 'XXX3'
+[2025-07-02 16:56:28] Looking for placeholder: XXX1 (value: 'Bin2')
+[2025-07-02 16:56:28] Total replacements made for XXX1: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX2 (value: 'Projet cheveux long')
+[2025-07-02 16:56:28] ✅ (run exact) Replaced XXX2 with 'Projet cheveux long': 'XXX2' → 'Projet cheveux long'
+[2025-07-02 16:56:28] Total replacements made for XXX2: 1
+[2025-07-02 16:56:28] Looking for placeholder: XXX3 (value: 'Achraf')
+[2025-07-02 16:56:28] ✅ (run exact) Replaced XXX3 with 'Achraf': 'XXX3' → 'Achraf'
+[2025-07-02 16:56:28] Total replacements made for XXX3: 1
+[2025-07-02 16:56:28] Looking for placeholder: XXX4 (value: 'GZ')
+[2025-07-02 16:56:28] Total replacements made for XXX4: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX5 (value: '678910')
+[2025-07-02 16:56:28] Total replacements made for XXX5: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX7 (value: '2025/06/16')
+[2025-07-02 16:56:28] Total replacements made for XXX7: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX8 (value: '2025/06/17')
+[2025-07-02 16:56:28] Total replacements made for XXX8: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX9 (value: '2025/06/19')
+[2025-07-02 16:56:28] Total replacements made for XXX9: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX10 (value: 'NON')
+[2025-07-02 16:56:28] Total replacements made for XXX10: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX11 (value: 'NON')
+[2025-07-02 16:56:28] Total replacements made for XXX11: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX12 (value: 'NON')
+[2025-07-02 16:56:28] Total replacements made for XXX12: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX13 (value: 'Jhon Doe')
+[2025-07-02 16:56:28] Total replacements made for XXX13: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX14 (value: '')
+[2025-07-02 16:56:28] Total replacements made for XXX14: 0
+[2025-07-02 16:56:28] Looking for placeholder: XXX15 (value: 'test@email.com')
+[2025-07-02 16:56:28] Total replacements made for XXX15: 0
+[2025-07-02 16:56:28] Looking for placeholder: COMPTENUM (value: '678910')
+[2025-07-02 16:56:28] Total replacements made for COMPTENUM: 0
+[2025-07-02 16:56:28] Attempting direct paragraph text replacement...
+[2025-07-02 16:56:28] Attempting direct table cell text replacement...
+[2025-07-02 16:56:28] Found XXX7 in table cell: 'Date Mise en Ligne (MEL) : XXX7'
+[2025-07-02 16:56:28] ✅ Replaced in table cell: 'Date Mise en Ligne (MEL) : XXX7' → 'Date Mise en Ligne (MEL) : 2025/06/16'
+[2025-07-02 16:56:28] Found XXX9 in table cell: 'Date Sortie Officielle : XXX9'
+[2025-07-02 16:56:28] ✅ Replaced in table cell: 'Date Sortie Officielle : XXX9' → 'Date Sortie Officielle : 2025/06/19'
+[2025-07-02 16:56:28] Found XXX1 in table cell: 'Dédicace : XXX11'
+[2025-07-02 16:56:28] ✅ Replaced in table cell: 'Dédicace : XXX11' → 'Dédicace : Bin21'
+[2025-07-02 16:56:28] Found XXX11 in table cell: 'Dédicace : XXX11'
+[2025-07-02 16:56:28] ✅ Replaced in table cell: 'Dédicace : XXX11' → 'Dédicace : NON'
+[2025-07-02 16:56:28] Found XXX1 in table cell: 'DÉMARRAGE DU PROJET XXX14	'
+[2025-07-02 16:56:28] ✅ Replaced in table cell: 'DÉMARRAGE DU PROJET XXX14	' → 'DÉMARRAGE DU PROJET Bin24	'
+[2025-07-02 16:56:28] Found XXX14 in table cell: 'DÉMARRAGE DU PROJET XXX14	'
+[2025-07-02 16:56:28] ✅ Replaced in table cell: 'DÉMARRAGE DU PROJET XXX14	' → 'DÉMARRAGE DU PROJET 	'
+[2025-07-02 16:56:28] Starting strikethrough application...
+[2025-07-02 16:56:28] [XML] Replaced XXX10 -> 'NON' (1 occurrence(s)) in word/document.xml
+[2025-07-02 16:56:28] [XML] Replaced XXX12 -> 'NON' (1 occurrence(s)) in word/document.xml
+[2025-07-02 16:56:28] [XML] Replaced XXX13 -> 'Jhon Doe' (1 occurrence(s)) in word/document.xml
+[2025-07-02 16:56:28] [XML] Replaced XXX15 -> 'test@email.com' (1 occurrence(s)) in word/document.xml
+[2025-07-02 16:56:28] [XML] Replaced XXX1 -> 'Bin2' (1 occurrence(s)) in word/document.xml
+[2025-07-02 16:56:28] [XML] Replaced XXX4 -> 'GZ' (1 occurrence(s)) in word/document.xml
+[2025-07-02 16:56:28] [XML] Replaced XXX5 -> '678910' (1 occurrence(s)) in word/document.xml
+[2025-07-02 16:56:28] [XML] Replaced XXX8 -> '2025/06/17' (1 occurrence(s)) in word/document.xml
+[2025-07-02 16:56:28] XML-level placeholder replacement completed.
+[2025-07-02 16:56:28] Document processing completed successfully
+[2025-07-02 16:56:28] Document processing completed successfully

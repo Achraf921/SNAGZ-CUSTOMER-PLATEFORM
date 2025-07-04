@@ -1,0 +1,54 @@
+[2025-07-03 10:37:11] Merchandising XLSX processor script started
+[2025-07-03 10:37:11] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 10:37:11] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_GZ_BBZ.xlsx
+[2025-07-03 10:37:11] Decoding base64 data...
+[2025-07-03 10:37:11] Successfully decoded base64 data
+[2025-07-03 10:37:11] Parsing JSON data...
+[2025-07-03 10:37:11] Successfully parsed JSON data
+[2025-07-03 10:37:11] Starting merchandising XLSX processing...
+[2025-07-03 10:37:11] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 10:37:11] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_GZ_BBZ.xlsx
+[2025-07-03 10:37:11] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-03 10:37:11] Shop data keys: ['nomProjet', 'shopifyDomain', 'products']
+[2025-07-03 10:37:11] Processing 2 products for shop: BBZ
+[2025-07-03 10:37:11] Processing worksheet: Catalogue en ligne
+[2025-07-03 10:37:11] Replaced 'shopifyDomain' with 'ejinbc-dn' in cell C2
+[2025-07-03 10:37:11] Will start inserting product data at row: 4
+[2025-07-03 10:37:11] Processing product: Waffle
+[2025-07-03 10:37:11] Skipping merged cell at row 4, column 1
+[2025-07-03 10:37:11] Skipping merged cell at row 4, column 2
+[2025-07-03 10:37:11] Skipping merged cell at row 4, column 3
+[2025-07-03 10:37:11] Skipping merged cell at row 4, column 4
+[2025-07-03 10:37:11] Skipping merged cell at row 4, column 5
+[2025-07-03 10:37:11] Skipping merged cell at row 4, column 11
+[2025-07-03 10:37:11] Skipping merged cell at row 4, column 12
+[2025-07-03 10:37:11] Skipping merged cell at row 4, column 13
+[2025-07-03 10:37:11] Added product data at row 4: Waffle
+[2025-07-03 10:37:11] Processing product: Poulet
+[2025-07-03 10:37:11] Added product data at row 5: Poulet
+[2025-07-03 10:37:11] Processing worksheet: POD
+[2025-07-03 10:37:11] Will start inserting product data at row: 2
+[2025-07-03 10:37:11] Processing product: Waffle
+[2025-07-03 10:37:11] Skipping merged cell at row 2, column 1
+[2025-07-03 10:37:11] Skipping merged cell at row 2, column 2
+[2025-07-03 10:37:11] Skipping merged cell at row 2, column 3
+[2025-07-03 10:37:11] Skipping merged cell at row 2, column 4
+[2025-07-03 10:37:11] Skipping merged cell at row 2, column 5
+[2025-07-03 10:37:11] Skipping merged cell at row 2, column 6
+[2025-07-03 10:37:11] Added product data at row 2: Waffle
+[2025-07-03 10:37:11] Processing product: Poulet
+[2025-07-03 10:37:11] Added product data at row 3: Poulet
+[2025-07-03 10:37:11] Processing worksheet: Feuil1
+[2025-07-03 10:37:11] Will start inserting product data at row: 2
+[2025-07-03 10:37:11] Processing product: Waffle
+[2025-07-03 10:37:11] Added product data at row 2: Waffle
+[2025-07-03 10:37:11] Processing product: Poulet
+[2025-07-03 10:37:11] Added product data at row 3: Poulet
+[2025-07-03 10:37:11] Processing worksheet: NE PAS MODIFIER
+[2025-07-03 10:37:11] Will start inserting product data at row: 2
+[2025-07-03 10:37:11] Processing product: Waffle
+[2025-07-03 10:37:11] Added product data at row 2: Waffle
+[2025-07-03 10:37:11] Processing product: Poulet
+[2025-07-03 10:37:11] Added product data at row 3: Poulet
+[2025-07-03 10:37:11] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_GZ_BBZ.xlsx
+[2025-07-03 10:37:11] Merchandising XLSX processing completed successfully

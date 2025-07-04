@@ -75,7 +75,7 @@ const NotificationModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-[99999] p-4">
       <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg">
         <div className="text-center space-y-4">
           <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100">

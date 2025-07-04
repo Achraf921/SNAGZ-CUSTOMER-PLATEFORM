@@ -13,6 +13,8 @@ import CustomerDashboard from "./components/customer/CustomerDashboard.jsx";
 import MesBoutiques from "./components/customer/MesBoutiques.jsx";
 import CreateShop from "./components/customer/CreateShop.jsx";
 import EditShop from "./components/customer/EditShop.jsx"; // Assuming this component exists
+import CreateProduct from "./components/customer/CreateProduct.jsx"; // Import CreateProduct component
+import MesProduits from "./components/customer/MesProduits.jsx"; // Import MesProduits component
 import FeatureUnderConstruction from "./components/customer/FeatureUnderConstruction.jsx"; // Import new component
 import ManageAccount from "./components/customer/ManageAccount.jsx"; // Import ManageAccount component
 import ClientsAValider from "./components/internal/ClientsAValider.jsx"; // Import ClientsAValider component
@@ -25,9 +27,13 @@ import ClientShops from "./components/internal/ClientShops.jsx";
 import ShopDetails from "./components/internal/ShopDetails.jsx";
 import AllShops from "./components/internal/AllShops.jsx";
 import BoutiquesAValider from "./components/internal/BoutiquesAValider.jsx"; // Import BoutiquesAValider component
+import ProduitsAValider from "./components/internal/ProduitsAValider.jsx"; // Import ProduitsAValider component
+import Produits from "./components/internal/Produits.jsx"; // Import Produits component
 import DocumentationSection from "./components/internal/DocumentationSection.jsx"; // Import DocumentationSection component
 import ShopifyBoutiques from "./pages/internal/ShopifyBoutiques.jsx"; // Import ShopifyBoutiques component
 import ShopifyConfiguration from "./components/internal/shopify/ShopifyConfiguration.jsx";
+import FicheProduitsShopify from "./components/internal/shopify/FicheProduitsShopify.jsx";
+import GenerationEC from "./components/internal/shopify/GenerationEC.jsx";
 // import ClientForm from "./components/internal/ClientForm.jsx"; // If used as a standalone page
 
 // Admin components
@@ -80,6 +86,12 @@ const App = () => {
   } else if (pathname === "/client/boutiques/create") {
     LayoutComponent = ClientLayout;
     ComponentToRender = CreateShop;
+  } else if (pathname === "/client/produits") {
+    LayoutComponent = ClientLayout;
+    ComponentToRender = MesProduits;
+  } else if (pathname === "/client/produits/create") {
+    LayoutComponent = ClientLayout;
+    ComponentToRender = CreateProduct;
   } else if (pathname.startsWith("/client/boutiques/edit/")) {
     LayoutComponent = ClientLayout;
     ComponentToRender = EditShop;
@@ -136,9 +148,15 @@ const App = () => {
   } else if (pathname === "/internal/boutiques") {
     LayoutComponent = InternalLayout;
     ComponentToRender = AllShops;
+  } else if (pathname === "/internal/produits") {
+    LayoutComponent = InternalLayout;
+    ComponentToRender = Produits;
   } else if (pathname === "/internal/boutiques-a-valider") {
     LayoutComponent = InternalLayout;
     ComponentToRender = BoutiquesAValider;
+  } else if (pathname === "/internal/produits-a-valider") {
+    LayoutComponent = InternalLayout;
+    ComponentToRender = ProduitsAValider;
   } else if (pathname === "/internal/clients-a-valider") {
     LayoutComponent = InternalLayout;
     ComponentToRender = ClientsAValider;
@@ -158,6 +176,14 @@ const App = () => {
     LayoutComponent = InternalLayout;
     ComponentToRender = ShopifyConfiguration;
     pageProps = { returnPath: "/internal/configuration-shopify" };
+  } else if (pathname === "/internal/fiche-produits-shopify") {
+    LayoutComponent = InternalLayout;
+    ComponentToRender = FicheProduitsShopify;
+    pageProps = { returnPath: "/internal/fiche-produits-shopify" };
+  } else if (pathname === "/internal/generation-ec") {
+    LayoutComponent = InternalLayout;
+    ComponentToRender = GenerationEC;
+    pageProps = { returnPath: "/internal/generation-ec" };
   } else if (pathname === "/internal/creation-comptes-client") {
     LayoutComponent = InternalLayout;
     ComponentToRender = FeatureUnderConstruction;

@@ -1,0 +1,19 @@
+[2025-06-30 10:20:32] Script started
+[2025-06-30 10:20:32] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-06-30 10:20:32] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ TsT _ TESTDOC _ 887459 _Démarrage Projet.docx
+[2025-06-30 10:20:32] Encoded data length: 600 characters
+[2025-06-30 10:20:32] Decoding base64 data...
+[2025-06-30 10:20:32] Successfully decoded base64 data
+[2025-06-30 10:20:32] [DEBUG] Type of shop_data_string after decode: <class 'str'>
+[2025-06-30 10:20:32] [DEBUG] First 100 chars of shop_data_string: {"nomProjet":"TESTDOC","nomClient":"TsT","contactsClient":"achrafbayi@icloud.com","compteClientRef":...
+[2025-06-30 10:20:32] Parsing JSON data...
+[2025-06-30 10:20:32] Successfully parsed JSON data
+[2025-06-30 10:20:32] [DEBUG] Type of shop_data after json.loads: <class 'dict'>
+[2025-06-30 10:20:32] [DEBUG] shop_data keys: ['nomProjet', 'nomClient', 'contactsClient', 'compteClientRef', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicaceEnvisagee', 'estBoutiqueEnLigne', 'chefProjet', 'demarrageProjet', 'typeProjet', 'commercial', 'clientName', 'raisonSociale', 'shopifyPlanMonthlySelected', 'shopifyPlanYearlySelected']
+[2025-06-30 10:20:32] Starting document processing...
+[2025-06-30 10:20:32] Starting document processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-06-30 10:20:32] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ TsT _ TESTDOC _ 887459 _Démarrage Projet.docx
+[2025-06-30 10:20:32] Successfully loaded document: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-06-30 10:20:32] [DEBUG - Inside replace_placeholders_and_format] Type of shop_data: <class 'dict'>
+[2025-06-30 10:20:32] [DEBUG - Inside replace_placeholders_and_format] Content of shop_data: {'nomProjet': 'TESTDOC', 'nomClient': 'TsT', 'contactsClient': 'achrafbayi@icloud.com', 'compteClientRef': '887459', 'dateCommercialisation': '', 'dateSortieOfficielle': '', 'precommande': 'NON', 'dedicaceEnvisagee': 'NON', 'estBoutiqueEnLigne': 'NON', 'chefProjet': 'Jhon Doe', 'demarrageProjet': '2025/09/09', 'typeProjet': 'test', 'commercial': 'AchrafB', 'clientName': '887459_TST', 'raisonSociale': 'TsT', 'shopifyPlanMonthlySelected': False, 'shopifyPlanYearlySelected': False}
+[2025-06-30 10:20:32] Document processing completed successfully

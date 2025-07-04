@@ -52,7 +52,7 @@ def replace_placeholders_in_xlsx(xlsx_path, shop_data, output_path):
     placeholder_mapping = {
         "XXX1": shop_data.get("nomProjet", ""),  # Project name
         "XXX2": shop_data.get("typeProjet", ""),  # Project type
-        "XXX3": shop_data.get("commercial", ""),  # Commercial name
+        "XXX3": shop_data.get("commercial", ""),  # XXX3 commercial
         "XXX4": raison_sociale,  # Client's raison sociale
         "XXX5": shop_data.get("compteClientRef", ""),  # Client reference
         "XXX6": shop_data.get("contactsClient", ""),  # Client contact email
@@ -63,7 +63,8 @@ def replace_placeholders_in_xlsx(xlsx_path, shop_data, output_path):
         "XXX11": dedicace_value,  # Dedication planned (OUI/NON)
         "XXX12": shop_data.get("boutiqueEnLigne", ""),  # Boutique en ligne (OUI/NON)
         "XXX13": shop_data.get("chefProjet", ""),  # Chef de projet (prenom + nom)
-        "XXX14": shop_data.get("dateDemarageProjet", ""),  # Date démarrage projet
+        "XXX14": shop_data.get("demarrageProjet", ""),
+        "XXX15": shop_data.get("contactsClient", ""),
         "COMPTENUM": shop_data.get("compteClientRef", ""),  # Client reference number
     }
 

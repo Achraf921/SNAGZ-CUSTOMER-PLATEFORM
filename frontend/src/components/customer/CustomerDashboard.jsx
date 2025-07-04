@@ -11,9 +11,10 @@ const CustomerDashboard = () => {
     const isFirstLogin = sessionStorage.getItem("isFirstLogin") === "true";
     const hasCompletedWelcomeForm =
       localStorage.getItem("hasCompletedWelcomeForm") === "true";
-    
+
     // Get userId from sessionStorage (set during login)
-    const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
+    const userId =
+      sessionStorage.getItem("userId") || localStorage.getItem("userId");
 
     // Show welcome form if it's first login and user hasn't completed the form yet
     if (isFirstLogin && !hasCompletedWelcomeForm) {
@@ -23,9 +24,9 @@ const CustomerDashboard = () => {
     }
 
     // Fetch user data - include userId if available
-    setUserData({ 
-      name: "Achraf Bayi", 
-      userId: userId || "unknown_user_id" 
+    setUserData({
+      name: "Achraf Bayi",
+      userId: userId || "unknown_user_id",
     }); // Example user - replace with actual API call
   }, []);
 
@@ -34,50 +35,54 @@ const CustomerDashboard = () => {
 
     try {
       // Get userId from sessionStorage or localStorage
-      const userId = sessionStorage.getItem("userId") || 
-                     localStorage.getItem("userId") || 
-                     userData?.userId || 
-                     "unknown_user_id";
-      
+      const userId =
+        sessionStorage.getItem("userId") ||
+        localStorage.getItem("userId") ||
+        userData?.userId ||
+        "unknown_user_id";
+
       // Add userId to form data
       const formDataWithUserId = {
         ...formData,
         userId: userId,
       };
-      
+
       console.log("Form data with userId:", formDataWithUserId);
-      
+
       // Make sure we have the correct backend URL
       // If running on localhost, we need to specify the full URL with port
-      const backendUrl = process.env.NODE_ENV === 'production' 
-        ? '/api/customer/welcome-form'
-        : 'http://localhost:5000/api/customer/welcome-form';
-      
-      console.log('Sending form data to:', backendUrl);
-      
+      const backendUrl =
+        process.env.NODE_ENV === "production"
+          ? "/api/customer/welcome-form"
+          : "http://localhost:5000/api/customer/welcome-form";
+
+      console.log("Sending form data to:", backendUrl);
+
       // Send the form data to our backend API to save in MongoDB
       const response = await fetch(backendUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formDataWithUserId),
-        credentials: 'include', // Include cookies if needed for authentication
+        credentials: "include", // Include cookies if needed for authentication
       });
-      
+
       // Check if the response is successful
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
       }
-      
+
       // Parse the response data
       const responseData = await response.json();
-      console.log('Form submission successful:', responseData);
-      
+      console.log("Form submission successful:", responseData);
+
       // Mark that the user has completed the welcome form
       localStorage.setItem("hasCompletedWelcomeForm", "true");
-      
+
       // Store the customer ID if available
       if (responseData.customerId) {
         localStorage.setItem("customerId", responseData.customerId);
@@ -134,6 +139,32 @@ const CustomerDashboard = () => {
             className="text-sna-primary hover:underline mt-4 inline-block"
           >
             Voir mes boutiques
+          </a>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold text-sna-dark mb-2">
+            Mes Produits
+          </h2>
+          <p className="text-gray-600">Gérer tous vos produits par boutique.</p>
+          <a
+            href="/client/produits"
+            className="text-sna-primary hover:underline mt-4 inline-block"
+          >
+            Voir mes produits
+          </a>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold text-sna-dark mb-2">
+            Créer un Produit
+          </h2>
+          <p className="text-gray-600">
+            Ajouter des produits à vos boutiques validées.
+          </p>
+          <a
+            href="/client/produits/create"
+            className="text-sna-primary hover:underline mt-4 inline-block"
+          >
+            Créer un produit
           </a>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">

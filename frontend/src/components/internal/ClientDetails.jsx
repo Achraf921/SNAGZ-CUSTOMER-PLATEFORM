@@ -338,6 +338,17 @@ const ClientDetails = (props) => {
                               />
                               <FiCalendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                             </div>
+                          ) : field === "Payement" || field === "payement" ? (
+                            <select
+                              value={tempValue || ""}
+                              onChange={handleFieldChange}
+                              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                              autoFocus
+                            >
+                              <option value="">Sélectionner...</option>
+                              <option value="vendeur">Vendeur</option>
+                              <option value="mandataire">Mandataire</option>
+                            </select>
                           ) : (
                             <input
                               type={inputType}

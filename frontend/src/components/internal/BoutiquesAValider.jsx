@@ -37,9 +37,14 @@ export default function BoutiquesAValider() {
     "snaResponsableDesign",
     "moduleDelivengo",
     "moduleMondialRelay",
+    "pourcentageSNA",
   ];
 
   const toggleFieldValidation = (shopId, fieldName) => {
+    if (fieldName === "pourcentageSNA") {
+      // This field requires input, not just toggling
+      return;
+    }
     setValidatedFields((prev) => ({
       ...prev,
       [shopId]: {
@@ -49,14 +54,40 @@ export default function BoutiquesAValider() {
     }));
   };
 
+  const setPourcentageSNA = (shopId, value) => {
+    setValidatedFields((prev) => ({
+      ...prev,
+      [shopId]: {
+        ...(prev[shopId] || {}),
+        pourcentageSNA: value,
+      },
+    }));
+  };
+
   const allFieldsValidated = (shopId) => {
     const fields = validatedFields[shopId] || {};
-    return validationFields.every((field) => fields[field]);
+    return validationFields.every((field) => {
+      if (field === "pourcentageSNA") {
+        // Check if pourcentageSNA has a valid value between 1 and 100
+        const value = fields[field];
+        return value && !isNaN(value) && value > 0 && value <= 100;
+      }
+      return fields[field];
+    });
   };
 
   const validateShop = async (shop) => {
     try {
       setValidationInProgress(shop.shopId);
+
+      // Get the Pourcentage SNA value
+      const pourcentageSNA = validatedFields[shop.shopId]?.pourcentageSNA;
+
+      if (!pourcentageSNA || pourcentageSNA <= 0 || pourcentageSNA > 100) {
+        setError("Le pourcentage SNA doit être entre 1 et 100%");
+        setValidationInProgress(null);
+        return;
+      }
 
       const response = await fetch(
         `/api/internal/clients/${shop.clientId}/shops/${shop.shopId}`,
@@ -66,7 +97,10 @@ export default function BoutiquesAValider() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          body: JSON.stringify({ status: "valid" }),
+          body: JSON.stringify({
+            status: "valid",
+            pourcentageSNA: pourcentageSNA,
+          }),
         }
       );
 
@@ -78,7 +112,10 @@ export default function BoutiquesAValider() {
 
       setShops((prev) => ({
         pending: prev.pending.filter((s) => s.shopId !== shop.shopId),
-        valid: [...prev.valid, { ...shop, status: "valid" }],
+        valid: [
+          ...prev.valid,
+          { ...shop, status: "valid", pourcentageSNA: pourcentageSNA },
+        ],
       }));
 
       setExpandedShop(null);
@@ -95,7 +132,7 @@ export default function BoutiquesAValider() {
       setValidationInProgress(shop.shopId);
 
       const response = await fetch(
-        `/api/customer/clients/${shop.clientId}/shops/${shop.shopId}`,
+        `/api/internal/clients/${shop.clientId}/shops/${shop.shopId}`,
         {
           method: "PUT",
           headers: {
@@ -171,7 +208,7 @@ export default function BoutiquesAValider() {
       const shopsArray = Array.isArray(data.shops) ? data.shops : [];
 
       setShops({
-        pending: shopsArray.filter((shop) => shop.status === "pending"),
+        pending: shopsArray.filter((shop) => shop.status !== "valid"),
         valid: shopsArray.filter((shop) => shop.status === "valid"),
       });
     } catch (err) {
@@ -419,68 +456,126 @@ export default function BoutiquesAValider() {
                                                                         : field ===
                                                                             "moduleDelivengo"
                                                                           ? "Module Delivengo"
-                                                                          : "Module Mondial Relay"}
+                                                                          : field ===
+                                                                              "moduleMondialRelay"
+                                                                            ? "Module Mondial Relay"
+                                                                            : field ===
+                                                                                "pourcentageSNA"
+                                                                              ? "Pourcentage SNA"
+                                                                              : field}
                                   </span>
                                   <div className="flex-1 flex flex-col">
-                                    <span
-                                      className={`px-3 py-2 rounded bg-gray-50 border ${
-                                        validatedFields[shop.shopId]?.[field]
-                                          ? "bg-green-50 border-green-200"
-                                          : ""
-                                      }`}
-                                    >
-                                      {(() => {
-                                        const value =
-                                          shop[field] || shop.shop?.[field];
-                                        // Handle boolean fields that should display Oui/Non
-                                        if (
-                                          field === "moduleDelivengo" ||
-                                          field === "moduleMondialRelay" ||
-                                          field === "estBoutiqueEnLigne" ||
-                                          field === "dedicaceEnvisagee" ||
-                                          field === "precommande"
-                                        ) {
-                                          if (
-                                            value === true ||
-                                            value === "true" ||
-                                            value === "Oui"
-                                          )
-                                            return "Oui";
-                                          if (
-                                            value === false ||
-                                            value === "false" ||
-                                            value === "Non" ||
-                                            value === "" ||
-                                            value === null ||
-                                            value === undefined
-                                          )
-                                            return "Non";
-                                        }
-                                        // Handle date formatting for Date Sortie Officielle, Date de Création, and Démarrage du projet
-                                        if (
-                                          (field === "dateSortieOfficielle" ||
-                                            field === "createdAt" ||
-                                            field === "demarrageProjet") &&
-                                          value
-                                        ) {
-                                          const date = new Date(value);
-                                          if (!isNaN(date.getTime())) {
-                                            return date
-                                              .toISOString()
-                                              .split("T")[0]; // YYYY-MM-DD format
+                                    {field === "pourcentageSNA" ? (
+                                      <div className="flex items-center space-x-2">
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          max="100"
+                                          step="0.1"
+                                          placeholder="Ex: 15.5"
+                                          value={
+                                            validatedFields[shop.shopId]
+                                              ?.pourcentageSNA || ""
                                           }
-                                        }
-                                        return value || "-";
-                                      })()}
-                                    </span>
+                                          onChange={(e) =>
+                                            setPourcentageSNA(
+                                              shop.shopId,
+                                              parseFloat(e.target.value)
+                                            )
+                                          }
+                                          className={`px-3 py-2 border rounded flex-1 ${
+                                            validatedFields[shop.shopId]
+                                              ?.pourcentageSNA &&
+                                            validatedFields[shop.shopId]
+                                              ?.pourcentageSNA > 0 &&
+                                            validatedFields[shop.shopId]
+                                              ?.pourcentageSNA <= 100
+                                              ? "border-green-200 bg-green-50"
+                                              : "border-gray-300"
+                                          }`}
+                                        />
+                                        <span className="text-sm text-gray-500">
+                                          %
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span
+                                        className={`px-3 py-2 rounded bg-gray-50 border ${
+                                          validatedFields[shop.shopId]?.[field]
+                                            ? "bg-green-50 border-green-200"
+                                            : ""
+                                        }`}
+                                      >
+                                        {(() => {
+                                          const value =
+                                            shop[field] || shop.shop?.[field];
+                                          // Handle boolean fields that should display Oui/Non
+                                          if (
+                                            field === "moduleDelivengo" ||
+                                            field === "moduleMondialRelay" ||
+                                            field === "estBoutiqueEnLigne" ||
+                                            field === "dedicaceEnvisagee" ||
+                                            field === "precommande"
+                                          ) {
+                                            if (
+                                              value === true ||
+                                              value === "true" ||
+                                              value === "Oui"
+                                            )
+                                              return "Oui";
+                                            if (
+                                              value === false ||
+                                              value === "false" ||
+                                              value === "Non" ||
+                                              value === "" ||
+                                              value === null ||
+                                              value === undefined
+                                            )
+                                              return "Non";
+                                          }
+                                          // Handle date formatting for Date Sortie Officielle, Date de Création, and Démarrage du projet
+                                          if (
+                                            (field === "dateSortieOfficielle" ||
+                                              field === "createdAt" ||
+                                              field === "demarrageProjet") &&
+                                            value
+                                          ) {
+                                            const date = new Date(value);
+                                            if (!isNaN(date.getTime())) {
+                                              return date
+                                                .toISOString()
+                                                .split("T")[0]; // YYYY-MM-DD format
+                                            }
+                                          }
+                                          return value || "-";
+                                        })()}
+                                      </span>
+                                    )}
                                   </div>
                                   <button
                                     onClick={() =>
                                       toggleFieldValidation(shop.shopId, field)
                                     }
-                                    className="ml-2 p-2 rounded-full hover:bg-gray-200 flex-shrink-0"
+                                    className={`ml-2 p-2 rounded-full hover:bg-gray-200 flex-shrink-0 ${
+                                      field === "pourcentageSNA"
+                                        ? "pointer-events-none"
+                                        : ""
+                                    }`}
                                   >
-                                    {validatedFields[shop.shopId]?.[field] ? (
+                                    {field === "pourcentageSNA" ? (
+                                      validatedFields[shop.shopId]
+                                        ?.pourcentageSNA &&
+                                      validatedFields[shop.shopId]
+                                        ?.pourcentageSNA > 0 &&
+                                      validatedFields[shop.shopId]
+                                        ?.pourcentageSNA <= 100 ? (
+                                        <FaCheckCircle className="text-green-500 text-lg" />
+                                      ) : (
+                                        <FaRegCheckCircle className="text-gray-400" />
+                                      )
+                                    ) : validatedFields[shop.shopId]?.[
+                                        field
+                                      ] ? (
                                       <FaCheckCircle className="text-green-500 text-lg" />
                                     ) : (
                                       <FaRegCheckCircle className="text-gray-400" />
