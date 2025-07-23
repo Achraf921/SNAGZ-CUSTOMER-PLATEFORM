@@ -155,8 +155,10 @@ export default function ProduitsAValider() {
     { key: "price", label: "Prix" },
     { key: "weight", label: "Poids" },
     { key: "ean", label: "Code EAN" },
+    { key: "skus", label: "SKUs" },
     { key: "sizes", label: "Tailles disponibles" },
     { key: "colors", label: "Couleurs disponibles" },
+    { key: "images", label: "Images produit" },
     { key: "occ", label: "OCC" },
     { key: "clientName", label: "Client" },
     { key: "shopName", label: "Boutique" },
@@ -197,9 +199,6 @@ export default function ProduitsAValider() {
           },
           body: JSON.stringify({
             active: true,
-            documented: true,
-            hasShopify: true,
-            hasEC: true,
           }),
           credentials: "include",
         }
@@ -218,9 +217,6 @@ export default function ProduitsAValider() {
           {
             ...product,
             active: true,
-            documented: true,
-            hasShopify: true,
-            hasEC: true,
           },
         ],
       }));
@@ -392,7 +388,7 @@ export default function ProduitsAValider() {
   const formatValue = (value, field, product = null) => {
     // For fields that might have old/new naming, use the helper
     if (
-      product &&
+      !!product &&
       (field === "price" ||
         field === "weight" ||
         field === "ean" ||
@@ -407,7 +403,10 @@ export default function ProduitsAValider() {
           value = getFieldValue(product, "poids", "weight");
           break;
         case "ean":
-          value = getFieldValue(product, "codeEAN", "ean");
+          // For eans object, show the first available EAN or fallback to old codeEAN field
+          const eansObj = product.eans || {};
+          const firstEan = Object.values(eansObj).find(Boolean);
+          value = firstEan || getFieldValue(product, "codeEAN", "ean");
           break;
         case "sizes":
           value = getFieldValue(product, "tailles", "sizes");
@@ -415,7 +414,18 @@ export default function ProduitsAValider() {
         case "colors":
           value = getFieldValue(product, "couleurs", "colors");
           break;
+        case "skus":
+          value = product.skus || {};
+          break;
+        case "images":
+          value = product.images || [];
+          break;
       }
+    }
+
+    // Handle boolean fields first before the null check
+    if (field === "occ") {
+      return value ? "Oui" : "Non";
     }
 
     if (!value && value !== 0) return "-";
@@ -426,12 +436,17 @@ export default function ProduitsAValider() {
         return Array.isArray(value) && value.length > 0
           ? value.join(", ")
           : "-";
+      case "skus":
+        const skuValues = Object.values(value).filter(Boolean);
+        return skuValues.length > 0 ? skuValues.join(", ") : "-";
+      case "images":
+        return Array.isArray(value) && value.length > 0
+          ? `${value.length} image(s)`
+          : "-";
       case "price":
         return `${value}€`;
       case "weight":
         return `${value}g`;
-      case "occ":
-        return value ? "Oui" : "Non";
       case "createdAt":
         return new Date(value).toLocaleDateString();
       default:

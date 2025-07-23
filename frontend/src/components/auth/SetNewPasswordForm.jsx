@@ -79,19 +79,21 @@ function SetNewPasswordForm({
 
       if (response.ok && data.success) {
         console.log("New password set successfully for:", username);
-        
+
         // Set the flag to indicate this is the first login after password change
         // This will be used to show the welcome form on the dashboard
         sessionStorage.setItem("isFirstLogin", "true");
-        
+
         // Store the userId in sessionStorage and localStorage for persistence
         // This will be used to associate the welcome form submission with this user
         // In a real implementation, you would get the actual userId from your authentication system
         // For now, we'll create a simple userId based on the username
-        const userId = `user_${username.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`;
+        const userId = `user_${username
+          .replace(/[^a-zA-Z0-9]/g, "_")
+          .toLowerCase()}`;
         sessionStorage.setItem("userId", userId);
         localStorage.setItem("userId", userId);
-        
+
         if (onPasswordSet) {
           onPasswordSet(data.redirectUrl); // Call the callback to handle redirect
         } else {

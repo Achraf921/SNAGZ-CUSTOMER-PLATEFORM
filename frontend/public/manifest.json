@@ -1,6 +1,7 @@
 {
-  "short_name": "SNA GZ Shop",
-  "name": "SNA GZ Shop Form",
+  "short_name": "SNA GZ",
+  "name": "SNA GZ - Création de Boutiques en Ligne",
+  "description": "Plateforme de création et gestion de boutiques en ligne. Créez votre boutique Shopify, gérez vos produits et suivez vos projets.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +11,49 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#0047AB",
-  "background_color": "#ffffff"
-} 
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "fr",
+  "categories": ["business", "productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Espace Client",
+      "short_name": "Client",
+      "description": "Accéder à l'espace client",
+      "url": "/client/login",
+      "icons": [
+        {
+          "src": "logo192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Espace Interne",
+      "short_name": "Interne",
+      "description": "Accéder à l'espace interne",
+      "url": "/internal/login",
+      "icons": [
+        {
+          "src": "logo192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

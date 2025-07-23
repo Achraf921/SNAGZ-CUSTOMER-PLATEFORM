@@ -11,9 +11,30 @@ const Navigation = () => {
     { name: "Statistiques", href: "/internal/statistiques" },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     // Add logout logic here (clear tokens, etc.)
-    window.location.href = "/logout";
+    try {
+      // Call the API logout endpoint
+      const response = await fetch("/api/logout-internal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        console.log("Navigation logout successful");
+      } else {
+        console.error("Navigation logout API call failed");
+      }
+    } catch (error) {
+      console.error("Error during navigation logout:", error);
+    }
+
+    localStorage.removeItem("token");
+    sessionStorage.clear();
+    window.location.href = "/logout-internal";
   };
 
   return (

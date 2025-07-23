@@ -1,0 +1,161 @@
+[2025-07-07 10:35:26] Merchandising XLSX processor script started
+[2025-07-07 10:35:26] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-07 10:35:26] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_FICHEPROD.xlsx
+[2025-07-07 10:35:26] Decoding base64 data...
+[2025-07-07 10:35:26] Successfully decoded base64 data
+[2025-07-07 10:35:26] Parsing JSON data...
+[2025-07-07 10:35:26] Successfully parsed JSON data
+[2025-07-07 10:35:26] Starting merchandising XLSX processing...
+[2025-07-07 10:35:26] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-07 10:35:26] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_FICHEPROD.xlsx
+[2025-07-07 10:35:26] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-07 10:35:26] Shop data keys: ['nomProjet', 'shopifyDomain', 'products']
+[2025-07-07 10:35:26] Extracted dates - Sortie: '', Commercialisation: ''
+[2025-07-07 10:35:26] Extracted raison sociale: ''
+[2025-07-07 10:35:26] Combined dates field: ''
+[2025-07-07 10:35:26] Processing 3 products for shop: FicheProd
+[2025-07-07 10:35:26] Processing worksheet: Catalogue en ligne
+[2025-07-07 10:35:26] Replaced 'CLIENT' with 'FicheProd' in cell A2
+[2025-07-07 10:35:26] Replaced 'nomProjet' with 'FicheProd' in cell B2
+[2025-07-07 10:35:26] Replaced 'shopifyDomain' with '' in cell C2
+[2025-07-07 10:35:26] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-07 10:35:26] Will start inserting product data at row: 5
+[2025-07-07 10:35:26] Starting to add 3 products at row 5
+[2025-07-07 10:35:26] Processing product 1/3: PhonoTEST
+[2025-07-07 10:35:26] Product 1 total stock: 670 from stock_dict: {'default': 670}
+[2025-07-07 10:35:26] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-07 10:35:26] Product 1 colors: [] -> ''
+[2025-07-07 10:35:26] Product 1 sizes: [] -> ''
+[2025-07-07 10:35:26] Successfully added product 1 data at row 5: PhonoTEST
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: ''
+[2025-07-07 10:35:26] Sizes field content: ''
+[2025-07-07 10:35:26] Data written: ['Phono', 'PhonoTEST', "Produit pour tester la géneration de fiches produits phono et d'EC phono.", '6789101112', 670, 0, 0, 0, 0, 0, 400, 67.99, 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-07 10:35:26] Processing product 2/3: TestMerchTeeShirt
+[2025-07-07 10:35:26] Product 2 total stock: 500 from stock_dict: {'XS-Noir': 50, 'S-Jaune': 50, 'XL-Noir': 50, 'L-Jaune': 50, 'XS-Jaune': 50, 'M-Noir': 50, 'XL-Jaune': 50, 'S-Noir': 50, 'M-Jaune': 50, 'L-Noir': 50}
+[2025-07-07 10:35:26] Product 2 size stocks: {'XS': 100, 'S': 100, 'M': 100, 'L': 100, 'XL': 100}
+[2025-07-07 10:35:26] Product 2 colors: ['Noir', 'Jaune'] -> 'Noir, Jaune'
+[2025-07-07 10:35:26] Product 2 sizes: ['XS', 'S', 'M', 'XL', 'L'] -> 'XS, S, M, XL, L'
+[2025-07-07 10:35:26] Successfully added product 2 data at row 6: TestMerchTeeShirt
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: 'Noir, Jaune'
+[2025-07-07 10:35:26] Sizes field content: 'XS, S, M, XL, L'
+[2025-07-07 10:35:26] Data written: ['Merch', 'TestMerchTeeShirt', "Produit pour tester la génération d'une fiche produit pour un produit merch type tee-shirt et la géneration d'EC merch via API.", '2831047214', 500, 100, 100, 100, 100, 100, 500, 28.99, 'NON', '', '', '', '', '', 'Noir, Jaune', 'XS, S, M, XL, L', '']
+[2025-07-07 10:35:26] Processing product 3/3: TestMerchProduitTailleUnique
+[2025-07-07 10:35:26] Product 3 total stock: 2000 from stock_dict: {'default': 2000}
+[2025-07-07 10:35:26] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-07 10:35:26] Product 3 colors: [] -> ''
+[2025-07-07 10:35:26] Product 3 sizes: [] -> ''
+[2025-07-07 10:35:26] Successfully added product 3 data at row 7: TestMerchProduitTailleUnique
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: ''
+[2025-07-07 10:35:26] Sizes field content: ''
+[2025-07-07 10:35:26] Data written: ['Merch', 'TestMerchProduitTailleUnique', "Produit pour tester la génération de fiches produits shopify et d'EC sur le portail pour un produit merch qui serait en taille unique et sans variantes.", '329814428142', 2000, 0, 0, 0, 0, 0, 200, 19.99, 'NON', '', '', '', '', '', '', '', '']
+[2025-07-07 10:35:26] Finished processing all products. Final row: 7
+[2025-07-07 10:35:26] Processing worksheet: POD
+[2025-07-07 10:35:26] Could not find header rows - using default row 6 with safety buffer
+[2025-07-07 10:35:26] Will start inserting product data at row: 6
+[2025-07-07 10:35:26] Starting to add 3 products at row 6
+[2025-07-07 10:35:26] Processing product 1/3: PhonoTEST
+[2025-07-07 10:35:26] Product 1 total stock: 670 from stock_dict: {'default': 670}
+[2025-07-07 10:35:26] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-07 10:35:26] Product 1 colors: [] -> ''
+[2025-07-07 10:35:26] Product 1 sizes: [] -> ''
+[2025-07-07 10:35:26] Successfully added product 1 data at row 6: PhonoTEST
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: ''
+[2025-07-07 10:35:26] Sizes field content: ''
+[2025-07-07 10:35:26] Data written: ['Phono', 'PhonoTEST', "Produit pour tester la géneration de fiches produits phono et d'EC phono.", '6789101112', 670, 0, 0, 0, 0, 0, 400, 67.99, 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-07 10:35:26] Processing product 2/3: TestMerchTeeShirt
+[2025-07-07 10:35:26] Product 2 total stock: 500 from stock_dict: {'XS-Noir': 50, 'S-Jaune': 50, 'XL-Noir': 50, 'L-Jaune': 50, 'XS-Jaune': 50, 'M-Noir': 50, 'XL-Jaune': 50, 'S-Noir': 50, 'M-Jaune': 50, 'L-Noir': 50}
+[2025-07-07 10:35:26] Product 2 size stocks: {'XS': 100, 'S': 100, 'M': 100, 'L': 100, 'XL': 100}
+[2025-07-07 10:35:26] Product 2 colors: ['Noir', 'Jaune'] -> 'Noir, Jaune'
+[2025-07-07 10:35:26] Product 2 sizes: ['XS', 'S', 'M', 'XL', 'L'] -> 'XS, S, M, XL, L'
+[2025-07-07 10:35:26] Successfully added product 2 data at row 7: TestMerchTeeShirt
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: 'Noir, Jaune'
+[2025-07-07 10:35:26] Sizes field content: 'XS, S, M, XL, L'
+[2025-07-07 10:35:26] Data written: ['Merch', 'TestMerchTeeShirt', "Produit pour tester la génération d'une fiche produit pour un produit merch type tee-shirt et la géneration d'EC merch via API.", '2831047214', 500, 100, 100, 100, 100, 100, 500, 28.99, 'NON', '', '', '', '', '', 'Noir, Jaune', 'XS, S, M, XL, L', '']
+[2025-07-07 10:35:26] Processing product 3/3: TestMerchProduitTailleUnique
+[2025-07-07 10:35:26] Product 3 total stock: 2000 from stock_dict: {'default': 2000}
+[2025-07-07 10:35:26] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-07 10:35:26] Product 3 colors: [] -> ''
+[2025-07-07 10:35:26] Product 3 sizes: [] -> ''
+[2025-07-07 10:35:26] Successfully added product 3 data at row 8: TestMerchProduitTailleUnique
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: ''
+[2025-07-07 10:35:26] Sizes field content: ''
+[2025-07-07 10:35:26] Data written: ['Merch', 'TestMerchProduitTailleUnique', "Produit pour tester la génération de fiches produits shopify et d'EC sur le portail pour un produit merch qui serait en taille unique et sans variantes.", '329814428142', 2000, 0, 0, 0, 0, 0, 200, 19.99, 'NON', '', '', '', '', '', '', '', '']
+[2025-07-07 10:35:26] Finished processing all products. Final row: 8
+[2025-07-07 10:35:26] Processing worksheet: Feuil1
+[2025-07-07 10:35:26] Could not find header rows - using default row 6 with safety buffer
+[2025-07-07 10:35:26] Will start inserting product data at row: 6
+[2025-07-07 10:35:26] Starting to add 3 products at row 6
+[2025-07-07 10:35:26] Processing product 1/3: PhonoTEST
+[2025-07-07 10:35:26] Product 1 total stock: 670 from stock_dict: {'default': 670}
+[2025-07-07 10:35:26] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-07 10:35:26] Product 1 colors: [] -> ''
+[2025-07-07 10:35:26] Product 1 sizes: [] -> ''
+[2025-07-07 10:35:26] Successfully added product 1 data at row 6: PhonoTEST
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: ''
+[2025-07-07 10:35:26] Sizes field content: ''
+[2025-07-07 10:35:26] Data written: ['Phono', 'PhonoTEST', "Produit pour tester la géneration de fiches produits phono et d'EC phono.", '6789101112', 670, 0, 0, 0, 0, 0, 400, 67.99, 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-07 10:35:26] Processing product 2/3: TestMerchTeeShirt
+[2025-07-07 10:35:26] Product 2 total stock: 500 from stock_dict: {'XS-Noir': 50, 'S-Jaune': 50, 'XL-Noir': 50, 'L-Jaune': 50, 'XS-Jaune': 50, 'M-Noir': 50, 'XL-Jaune': 50, 'S-Noir': 50, 'M-Jaune': 50, 'L-Noir': 50}
+[2025-07-07 10:35:26] Product 2 size stocks: {'XS': 100, 'S': 100, 'M': 100, 'L': 100, 'XL': 100}
+[2025-07-07 10:35:26] Product 2 colors: ['Noir', 'Jaune'] -> 'Noir, Jaune'
+[2025-07-07 10:35:26] Product 2 sizes: ['XS', 'S', 'M', 'XL', 'L'] -> 'XS, S, M, XL, L'
+[2025-07-07 10:35:26] Successfully added product 2 data at row 7: TestMerchTeeShirt
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: 'Noir, Jaune'
+[2025-07-07 10:35:26] Sizes field content: 'XS, S, M, XL, L'
+[2025-07-07 10:35:26] Data written: ['Merch', 'TestMerchTeeShirt', "Produit pour tester la génération d'une fiche produit pour un produit merch type tee-shirt et la géneration d'EC merch via API.", '2831047214', 500, 100, 100, 100, 100, 100, 500, 28.99, 'NON', '', '', '', '', '', 'Noir, Jaune', 'XS, S, M, XL, L', '']
+[2025-07-07 10:35:26] Processing product 3/3: TestMerchProduitTailleUnique
+[2025-07-07 10:35:26] Product 3 total stock: 2000 from stock_dict: {'default': 2000}
+[2025-07-07 10:35:26] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-07 10:35:26] Product 3 colors: [] -> ''
+[2025-07-07 10:35:26] Product 3 sizes: [] -> ''
+[2025-07-07 10:35:26] Successfully added product 3 data at row 8: TestMerchProduitTailleUnique
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: ''
+[2025-07-07 10:35:26] Sizes field content: ''
+[2025-07-07 10:35:26] Data written: ['Merch', 'TestMerchProduitTailleUnique', "Produit pour tester la génération de fiches produits shopify et d'EC sur le portail pour un produit merch qui serait en taille unique et sans variantes.", '329814428142', 2000, 0, 0, 0, 0, 0, 200, 19.99, 'NON', '', '', '', '', '', '', '', '']
+[2025-07-07 10:35:26] Finished processing all products. Final row: 8
+[2025-07-07 10:35:26] Processing worksheet: NE PAS MODIFIER
+[2025-07-07 10:35:26] Could not find header rows - using default row 6 with safety buffer
+[2025-07-07 10:35:26] Will start inserting product data at row: 6
+[2025-07-07 10:35:26] Starting to add 3 products at row 6
+[2025-07-07 10:35:26] Processing product 1/3: PhonoTEST
+[2025-07-07 10:35:26] Product 1 total stock: 670 from stock_dict: {'default': 670}
+[2025-07-07 10:35:26] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-07 10:35:26] Product 1 colors: [] -> ''
+[2025-07-07 10:35:26] Product 1 sizes: [] -> ''
+[2025-07-07 10:35:26] Successfully added product 1 data at row 6: PhonoTEST
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: ''
+[2025-07-07 10:35:26] Sizes field content: ''
+[2025-07-07 10:35:26] Data written: ['Phono', 'PhonoTEST', "Produit pour tester la géneration de fiches produits phono et d'EC phono.", '6789101112', 670, 0, 0, 0, 0, 0, 400, 67.99, 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-07 10:35:26] Processing product 2/3: TestMerchTeeShirt
+[2025-07-07 10:35:26] Product 2 total stock: 500 from stock_dict: {'XS-Noir': 50, 'S-Jaune': 50, 'XL-Noir': 50, 'L-Jaune': 50, 'XS-Jaune': 50, 'M-Noir': 50, 'XL-Jaune': 50, 'S-Noir': 50, 'M-Jaune': 50, 'L-Noir': 50}
+[2025-07-07 10:35:26] Product 2 size stocks: {'XS': 100, 'S': 100, 'M': 100, 'L': 100, 'XL': 100}
+[2025-07-07 10:35:26] Product 2 colors: ['Noir', 'Jaune'] -> 'Noir, Jaune'
+[2025-07-07 10:35:26] Product 2 sizes: ['XS', 'S', 'M', 'XL', 'L'] -> 'XS, S, M, XL, L'
+[2025-07-07 10:35:26] Successfully added product 2 data at row 7: TestMerchTeeShirt
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: 'Noir, Jaune'
+[2025-07-07 10:35:26] Sizes field content: 'XS, S, M, XL, L'
+[2025-07-07 10:35:26] Data written: ['Merch', 'TestMerchTeeShirt', "Produit pour tester la génération d'une fiche produit pour un produit merch type tee-shirt et la géneration d'EC merch via API.", '2831047214', 500, 100, 100, 100, 100, 100, 500, 28.99, 'NON', '', '', '', '', '', 'Noir, Jaune', 'XS, S, M, XL, L', '']
+[2025-07-07 10:35:26] Processing product 3/3: TestMerchProduitTailleUnique
+[2025-07-07 10:35:26] Product 3 total stock: 2000 from stock_dict: {'default': 2000}
+[2025-07-07 10:35:26] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-07 10:35:26] Product 3 colors: [] -> ''
+[2025-07-07 10:35:26] Product 3 sizes: [] -> ''
+[2025-07-07 10:35:26] Successfully added product 3 data at row 8: TestMerchProduitTailleUnique
+[2025-07-07 10:35:26] Combined dates field content: ''
+[2025-07-07 10:35:26] Colors field content: ''
+[2025-07-07 10:35:26] Sizes field content: ''
+[2025-07-07 10:35:26] Data written: ['Merch', 'TestMerchProduitTailleUnique', "Produit pour tester la génération de fiches produits shopify et d'EC sur le portail pour un produit merch qui serait en taille unique et sans variantes.", '329814428142', 2000, 0, 0, 0, 0, 0, 200, 19.99, 'NON', '', '', '', '', '', '', '', '']
+[2025-07-07 10:35:26] Finished processing all products. Final row: 8
+[2025-07-07 10:35:26] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_FICHEPROD.xlsx
+[2025-07-07 10:35:26] Merchandising XLSX processing completed successfully

@@ -1,0 +1,85 @@
+[2025-07-16 15:33:51] Merchandising XLSX processor script started
+[2025-07-16 15:33:51] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-16 15:33:51] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_TESTAMANDA.xlsx
+[2025-07-16 15:33:51] Decoding base64 data...
+[2025-07-16 15:33:51] Successfully decoded base64 data
+[2025-07-16 15:33:51] Parsing JSON data...
+[2025-07-16 15:33:51] Successfully parsed JSON data
+[2025-07-16 15:33:51] Starting merchandising XLSX processing...
+[2025-07-16 15:33:51] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-16 15:33:51] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_TESTAMANDA.xlsx
+[2025-07-16 15:33:51] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-16 15:33:51] Shop data keys: ['nomProjet', 'shopifyDomain', 'products']
+[2025-07-16 15:33:51] Extracted dates - Sortie: '', Commercialisation: ''
+[2025-07-16 15:33:51] Extracted raison sociale: ''
+[2025-07-16 15:33:51] Combined dates field: ''
+[2025-07-16 15:33:51] Processing 1 products for shop: TestAmanda
+[2025-07-16 15:33:51] Processing worksheet: Catalogue en ligne
+[2025-07-16 15:33:51] Replaced 'CLIENT' with 'TestAmanda' in cell A2
+[2025-07-16 15:33:51] Replaced 'nomProjet' with 'TestAmanda' in cell B2
+[2025-07-16 15:33:51] Replaced 'shopifyDomain' with '' in cell C2
+[2025-07-16 15:33:51] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-16 15:33:51] Will start inserting product data at row: 5
+[2025-07-16 15:33:51] Starting to add 1 products at row 5
+[2025-07-16 15:33:51] Processing product 1/1: TestUploadImage
+[2025-07-16 15:33:51] Product 1 total stock: 988 from stock_dict: {'S-Blanc': 120, 'S-Noir': 121, 'M-Blanc': 122, 'M-Noir': 123, 'L-Blanc': 124, 'L-Noir': 125, 'XL-Blanc': 126, 'XL-Noir': 127}
+[2025-07-16 15:33:51] Product 1 size stocks: {'XS': 0, 'S': 241, 'M': 245, 'L': 249, 'XL': 253}
+[2025-07-16 15:33:51] Product 1 colors: ['Blanc', 'Noir'] -> 'Blanc, Noir'
+[2025-07-16 15:33:51] Product 1 sizes: ['S', 'M', 'L', 'XL'] -> 'S, M, L, XL'
+[2025-07-16 15:33:51] Product 1 images: 5 images -> '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9...'
+[2025-07-16 15:33:51] Successfully added product 1 data at row 5: TestUploadImage
+[2025-07-16 15:33:51] Combined dates field content: ''
+[2025-07-16 15:33:51] Colors field content: 'Blanc, Noir'
+[2025-07-16 15:33:51] Sizes field content: 'S, M, L, XL'
+[2025-07-16 15:33:51] Data written: ['Merch', 'TestUploadImage', 'Test upload image via API', '1234567891011', 988, 0, 241, 245, 249, 253, 400, 19.99, 'NON', '', '', '', '', '', 'Blanc, Noir', 'S, M, L, XL', '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745313-vdotr8jwe8.webp\n2. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745313-0rh05yllo3te.jpg\n3. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745327-45964imqn7k.avif\n4. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745329-lxfimxeeeke.webp\n5. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745330-h4e903lfe14.webp']
+[2025-07-16 15:33:51] Finished processing all products. Final row: 5
+[2025-07-16 15:33:51] Processing worksheet: POD
+[2025-07-16 15:33:51] Could not find header rows - using default row 6 with safety buffer
+[2025-07-16 15:33:51] Will start inserting product data at row: 6
+[2025-07-16 15:33:51] Starting to add 1 products at row 6
+[2025-07-16 15:33:51] Processing product 1/1: TestUploadImage
+[2025-07-16 15:33:51] Product 1 total stock: 988 from stock_dict: {'S-Blanc': 120, 'S-Noir': 121, 'M-Blanc': 122, 'M-Noir': 123, 'L-Blanc': 124, 'L-Noir': 125, 'XL-Blanc': 126, 'XL-Noir': 127}
+[2025-07-16 15:33:51] Product 1 size stocks: {'XS': 0, 'S': 241, 'M': 245, 'L': 249, 'XL': 253}
+[2025-07-16 15:33:51] Product 1 colors: ['Blanc', 'Noir'] -> 'Blanc, Noir'
+[2025-07-16 15:33:51] Product 1 sizes: ['S', 'M', 'L', 'XL'] -> 'S, M, L, XL'
+[2025-07-16 15:33:51] Product 1 images: 5 images -> '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9...'
+[2025-07-16 15:33:51] Successfully added product 1 data at row 6: TestUploadImage
+[2025-07-16 15:33:51] Combined dates field content: ''
+[2025-07-16 15:33:51] Colors field content: 'Blanc, Noir'
+[2025-07-16 15:33:51] Sizes field content: 'S, M, L, XL'
+[2025-07-16 15:33:51] Data written: ['Merch', 'TestUploadImage', 'Test upload image via API', '1234567891011', 988, 0, 241, 245, 249, 253, 400, 19.99, 'NON', '', '', '', '', '', 'Blanc, Noir', 'S, M, L, XL', '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745313-vdotr8jwe8.webp\n2. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745313-0rh05yllo3te.jpg\n3. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745327-45964imqn7k.avif\n4. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745329-lxfimxeeeke.webp\n5. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745330-h4e903lfe14.webp']
+[2025-07-16 15:33:51] Finished processing all products. Final row: 6
+[2025-07-16 15:33:51] Processing worksheet: Feuil1
+[2025-07-16 15:33:51] Could not find header rows - using default row 6 with safety buffer
+[2025-07-16 15:33:51] Will start inserting product data at row: 6
+[2025-07-16 15:33:51] Starting to add 1 products at row 6
+[2025-07-16 15:33:51] Processing product 1/1: TestUploadImage
+[2025-07-16 15:33:51] Product 1 total stock: 988 from stock_dict: {'S-Blanc': 120, 'S-Noir': 121, 'M-Blanc': 122, 'M-Noir': 123, 'L-Blanc': 124, 'L-Noir': 125, 'XL-Blanc': 126, 'XL-Noir': 127}
+[2025-07-16 15:33:51] Product 1 size stocks: {'XS': 0, 'S': 241, 'M': 245, 'L': 249, 'XL': 253}
+[2025-07-16 15:33:51] Product 1 colors: ['Blanc', 'Noir'] -> 'Blanc, Noir'
+[2025-07-16 15:33:51] Product 1 sizes: ['S', 'M', 'L', 'XL'] -> 'S, M, L, XL'
+[2025-07-16 15:33:51] Product 1 images: 5 images -> '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9...'
+[2025-07-16 15:33:51] Successfully added product 1 data at row 6: TestUploadImage
+[2025-07-16 15:33:51] Combined dates field content: ''
+[2025-07-16 15:33:51] Colors field content: 'Blanc, Noir'
+[2025-07-16 15:33:51] Sizes field content: 'S, M, L, XL'
+[2025-07-16 15:33:51] Data written: ['Merch', 'TestUploadImage', 'Test upload image via API', '1234567891011', 988, 0, 241, 245, 249, 253, 400, 19.99, 'NON', '', '', '', '', '', 'Blanc, Noir', 'S, M, L, XL', '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745313-vdotr8jwe8.webp\n2. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745313-0rh05yllo3te.jpg\n3. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745327-45964imqn7k.avif\n4. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745329-lxfimxeeeke.webp\n5. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745330-h4e903lfe14.webp']
+[2025-07-16 15:33:51] Finished processing all products. Final row: 6
+[2025-07-16 15:33:51] Processing worksheet: NE PAS MODIFIER
+[2025-07-16 15:33:51] Could not find header rows - using default row 6 with safety buffer
+[2025-07-16 15:33:51] Will start inserting product data at row: 6
+[2025-07-16 15:33:51] Starting to add 1 products at row 6
+[2025-07-16 15:33:51] Processing product 1/1: TestUploadImage
+[2025-07-16 15:33:51] Product 1 total stock: 988 from stock_dict: {'S-Blanc': 120, 'S-Noir': 121, 'M-Blanc': 122, 'M-Noir': 123, 'L-Blanc': 124, 'L-Noir': 125, 'XL-Blanc': 126, 'XL-Noir': 127}
+[2025-07-16 15:33:51] Product 1 size stocks: {'XS': 0, 'S': 241, 'M': 245, 'L': 249, 'XL': 253}
+[2025-07-16 15:33:51] Product 1 colors: ['Blanc', 'Noir'] -> 'Blanc, Noir'
+[2025-07-16 15:33:51] Product 1 sizes: ['S', 'M', 'L', 'XL'] -> 'S, M, L, XL'
+[2025-07-16 15:33:51] Product 1 images: 5 images -> '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9...'
+[2025-07-16 15:33:51] Successfully added product 1 data at row 6: TestUploadImage
+[2025-07-16 15:33:51] Combined dates field content: ''
+[2025-07-16 15:33:51] Colors field content: 'Blanc, Noir'
+[2025-07-16 15:33:51] Sizes field content: 'S, M, L, XL'
+[2025-07-16 15:33:51] Data written: ['Merch', 'TestUploadImage', 'Test upload image via API', '1234567891011', 988, 0, 241, 245, 249, 253, 400, 19.99, 'NON', '', '', '', '', '', 'Blanc, Noir', 'S, M, L, XL', '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745313-vdotr8jwe8.webp\n2. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745313-0rh05yllo3te.jpg\n3. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745327-45964imqn7k.avif\n4. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745329-lxfimxeeeke.webp\n5. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-6877a9e9d94f83fadc5ec608/1752672745330-h4e903lfe14.webp']
+[2025-07-16 15:33:51] Finished processing all products. Final row: 6
+[2025-07-16 15:33:51] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_TESTAMANDA.xlsx
+[2025-07-16 15:33:51] Merchandising XLSX processing completed successfully

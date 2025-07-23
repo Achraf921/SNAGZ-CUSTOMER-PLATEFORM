@@ -1,12 +1,47 @@
 import React, { useState, useEffect } from "react";
-import { FaEdit, FaSave, FaTimes } from "react-icons/fa";
+import ReactDOM from "react-dom";
+import { FaEdit, FaSave, FaTimes, FaTrash } from "react-icons/fa";
 
-const ShopDetails = ({ clientId, shopId }) => {
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, shopName }) => {
+  if (!isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Confirmer la suppression
+        </h3>
+        <p className="text-gray-600 mb-6">
+          Êtes-vous sûr de vouloir supprimer la boutique "{shopName}" ? Cette
+          action est irréversible.
+        </p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Supprimer
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const ShopDetails = ({ clientId, shopId, onDelete }) => {
   const [shop, setShop] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingField, setEditingField] = useState(null);
   const [fieldValues, setFieldValues] = useState({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchShopDetails = async () => {
@@ -38,6 +73,31 @@ const ShopDetails = ({ clientId, shopId }) => {
 
     fetchShopDetails();
   }, [clientId, shopId]);
+
+  const handleDelete = async () => {
+    try {
+      const response = await fetch(
+        `/api/internal/clients/${clientId}/shops/${shopId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("La suppression de la boutique a échoué");
+      }
+
+      // alert("Boutique supprimée avec succès !");
+      setIsModalOpen(false);
+      if (onDelete) {
+        onDelete(shopId); // Notify parent to refresh
+      }
+    } catch (err) {
+      console.error("Erreur lors de la suppression:", err);
+      // Gérer l'état d'erreur, par exemple, afficher une notification
+      alert(err.message); // Simple alert for now
+    }
+  };
 
   const getFieldValue = (field) => {
     const value = shop[field.key];
@@ -175,7 +235,72 @@ const ShopDetails = ({ clientId, shopId }) => {
 
   return (
     <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-      <h2 className="text-xl font-bold mb-4">Détails de la Boutique</h2>
+      <div className="flex items-center mb-4">
+        {shop.logoUrl && (
+          <img
+            src={shop.logoUrl}
+            alt="Logo"
+            className="h-12 w-12 rounded-full mr-3 object-cover"
+          />
+        )}
+        <h2 className="text-xl font-bold">{shop.nomProjet || shop.name}</h2>
+      </div>
+
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleDelete}
+        shopName={shop?.nomProjet || shop?.name || ""}
+      />
+
+      {/* Shop Images */}
+      {(shop.logoUrl || shop.desktopBannerUrl || shop.mobileBannerUrl) && (
+        <div className="space-y-3 border-b border-gray-200 pb-4">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Images de la boutique
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {shop.logoUrl && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Logo</h4>
+                <img
+                  src={shop.logoUrl}
+                  alt="Logo de la boutique"
+                  className="h-20 w-20 object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
+                  onClick={() => window.open(shop.logoUrl, "_blank")}
+                />
+              </div>
+            )}
+            {shop.desktopBannerUrl && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Bannière Desktop
+                </h4>
+                <img
+                  src={shop.desktopBannerUrl}
+                  alt="Bannière desktop"
+                  className="h-20 w-40 object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
+                  onClick={() => window.open(shop.desktopBannerUrl, "_blank")}
+                />
+              </div>
+            )}
+            {shop.mobileBannerUrl && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Bannière Mobile
+                </h4>
+                <img
+                  src={shop.mobileBannerUrl}
+                  alt="Bannière mobile"
+                  className="h-20 w-32 object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
+                  onClick={() => window.open(shop.mobileBannerUrl, "_blank")}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {displayFields.map((field) => (
         <div key={field.key} className="flex items-center gap-2">
           <span className="font-medium w-48">{field.label}:</span>

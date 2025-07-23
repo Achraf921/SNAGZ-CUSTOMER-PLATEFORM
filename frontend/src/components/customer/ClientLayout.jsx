@@ -1,4 +1,5 @@
 import React from "react";
+import { FaSignOutAlt } from "react-icons/fa"; // Import the sign-out icon
 // import Header from "../Header.jsx"; // No longer needed here
 
 const ClientLayout = ({ children }) => {
@@ -65,9 +66,31 @@ const ClientLayout = ({ children }) => {
     },
   ];
 
-  const handleLogout = () => {
-    // Placeholder for logout logic
+  const handleLogout = async () => {
     console.log("Logging out...");
+
+    try {
+      // Call the API logout endpoint
+      const response = await fetch("/api/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        console.log("Logout successful");
+      } else {
+        console.error("Logout API call failed");
+      }
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+
+    // Clear local storage and redirect regardless of API result
+    localStorage.removeItem("token");
+    sessionStorage.clear();
     window.location.href = "/logout";
   };
 
@@ -105,8 +128,9 @@ const ClientLayout = ({ children }) => {
             <div className="p-4 border-t border-gray-200">
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-3 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                className="flex w-full items-center px-4 py-3 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 transition-colors"
               >
+                <FaSignOutAlt className="mr-3 h-5 w-5 flex-shrink-0" />
                 Se déconnecter
               </button>
             </div>

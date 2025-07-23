@@ -13,6 +13,7 @@ import {
   FaChartBar,
   FaUser,
   FaFileExport,
+  FaSignOutAlt, // Import the sign-out icon
 } from "react-icons/fa";
 // import Header from "../Header.jsx"; // No longer needed
 
@@ -85,13 +86,33 @@ const InternalLayout = ({ children }) => {
     },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     console.log("Logging out internal user...");
+
+    try {
+      // Call the API logout endpoint
+      const response = await fetch("/api/logout-internal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        console.log("Internal logout successful");
+      } else {
+        console.error("Internal logout API call failed");
+      }
+    } catch (error) {
+      console.error("Error during internal logout:", error);
+    }
+
     // Clear any stored tokens or session data
     localStorage.removeItem("token");
     sessionStorage.clear();
-    // Redirect directly to internal login page
-    window.location.href = "/internal-login";
+    // Call the proper backend logout route
+    window.location.href = "/logout-internal";
   };
 
   return (
@@ -109,7 +130,7 @@ const InternalLayout = ({ children }) => {
                   <a
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50`}
+                    className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors text-gray-600 hover:bg-gray-50`}
                   >
                     {React.isValidElement(item.icon) ? (
                       React.cloneElement(item.icon, {
@@ -135,21 +156,9 @@ const InternalLayout = ({ children }) => {
             <div className="border-t border-gray-200 p-4">
               <button
                 onClick={handleLogout}
-                className="flex w-full items-center px-4 py-3 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                className="flex w-full items-center px-4 py-3 text-sm rounded-lg text-red-600 hover:bg-red-50 transition-colors"
               >
-                <svg
-                  className="mr-3 h-5 w-5 flex-shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
+                <FaSignOutAlt className="mr-3 h-5 w-5 flex-shrink-0" />
                 Se déconnecter
               </button>
             </div>

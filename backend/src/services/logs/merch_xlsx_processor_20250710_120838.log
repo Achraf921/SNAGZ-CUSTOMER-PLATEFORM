@@ -1,0 +1,41 @@
+[2025-07-10 12:08:38] Merchandising XLSX processor script started
+[2025-07-10 12:08:38] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-10 12:08:38] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_GZ_TEST.xlsx
+[2025-07-10 12:08:38] Decoding base64 data...
+[2025-07-10 12:08:38] Successfully decoded base64 data
+[2025-07-10 12:08:38] Parsing JSON data...
+[2025-07-10 12:08:38] Successfully parsed JSON data
+[2025-07-10 12:08:38] Starting merchandising XLSX processing...
+[2025-07-10 12:08:38] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-10 12:08:38] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_GZ_TEST.xlsx
+[2025-07-10 12:08:38] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-10 12:08:38] Shop data keys: ['nomProjet', 'shopifyDomain', 'products']
+[2025-07-10 12:08:38] Extracted dates - Sortie: '', Commercialisation: ''
+[2025-07-10 12:08:38] Extracted raison sociale: ''
+[2025-07-10 12:08:38] Combined dates field: ''
+[2025-07-10 12:08:38] Processing 0 products for shop: TEST
+[2025-07-10 12:08:38] Processing worksheet: Catalogue en ligne
+[2025-07-10 12:08:38] Replaced 'CLIENT' with 'TEST' in cell A2
+[2025-07-10 12:08:38] Replaced 'nomProjet' with 'TEST' in cell B2
+[2025-07-10 12:08:38] Replaced 'shopifyDomain' with '' in cell C2
+[2025-07-10 12:08:38] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-10 12:08:38] Will start inserting product data at row: 5
+[2025-07-10 12:08:38] Starting to add 0 products at row 5
+[2025-07-10 12:08:38] Finished processing all products. Final row: 4
+[2025-07-10 12:08:38] Processing worksheet: POD
+[2025-07-10 12:08:38] Could not find header rows - using default row 6 with safety buffer
+[2025-07-10 12:08:38] Will start inserting product data at row: 6
+[2025-07-10 12:08:38] Starting to add 0 products at row 6
+[2025-07-10 12:08:38] Finished processing all products. Final row: 5
+[2025-07-10 12:08:38] Processing worksheet: Feuil1
+[2025-07-10 12:08:38] Could not find header rows - using default row 6 with safety buffer
+[2025-07-10 12:08:38] Will start inserting product data at row: 6
+[2025-07-10 12:08:38] Starting to add 0 products at row 6
+[2025-07-10 12:08:38] Finished processing all products. Final row: 5
+[2025-07-10 12:08:38] Processing worksheet: NE PAS MODIFIER
+[2025-07-10 12:08:38] Could not find header rows - using default row 6 with safety buffer
+[2025-07-10 12:08:38] Will start inserting product data at row: 6
+[2025-07-10 12:08:38] Starting to add 0 products at row 6
+[2025-07-10 12:08:38] Finished processing all products. Final row: 5
+[2025-07-10 12:08:38] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_GZ_TEST.xlsx
+[2025-07-10 12:08:38] Merchandising XLSX processing completed successfully

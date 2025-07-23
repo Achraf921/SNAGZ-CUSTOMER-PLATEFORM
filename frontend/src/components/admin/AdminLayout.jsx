@@ -2,8 +2,6 @@ import React from "react";
 // import Header from "../Header.jsx"; // No longer needed
 
 const AdminLayout = ({ children }) => {
-
-
   // Placeholder icons - replace with actual SVGs or a proper icon library if desired
   const placeholderUserIcon = (
     <path
@@ -41,7 +39,29 @@ const AdminLayout = ({ children }) => {
     { name: "Profil Admin", href: "/admin/profile", icon: placeholderUserIcon },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Call the API logout endpoint
+      const response = await fetch("/api/logout-admin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        console.log("Admin logout successful");
+      } else {
+        console.error("Admin logout API call failed");
+      }
+    } catch (error) {
+      console.error("Error during admin logout:", error);
+    }
+
+    // Clear local storage and redirect regardless of API result
+    localStorage.removeItem("token");
+    sessionStorage.clear();
     window.location.href = "/logout-admin";
   };
 

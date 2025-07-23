@@ -37,6 +37,10 @@ export default function BoutiquesAValider() {
     "snaResponsableDesign",
     "moduleDelivengo",
     "moduleMondialRelay",
+    "logoUrl",
+    "desktopBannerUrl",
+    "mobileBannerUrl",
+    "faviconUrl",
     "pourcentageSNA",
   ];
 
@@ -460,9 +464,21 @@ export default function BoutiquesAValider() {
                                                                               "moduleMondialRelay"
                                                                             ? "Module Mondial Relay"
                                                                             : field ===
-                                                                                "pourcentageSNA"
-                                                                              ? "Pourcentage SNA"
-                                                                              : field}
+                                                                                "logoUrl"
+                                                                              ? "Logo"
+                                                                              : field ===
+                                                                                  "desktopBannerUrl"
+                                                                                ? "Bannière Desktop"
+                                                                                : field ===
+                                                                                    "mobileBannerUrl"
+                                                                                  ? "Bannière Mobile"
+                                                                                  : field ===
+                                                                                      "faviconUrl"
+                                                                                    ? "Favicon"
+                                                                                    : field ===
+                                                                                        "pourcentageSNA"
+                                                                                      ? "Pourcentage SNA"
+                                                                                      : field}
                                   </span>
                                   <div className="flex-1 flex flex-col">
                                     {field === "pourcentageSNA" ? (
@@ -760,7 +776,22 @@ export default function BoutiquesAValider() {
                                                                         : field ===
                                                                             "moduleDelivengo"
                                                                           ? "Module Delivengo"
-                                                                          : "Module Mondial Relay"}
+                                                                          : field ===
+                                                                              "moduleMondialRelay"
+                                                                            ? "Module Mondial Relay"
+                                                                            : field ===
+                                                                                "logoUrl"
+                                                                              ? "Logo"
+                                                                              : field ===
+                                                                                  "desktopBannerUrl"
+                                                                                ? "Bannière Desktop"
+                                                                                : field ===
+                                                                                    "mobileBannerUrl"
+                                                                                  ? "Bannière Mobile"
+                                                                                  : field ===
+                                                                                      "faviconUrl"
+                                                                                    ? "Favicon"
+                                                                                    : "Pourcentage SNA"}
                                   </span>
                                   <div className="flex-1 flex flex-col">
                                     <span className="px-3 py-2 rounded bg-green-50 border border-green-200">

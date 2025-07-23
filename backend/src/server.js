@@ -1,3 +1,10 @@
+// Load environment variables from .env file at the root of the backend directory
+require('dotenv').config();
+
+// SECURITY: Environment variables loaded (not logged for security)
+console.log('--- Environment Configuration Loaded ---');
+
+
 console.log('Starting server.js...');
 console.log('Current working directory:', process.cwd());
 console.log('NODE_ENV:', process.env.NODE_ENV);
@@ -22,17 +29,17 @@ console.log('Loading path...');
 const path = require('path');
 console.log('Path loaded');
 
-console.log('Loading dotenv...');
-require('dotenv').config();
-console.log('Dotenv loaded');
-
 console.log('Loading session...');
 const session = require('express-session');
 console.log('Session loaded');
 
-console.log('Loading AWS SDK...');
-const AWS = require('aws-sdk');
-console.log('AWS SDK loaded');
+console.log('Loading rate limit...');
+const rateLimit = require('express-rate-limit');
+console.log('Rate limit loaded');
+
+console.log('Loading AWS SDK v3 Cognito Client...');
+const { CognitoIdentityProviderClient, InitiateAuthCommand, RespondToAuthChallengeCommand, GetUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
+console.log('Cognito Client loaded');
 
 console.log('Loading crypto...');
 const crypto = require('crypto');
@@ -42,17 +49,22 @@ console.log('Loading database config...');
 const { connectToDatabase } = require('./config/db');
 console.log('Database config loaded');
 
+const captchaService = require('./services/captchaService');
+console.log('CAPTCHA service loaded');
+
+// Import and log each route loading step
 console.log('Loading customer routes...');
-const customerRoutes = require('./routes/customer');
 console.log('Customer routes loaded');
-
 console.log('Loading shopify routes...');
-const shopifyRoutes = require('./routes/shopify');
 console.log('Shopify routes loaded');
-
 console.log('Loading internal routes...');
-const internalRoutes = require('./routes/internal');
+console.log('--- [DEBUG] SERVER IS LOADING backend/src/routes/internal.js ---');
 console.log('Internal routes loaded');
+console.log('Loading accounts routes...');
+console.log('Accounts routes loaded');
+console.log('Statistics routes loaded');
+console.log('Auth routes loaded');
+console.log('Password reset routes loaded');
 
 // const { Issuer, generators } = require('openid-client'); // No longer needed for login
 // const crypto = require('crypto'); // Added crypto module for SECRET_HASH
@@ -64,9 +76,8 @@ console.log('Internal routes loaded');
 const app = express();
 // const ADMIN_CALLBACK_PATH = '/auth/cognito/callback-admin';
 
-// Configure AWS SDK
-AWS.config.update({ region: process.env.COGNITO_REGION });
-const cognitoIdentityServiceProvider = new AWS.CognitoIdentityServiceProvider();
+// Configure AWS SDK v3 Cognito Client
+const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.COGNITO_REGION });
 
 // Helper function to calculate SecretHash
 const calculateSecretHash = (username, clientId, clientSecret) => {
@@ -82,8 +93,55 @@ app.use((req, res, next) => {
 });
 
 // Middleware
-app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": [
+        "'self'", 
+        "'unsafe-inline'", 
+        "'unsafe-eval'",
+        "https://www.google.com",
+        "https://www.gstatic.com"
+      ],
+      "frame-src": [
+        "'self'", 
+        "https://www.google.com"
+      ],
+      "style-src": [
+        "'self'", 
+        "'unsafe-inline'",
+        "https://fonts.googleapis.com"
+      ],
+      "font-src": [
+        "'self'",
+        "https://fonts.gstatic.com"
+      ],
+      "connect-src": [
+        "'self'",
+        "https://www.google.com"
+      ],
+      "img-src": [
+        "'self'", 
+        "data:", 
+        "https:",
+        "https://snagz.s3.eu-north-1.amazonaws.com"
+      ]
+    },
+  },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  noSniff: true,
+  xssFilter: true,
+  referrerPolicy: { policy: "same-origin" },
+  hidePoweredBy: true
+})); // Security headers
+
+// Configure CORS - Simple configuration that was working before
+app.use(cors());
 app.use(morgan('dev')); // Request logging
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
@@ -92,11 +150,112 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // true in production
+      secure: false, // Set to false for localhost development, even with NODE_ENV=production
       httpOnly: true,
-      sameSite: 'lax' // Consider 'strict' if applicable
-    }
+      sameSite: 'lax', // Consider 'strict' if applicable
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+    },
+    name: 'sna-gz-session' // Custom session name for better identification
 }));
+
+// Rate limiting for API routes to prevent abuse
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 200 : 1000, // More lenient in development
+  message: {
+    success: false,
+    message: 'Too many API requests, please try again later.',
+    securityAlert: 'RATE_LIMIT_EXCEEDED'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    console.log(`[RATE LIMIT] API rate limit exceeded for ${req.ip} on ${req.originalUrl}`);
+    res.status(429).json({
+      success: false,
+      message: 'Too many API requests, please try again later.',
+      securityAlert: 'RATE_LIMIT_EXCEEDED'
+    });
+  }
+});
+
+// Stricter rate limiting for sensitive operations
+const strictApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 50 : 200, // More lenient in development
+  message: {
+    success: false,
+    message: 'Too many requests to sensitive endpoint, please try again later.',
+    securityAlert: 'SENSITIVE_RATE_LIMIT_EXCEEDED'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    console.log(`[RATE LIMIT] Sensitive endpoint rate limit exceeded for ${req.ip} on ${req.originalUrl}`);
+    res.status(429).json({
+      success: false,
+      message: 'Too many requests to sensitive endpoint, please try again later.',
+      securityAlert: 'SENSITIVE_RATE_LIMIT_EXCEEDED'
+    });
+  }
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
+
+// Rate limit status endpoint for debugging
+app.get('/api/rate-limit-status', (req, res) => {
+  const clientIP = req.ip;
+  const rateLimitInfo = {
+    clientIP,
+    environment: process.env.NODE_ENV || 'development',
+    generalLimit: process.env.NODE_ENV === 'production' ? 200 : 1000,
+    sensitiveLimit: process.env.NODE_ENV === 'production' ? 50 : 200,
+    windowMs: '15 minutes',
+    rateLimitDisabled: process.env.NODE_ENV !== 'production' && process.env.DISABLE_RATE_LIMIT === 'true'
+  };
+  
+  res.json({
+    success: true,
+    rateLimitInfo,
+    message: 'Rate limit configuration info'
+  });
+});
+
+// Development: Add option to disable rate limiting for debugging
+if (process.env.NODE_ENV !== 'production' && process.env.DISABLE_RATE_LIMIT === 'true') {
+  console.log('[DEV] Rate limiting disabled for development');
+} else {
+  console.log(`[RATE LIMIT] API rate limiting enabled - General: ${process.env.NODE_ENV === 'production' ? 200 : 1000} req/15min, Sensitive: ${process.env.NODE_ENV === 'production' ? 50 : 200} req/15min`);
+}
+
+// Apply stricter rate limiting to sensitive endpoints
+app.use('/api/internal/all-shops', strictApiLimiter);
+app.use('/api/internal/all-products', strictApiLimiter);
+app.use('/api/customer/all-shops', strictApiLimiter);
+app.use('/api/customer/all-products', strictApiLimiter);
+app.use('/api/accounts', strictApiLimiter);
+app.use('/api/statistics', strictApiLimiter);
+
+// Extra protection for credential and config endpoints
+app.use('/api/internal/config/', strictApiLimiter);
+app.use('/api/internal/shops/:shopId/api-credentials', strictApiLimiter);
+app.use('/api/password-reset/stats', strictApiLimiter);
+
+// Security headers for API responses
+app.use('/api/', (req, res, next) => {
+  // Prevent caching of sensitive API responses
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
+  // Additional security headers for API
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  
+  next();
+});
 
 // Setup view engine (EJS)
 // app.set('view engine', 'ejs');
@@ -135,18 +294,197 @@ const requireAdminAuth = (req, res, next) => {
     next();
 };
 
+// API Authentication Middleware - Returns JSON instead of redirects
+const requireInternalAPIAuth = (req, res, next) => {
+  if (!req.session.internalUserInfo) {
+    console.log(`[API AUTH] Internal API access denied for: ${req.originalUrl}`);
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required - Internal personnel access only',
+      securityAlert: 'UNAUTHORIZED_API_ACCESS'
+    });
+  }
+  console.log(`[API AUTH] Internal API access granted for: ${req.originalUrl}`);
+  next();
+};
+
+const requireClientAPIAuth = (req, res, next) => {
+  // DEBUG: Log session information for API calls
+  console.log(`🔍 [DEBUG] requireClientAPIAuth - ${req.originalUrl}:`, {
+    hasInternalUserInfo: !!req.session.internalUserInfo,
+    hasUserInfo: !!req.session.userInfo,
+    hasAdminUserInfo: !!req.session.adminUserInfo,
+    sessionKeys: Object.keys(req.session || {}),
+    internalUserEmail: req.session.internalUserInfo?.email,
+    userEmail: req.session.userInfo?.email
+  });
+
+  // Allow internal users to access customer data for management
+  if (req.session.internalUserInfo) {
+    console.log(`[API AUTH] Internal user accessing customer API: ${req.originalUrl}`);
+    return next();
+  }
+  
+  // Otherwise require client authentication
+  if (!req.session.userInfo) {
+    console.log(`[API AUTH] Client API access denied for: ${req.originalUrl}`);
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required - Client access only',
+      securityAlert: 'UNAUTHORIZED_API_ACCESS'
+    });
+  }
+  console.log(`[API AUTH] Client API access granted for: ${req.originalUrl}`);
+  next();
+};
+
+const requireAdminAPIAuth = (req, res, next) => {
+  // Allow internal users to access admin functions for account management
+  if (req.session.internalUserInfo) {
+    console.log(`[API AUTH] Internal user accessing admin API: ${req.originalUrl}`);
+    return next();
+  }
+  
+  // Otherwise require admin authentication
+  if (!req.session.adminUserInfo) {
+    console.log(`[API AUTH] Admin API access denied for: ${req.originalUrl}`);
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required - Admin access only',
+      securityAlert: 'UNAUTHORIZED_API_ACCESS'
+    });
+  }
+  console.log(`[API AUTH] Admin API access granted for: ${req.originalUrl}`);
+  next();
+};
+
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../../frontend/build')));
 
-// API Routes
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+// Security middleware to prevent direct URL access to sensitive routes
+// MUST be placed BEFORE route registration to intercept API requests
+app.use((req, res, next) => {
+  console.log(`🔍 [SECURITY] Middleware executed for: ${req.method} ${req.path}`);
+  
+  const sensitiveRoutes = [
+    '/api/internal/',
+    '/api/customer/',
+    '/api/accounts/',
+    '/api/statistics/',
+    '/api/shopify/'
+  ];
+  
+  // Check if request is to a sensitive API route
+  const isSensitiveRoute = sensitiveRoutes.some(route => req.path.startsWith(route));
+  
+  if (isSensitiveRoute) {
+    console.log(`🔍 [SECURITY] API request to: ${req.path} from IP: ${req.ip}`);
+    
+    // Check for legitimate AJAX request indicators
+    const hasCredentials = req.headers.cookie; // Session cookie present
+    const hasJsonContentType = req.headers['content-type']?.includes('application/json');
+    const hasFetchHeaders = req.headers['sec-fetch-mode'] === 'cors' || 
+                           req.headers['sec-fetch-dest'] === 'empty';
+    const hasRefererFromApp = req.headers.referer?.includes('localhost:3000');
+    const acceptsJson = req.headers.accept?.includes('application/json');
+    
+    // Direct browser access indicators
+    const acceptsHtml = req.headers.accept?.includes('text/html');
+    const isNavigateRequest = req.headers['sec-fetch-mode'] === 'navigate';
+    const hasNoCacheBuster = !req.query._ && !req.headers['cache-control']?.includes('no-cache');
+    
+    // DEBUG: Log request details for troubleshooting
+    console.log(`🔍 [SECURITY DEBUG] Request details for ${req.path}:`, {
+      method: req.method,
+      hasCredentials: !!hasCredentials,
+      hasJsonContentType: !!hasJsonContentType,
+      hasFetchHeaders: !!hasFetchHeaders,
+      hasRefererFromApp: !!hasRefererFromApp,
+      acceptsJson: !!acceptsJson,
+      acceptsHtml: !!acceptsHtml,
+      isNavigateRequest: !!isNavigateRequest,
+      accept: req.headers.accept,
+      referer: req.headers.referer,
+      'sec-fetch-mode': req.headers['sec-fetch-mode'],
+      'sec-fetch-dest': req.headers['sec-fetch-dest']
+    });
+    
+    // Block if it looks like direct browser navigation
+    const isDirectBrowserAccess = req.method === 'GET' && 
+      acceptsHtml && 
+      isNavigateRequest && 
+      !hasRefererFromApp &&
+      !acceptsJson;
+    
+    if (isDirectBrowserAccess) {
+      console.log(`🚨 [SECURITY] Blocking direct browser access to API: ${req.path}`);
+      console.log(`🚨 [SECURITY] Request details:`, {
+        method: req.method,
+        acceptsHtml,
+        isNavigateRequest,
+        hasRefererFromApp,
+        acceptsJson,
+        userAgent: req.headers['user-agent']?.substring(0, 50)
+      });
+      return res.status(403).json({
+        success: false,
+        message: 'Direct API access not allowed. Please use the application interface.',
+        securityAlert: 'DIRECT_API_ACCESS_BLOCKED'
+      });
+    }
+    
+    // Log legitimate but unauthenticated access attempts  
+    const hasValidSession = req.session.internalUserInfo || req.session.userInfo || req.session.adminUserInfo;
+    if (!hasValidSession) {
+      console.log(`🚨 [SECURITY] Unauthenticated API access attempt to: ${req.path}`);
+    }
+  }
+  
+  next();
 });
 
-// Customer routes
-app.use('/api/customer', customerRoutes);
-app.use('/api/internal', internalRoutes);
-app.use('/api/shopify', shopifyRoutes);
+// API Routes with Authentication
+console.log('🔍 [DEBUG] Registering API routes...');
+app.use('/api/customer', requireClientAPIAuth, require('./routes/customer'));
+console.log('🔍 [DEBUG] Customer routes registered');
+app.use('/api/shopify', requireInternalAPIAuth, require('./routes/shopify'));
+console.log('🔍 [DEBUG] Shopify routes registered');
+app.use('/api/internal', requireInternalAPIAuth, require('./routes/internal'));
+console.log('🔍 [DEBUG] Internal routes registered');
+app.use('/api/accounts', requireAdminAPIAuth, require('./routes/accounts'));
+console.log('🔍 [DEBUG] Accounts routes registered');
+app.use('/api/statistics', requireInternalAPIAuth, require('./routes/statistics'));
+console.log('🔍 [DEBUG] Statistics routes registered');
+
+// Mixed authentication routes (some endpoints need auth, others don't)
+const authRoutes = require('./routes/auth');
+const passwordResetRoutes = require('./routes/passwordReset');
+
+// Auth routes - change-password needs session auth, others are public
+app.post('/api/auth/change-password', (req, res, next) => {
+  // This endpoint requires authentication (any user type)
+  if (!req.session.userInfo && !req.session.internalUserInfo && !req.session.adminUserInfo) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+      securityAlert: 'UNAUTHENTICATED_PASSWORD_CHANGE_ATTEMPT'
+    });
+  }
+  next();
+}, authRoutes);
+
+// Password reset routes - public endpoints with reCAPTCHA protection  
+app.use('/api/password-reset', passwordResetRoutes);
+
+// Add special protection for password reset stats (internal only)
+app.get('/api/password-reset/stats', requireInternalAPIAuth, (req, res, next) => {
+  next();
+});
+
+// Health check endpoint (public)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Add debug logging for route registration
 console.log('Registered routes:');
@@ -162,20 +500,8 @@ app.options('/api/customer/shop/:shopId/documentation', (req, res) => {
   res.status(200).send();
 });
 
-// Add debug logging for environment variables
-console.log('Environment check:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('PORT:', process.env.PORT);
-console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
-console.log('COGNITO_REGION:', process.env.COGNITO_REGION ? 'Set' : 'Not set');
-
-// Add SharePoint configuration logging
-console.log('\nSharePoint Configuration:');
-console.log('SHAREPOINT_TENANT_ID:', process.env.SHAREPOINT_TENANT_ID ? 'Set' : 'Not set');
-console.log('SHAREPOINT_CLIENT_ID:', process.env.SHAREPOINT_CLIENT_ID ? 'Set' : 'Not set');
-console.log('SHAREPOINT_CLIENT_SECRET:', process.env.SHAREPOINT_CLIENT_SECRET ? 'Set' : 'Not set');
-console.log('SHAREPOINT_HOSTNAME:', process.env.SHAREPOINT_HOSTNAME || 'Not set');
-console.log('SHAREPOINT_SITE_PATH:', process.env.SHAREPOINT_SITE_PATH || 'Not set');
+// SECURITY: Environment variables loaded (not logged for security)
+console.log('Environment Variables: Loaded');
 
 // Connect to MongoDB when the server starts
 connectToDatabase()
@@ -196,19 +522,68 @@ connectToDatabase()
 
 // Error handling middleware for API routes
 app.use('/api', (err, req, res, next) => {
-  console.error(err.stack);
+  console.error('🔍 [ERROR HANDLER] API Error caught:', err);
+  console.error('🔍 [ERROR HANDLER] Request path:', req.path);
+  console.error('🔍 [ERROR HANDLER] Error stack:', err.stack);
   res.status(500).json({ 
     status: 'error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
 });
 
+// Catch-all error handler for any unhandled errors
+app.use((err, req, res, next) => {
+  console.error('🔍 [CATCH-ALL ERROR] Unhandled error:', err);
+  console.error('🔍 [CATCH-ALL ERROR] Request path:', req.path);
+  console.error('🔍 [CATCH-ALL ERROR] Error stack:', err.stack);
+  
+  if (req.path.startsWith('/api/')) {
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    });
+  }
+  
+  // For non-API routes, send a generic error page
+  res.status(500).send('Something went wrong');
+});
+
+// Background token revocation function for enhanced security
+async function revokeCognitoTokens(accessToken, clientId, clientSecret) {
+    if (!accessToken || !clientId || !clientSecret) {
+        return;
+    }
+    
+    try {
+        const { RevokeTokenCommand } = require('@aws-sdk/client-cognito-identity-provider');
+        
+        const revokeParams = {
+            Token: accessToken,
+            ClientId: clientId,
+            ClientSecret: clientSecret
+        };
+        
+        const command = new RevokeTokenCommand(revokeParams);
+        await cognitoClient.send(command);
+        console.log('Background token revocation successful');
+    } catch (error) {
+        console.log('Background token revocation failed (non-critical):', error.message);
+    }
+}
+
 // Client Portal Login Route - MODIFIED for custom form POST
 app.post('/login-client', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, captchaToken } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ success: false, message: 'Email and password are required.' });
+    }
+
+    // Verify CAPTCHA
+    const captchaValidation = await captchaService.validateCaptchaForAPI(captchaToken, req.ip);
+    if (!captchaValidation.isValid) {
+        return res.status(captchaValidation.statusCode).json(captchaValidation.response);
     }
 
     const clientId = process.env.COGNITO_CLIENT_APP_CLIENT_ID;
@@ -233,7 +608,8 @@ app.post('/login-client', async (req, res) => {
             AuthParameters: authParameters,
         };
 
-        const authResult = await cognitoIdentityServiceProvider.initiateAuth(params).promise();
+        const command = new InitiateAuthCommand(params);
+        const authResult = await cognitoClient.send(command);
         
         if (authResult.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
             console.log('[/login-client] NEW_PASSWORD_REQUIRED challenge for user:', email);
@@ -244,10 +620,11 @@ app.post('/login-client', async (req, res) => {
                 username: email, // Pass username back to client
                 challengeParameters: authResult.ChallengeParameters
             });
-        } else if (authResult.AuthenticationResult && authResult.AuthenticationResult.AccessToken) {
+        } else if (authResult.AuthenticationResult) {
+            // User authenticated, now get user details
             const accessToken = authResult.AuthenticationResult.AccessToken;
             const userDetailsParams = { AccessToken: accessToken };
-            const userDetails = await cognitoIdentityServiceProvider.getUser(userDetailsParams).promise();
+            const userDetails = await cognitoClient.send(new GetUserCommand(userDetailsParams));
 
             const userInfo = {};
             userDetails.UserAttributes.forEach(attr => {
@@ -267,6 +644,9 @@ app.post('/login-client', async (req, res) => {
             const userId = userInfo.sub;
             userInfo.userId = userId;
             
+            // Store access token for logout revocation
+            userInfo.accessToken = accessToken;
+            
             // Log the userId (sub) being used
             console.log('FINAL userId (from sub):', userId);
             console.log('==== END USER IDENTITY DEBUG INFO ====');
@@ -274,27 +654,31 @@ app.post('/login-client', async (req, res) => {
             req.session.userInfo = userInfo;
             req.session.isAuthenticated = true;
 
-            console.log('==== DEBUG INFO ====');
-            console.log('[/login-client] Client login successful for:', email);
-            console.log('[/login-client] Generated userId:', userId);
-            console.log('[/login-client] Full userInfo:', JSON.stringify(userInfo, null, 2));
-            console.log('==== END DEBUG INFO ====');
-            return res.json({ success: true, redirectUrl: '/client/dashboard', userInfo });
+            // Explicitly save the session to ensure it persists
+            req.session.save((err) => {
+                if (err) {
+                    console.error('[/login-client] Session save error:', err);
+                    return res.status(500).json({ success: false, message: 'Session save failed.' });
+                }
+
+                console.log('[/login-client] Client login successful for:', email);
+                return res.json({ success: true, redirectUrl: '/client/dashboard', userInfo });
+            });
         } else {
             console.error('[/login-client] Cognito initiateAuth unexpected result for:', email, authResult);
             return res.status(401).json({ success: false, message: 'Authentication failed. Please check credentials or server logs.' });
         }
     } catch (error) {
         console.error('[/login-client] Error during client authentication for:', email, error);
-        let message = 'Authentication failed. Please check credentials.';
+        let message = 'Échec de l\'authentification. Veuillez vérifier vos identifiants.';
         if (error.code === 'NotAuthorizedException') {
-            message = 'Incorrect username or password.';
+            message = 'Nom d\'utilisateur ou mot de passe incorrect.';
         } else if (error.code === 'UserNotFoundException') {
-            message = 'User does not exist.';
+            message = 'Utilisateur inexistant.';
         } else if (error.code === 'UserNotConfirmedException') {
-            message = 'User account is not confirmed. Please check your email to confirm your account.';
+            message = 'Compte utilisateur non confirmé. Veuillez vérifier votre email pour confirmer votre compte.';
         } else if (error.code === 'InvalidParameterException' && error.message.includes('USER_PASSWORD_AUTH flow not enabled')) {
-            message = 'Authentication flow not enabled for this client. Please contact support.';
+            message = 'Flux d\'authentification non activé pour ce client. Veuillez contacter le support.';
         }
         // Do not specifically mention NEW_PASSWORD_REQUIRED here as an error, it's handled above.
         return res.status(401).json({ success: false, message });
@@ -305,39 +689,48 @@ app.post('/login-client', async (req, res) => {
 app.get('/logout', (req, res) => {
     const cognitoDomain = process.env.COGNITO_CLIENT_DOMAIN; // e.g., your-domain.auth.region.amazoncognito.com
     const clientId = process.env.COGNITO_CLIENT_APP_CLIENT_ID; 
+    const clientSecret = process.env.COGNITO_CLIENT_APP_SECRET;
     
-    if (!cognitoDomain || !clientId) {
-        console.error('[/logout] Cognito domain or client ID not configured in .env for client portal.');
-        // Fallback or simple session clear if Cognito details are missing
-        req.session.destroy(err => {
-            if (err) console.error('[/logout] Session destruction error (fallback):', err);
-            res.redirect('/');
-        });
-        return;
-    }
+    // Get access token from session if available
+    const accessToken = req.session.userInfo?.accessToken;
     
-    let postLogoutRedirectUri;
-    const host = req.get('host');
-    const protocol = req.protocol;
-    if (host && host.startsWith('localhost')) {
-        postLogoutRedirectUri = `${protocol}://${host}/`; // Redirect to homepage after logout
-    } else {
-        postLogoutRedirectUri = process.env.PROD_APP_URL || `https://${host}/`; // Use env var for production base URL
-    }
+    // Clear all session data immediately
+    req.session.userInfo = null;
+    req.session.isAuthenticated = false;
+    req.session.isFirstLogin = false;
+    
+    // Destroy session and redirect directly to login page
     req.session.destroy(err => {
-        if (err) console.error('[/logout] Session destruction error:', err);
-        const encodedLogoutUri = encodeURIComponent(postLogoutRedirectUri);
-        const cognitoLogoutUrl = `https://${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodedLogoutUri}`;
-        res.redirect(cognitoLogoutUrl);
+        if (err) {
+            console.error('[/logout] Session destruction error:', err);
+        } else {
+            console.log('[/logout] Session destroyed successfully');
+        }
+        
+        // Redirect directly to login page for better UX
+        res.redirect('/client/login');
     });
+    
+    // Background token revocation for enhanced security
+    if (accessToken && clientId && clientSecret) {
+        setTimeout(() => {
+            revokeCognitoTokens(accessToken, clientId, clientSecret);
+        }, 100);
+    }
 });
 
 // NEW: Internal Personnel Login Route - MODIFIED for custom form POST
 app.post('/login-internal', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, captchaToken } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ success: false, message: 'Email and password are required.' });
+    }
+
+    // Verify CAPTCHA
+    const captchaValidation = await captchaService.validateCaptchaForAPI(captchaToken, req.ip);
+    if (!captchaValidation.isValid) {
+        return res.status(captchaValidation.statusCode).json(captchaValidation.response);
     }
 
     const clientId = process.env.COGNITO_INTERNAL_APP_CLIENT_ID;
@@ -362,7 +755,8 @@ app.post('/login-internal', async (req, res) => {
             AuthParameters: authParameters,
         };
 
-        const authResult = await cognitoIdentityServiceProvider.initiateAuth(params).promise();
+        const command = new InitiateAuthCommand(params);
+        const authResult = await cognitoClient.send(command);
         
         if (authResult.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
             console.log('[/login-internal] NEW_PASSWORD_REQUIRED challenge for user:', email);
@@ -373,37 +767,49 @@ app.post('/login-internal', async (req, res) => {
                 username: email,
                 challengeParameters: authResult.ChallengeParameters
             });
-        } else if (authResult.AuthenticationResult && authResult.AuthenticationResult.AccessToken) {
+        } else if (authResult.AuthenticationResult) {
+            // User authenticated, now get user details
             const accessToken = authResult.AuthenticationResult.AccessToken;
             const userDetailsParams = { AccessToken: accessToken };
-            const userDetails = await cognitoIdentityServiceProvider.getUser(userDetailsParams).promise();
+            const userDetails = await cognitoClient.send(new GetUserCommand(userDetailsParams));
             
             const internalUserInfo = {};
             userDetails.UserAttributes.forEach(attr => {
                 internalUserInfo[attr.Name] = attr.Value;
             });
             internalUserInfo.username = userDetails.Username;
+            
+            // Store access token for logout revocation
+            internalUserInfo.accessToken = accessToken;
 
             req.session.internalUserInfo = internalUserInfo;
             req.session.isInternalAuthenticated = true;
 
-            console.log('[/login-internal] Internal login successful for:', email);
-            return res.json({ success: true, redirectUrl: '/internal/dashboard', internalUserInfo });
+            // Explicitly save the session to ensure it persists
+            req.session.save((err) => {
+                if (err) {
+                    console.error('[/login-internal] Session save error:', err);
+                    return res.status(500).json({ success: false, message: 'Session save failed.' });
+                }
+                
+                console.log('[/login-internal] Internal login successful for:', email);
+                return res.json({ success: true, redirectUrl: '/internal/dashboard', userInfo: internalUserInfo });
+            });
         } else {
             console.error('[/login-internal] Cognito initiateAuth unexpected result for:', email, authResult);
             return res.status(401).json({ success: false, message: 'Authentication failed. Please check credentials or server logs.' });
         }
     } catch (error) {
         console.error('[/login-internal] Error during internal authentication for:', email, error);
-        let message = 'Authentication failed. Please check credentials.';
+        let message = 'Échec de l\'authentification. Veuillez vérifier vos identifiants.';
         if (error.code === 'NotAuthorizedException') {
-            message = 'Incorrect username or password.';
+            message = 'Nom d\'utilisateur ou mot de passe incorrect.';
         } else if (error.code === 'UserNotFoundException') {
-            message = 'User does not exist.';
+            message = 'Utilisateur inexistant.';
         } else if (error.code === 'UserNotConfirmedException') {
-            message = 'User account is not confirmed.';
+            message = 'Compte utilisateur non confirmé.';
         } else if (error.code === 'InvalidParameterException' && error.message.includes('USER_PASSWORD_AUTH flow not enabled')) {
-            message = 'Authentication flow not enabled for this client. Please contact support.';
+            message = 'Flux d\'authentification non activé pour ce client. Veuillez contacter le support.';
         }
         return res.status(401).json({ success: false, message });
     }
@@ -413,38 +819,47 @@ app.post('/login-internal', async (req, res) => {
 app.get('/logout-internal', (req, res) => {
     const cognitoDomain = process.env.COGNITO_INTERNAL_DOMAIN; // e.g., your-internal-domain.auth.region.amazoncognito.com
     const clientId = process.env.COGNITO_INTERNAL_APP_CLIENT_ID;
+    const clientSecret = process.env.COGNITO_INTERNAL_APP_SECRET;
+    
+    // Get access token from session if available
+    const accessToken = req.session.internalUserInfo?.accessToken;
 
-    if (!cognitoDomain || !clientId) {
-        console.error('[/logout-internal] Cognito domain or client ID not configured in .env for internal portal.');
-        req.session.destroy(err => {
-            if (err) console.error('[/logout-internal] Session destruction error (fallback):', err);
-            res.redirect('/internal-login'); // Or internal homepage
-        });
-        return;
-    }
+    // Clear all session data immediately
+    req.session.internalUserInfo = null;
+    req.session.isInternalAuthenticated = false;
 
-    let postLogoutRedirectUri;
-    const host = req.get('host');
-    const protocol = req.protocol;
-    if (host && host.startsWith('localhost')) {
-        postLogoutRedirectUri = `${protocol}://${host}/internal-login`; // Redirect to internal login page
-    } else {
-        postLogoutRedirectUri = process.env.PROD_APP_URL ? `${process.env.PROD_APP_URL}/internal-login` : `https://${host}/internal-login`;
-    }
+    // Destroy session and redirect directly to login page
     req.session.destroy(err => {
-        if (err) console.error('[/logout-internal] Session destruction error:', err);
-        const encodedLogoutUri = encodeURIComponent(postLogoutRedirectUri);
-        const cognitoLogoutUrl = `https://${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodedLogoutUri}`;
-        res.redirect(cognitoLogoutUrl);
+        if (err) {
+            console.error('[/logout-internal] Session destruction error:', err);
+        } else {
+            console.log('[/logout-internal] Session destroyed successfully');
+        }
+        
+        // Redirect directly to internal login page for better UX
+        res.redirect('/internal-login');
     });
+    
+    // Background token revocation for enhanced security
+    if (accessToken && clientId && clientSecret) {
+        setTimeout(() => {
+            revokeCognitoTokens(accessToken, clientId, clientSecret);
+        }, 100);
+    }
 });
 
 // NEW: Admin Portal Login Route - MODIFIED for custom form POST
 app.post('/login-admin-portal', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, captchaToken } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ success: false, message: 'Email and password are required.' });
+    }
+
+    // Verify CAPTCHA
+    const captchaValidation = await captchaService.validateCaptchaForAPI(captchaToken, req.ip);
+    if (!captchaValidation.isValid) {
+        return res.status(captchaValidation.statusCode).json(captchaValidation.response);
     }
 
     const clientId = process.env.COGNITO_ADMIN_APP_CLIENT_ID;
@@ -469,7 +884,8 @@ app.post('/login-admin-portal', async (req, res) => {
             AuthParameters: authParameters,
         };
 
-        const authResult = await cognitoIdentityServiceProvider.initiateAuth(params).promise();
+        const command = new InitiateAuthCommand(params);
+        const authResult = await cognitoClient.send(command);
         
         if (authResult.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
             console.log('[/login-admin-portal] NEW_PASSWORD_REQUIRED challenge for user:', email);
@@ -480,37 +896,41 @@ app.post('/login-admin-portal', async (req, res) => {
                 username: email,
                 challengeParameters: authResult.ChallengeParameters
             });
-        } else if (authResult.AuthenticationResult && authResult.AuthenticationResult.AccessToken) {
+        } else if (authResult.AuthenticationResult) {
+            // User authenticated, now get user details
             const accessToken = authResult.AuthenticationResult.AccessToken;
             const userDetailsParams = { AccessToken: accessToken };
-            const userDetails = await cognitoIdentityServiceProvider.getUser(userDetailsParams).promise();
+            const userDetails = await cognitoClient.send(new GetUserCommand(userDetailsParams));
 
             const adminUserInfo = {};
             userDetails.UserAttributes.forEach(attr => {
                 adminUserInfo[attr.Name] = attr.Value;
             });
             adminUserInfo.username = userDetails.Username;
+            
+            // Store access token for logout revocation
+            adminUserInfo.accessToken = accessToken;
 
             req.session.adminUserInfo = adminUserInfo;
             req.session.isAdminAuthenticated = true;
 
             console.log('[/login-admin-portal] Admin login successful for:', email);
-            return res.json({ success: true, redirectUrl: '/admin/dashboard', adminUserInfo });
+            return res.json({ success: true, redirectUrl: '/admin/dashboard', userInfo: adminUserInfo });
           } else {
             console.error('[/login-admin-portal] Cognito initiateAuth unexpected result for:', email, authResult);
             return res.status(401).json({ success: false, message: 'Authentication failed. Please check credentials or server logs.' });
         }
     } catch (error) {
         console.error('[/login-admin-portal] Error during admin authentication for:', email, error);
-        let message = 'Authentication failed. Please check credentials.';
+        let message = 'Échec de l\'authentification. Veuillez vérifier vos identifiants.';
         if (error.code === 'NotAuthorizedException') {
-            message = 'Incorrect username or password.';
+            message = 'Nom d\'utilisateur ou mot de passe incorrect.';
         } else if (error.code === 'UserNotFoundException') {
-            message = 'User does not exist.';
+            message = 'Utilisateur inexistant.';
         } else if (error.code === 'UserNotConfirmedException') {
-            message = 'User account is not confirmed.';
+            message = 'Compte utilisateur non confirmé.';
         } else if (error.code === 'InvalidParameterException' && error.message.includes('USER_PASSWORD_AUTH flow not enabled')) {
-            message = 'Authentication flow not enabled for this client. Please contact support.';
+            message = 'Flux d\'authentification non activé pour ce client. Veuillez contacter le support.';
         }
         return res.status(401).json({ success: false, message });
     }
@@ -520,30 +940,113 @@ app.post('/login-admin-portal', async (req, res) => {
 app.get('/logout-admin', (req, res) => {
     const cognitoDomain = process.env.COGNITO_ADMIN_DOMAIN; // e.g., your-admin-domain.auth.region.amazoncognito.com
     const clientId = process.env.COGNITO_ADMIN_APP_CLIENT_ID;
+    const clientSecret = process.env.COGNITO_ADMIN_APP_SECRET;
+    
+    // Get access token from session if available
+    const accessToken = req.session.adminUserInfo?.accessToken;
 
-    if (!cognitoDomain || !clientId) {
-        console.error('[/logout-admin] Cognito domain or client ID not configured in .env for admin portal.');
-        req.session.destroy(err => {
-            if (err) console.error('[/logout-admin] Session destruction error (fallback):', err);
-            res.redirect('/admin-login'); // Or admin homepage
-        });
-        return;
-    }
+    // Clear all session data immediately
+    req.session.adminUserInfo = null;
+    req.session.isAdminAuthenticated = false;
 
-    let postLogoutRedirectUri;
-    const host = req.get('host');
-    const protocol = req.protocol;
-    if (host && host.startsWith('localhost')) {
-        postLogoutRedirectUri = `${protocol}://${host}/admin-login`; // Redirect to admin login page
-    } else {
-        postLogoutRedirectUri = process.env.PROD_APP_URL ? `${process.env.PROD_APP_URL}/admin-login` : `https://${host}/admin-login`;
-    }
+    // Destroy session and redirect directly to login page
     req.session.destroy(err => {
-        if (err) console.error('[/logout-admin] Session destruction error:', err);
-        const encodedLogoutUri = encodeURIComponent(postLogoutRedirectUri);
-        const cognitoLogoutUrl = `https://${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodedLogoutUri}`;
-        res.redirect(cognitoLogoutUrl);
+        if (err) {
+            console.error('[/logout-admin] Session destruction error:', err);
+        } else {
+            console.log('[/logout-admin] Session destroyed successfully');
+        }
+        
+        // Redirect directly to admin login page for better UX
+        res.redirect('/admin-login');
     });
+    
+    // Background token revocation for enhanced security
+    if (accessToken && clientId && clientSecret) {
+        setTimeout(() => {
+            revokeCognitoTokens(accessToken, clientId, clientSecret);
+        }, 100);
+    }
+});
+
+// API Logout endpoints for better frontend integration
+app.post('/api/logout', (req, res) => {
+    const clientId = process.env.COGNITO_CLIENT_APP_CLIENT_ID;
+    const clientSecret = process.env.COGNITO_CLIENT_APP_SECRET;
+    const accessToken = req.session.userInfo?.accessToken;
+    
+    // Clear all session data immediately
+    req.session.userInfo = null;
+    req.session.isAuthenticated = false;
+    req.session.isFirstLogin = false;
+    
+    req.session.destroy(err => {
+        if (err) {
+            console.error('[/api/logout] Session destruction error:', err);
+            return res.status(500).json({ success: false, message: 'Logout failed' });
+        }
+        console.log('[/api/logout] Session destroyed successfully');
+        res.json({ success: true, message: 'Logged out successfully' });
+    });
+    
+    // Background token revocation for enhanced security
+    if (accessToken && clientId && clientSecret) {
+        setTimeout(() => {
+            revokeCognitoTokens(accessToken, clientId, clientSecret);
+        }, 100);
+    }
+});
+
+app.post('/api/logout-internal', (req, res) => {
+    const clientId = process.env.COGNITO_INTERNAL_APP_CLIENT_ID;
+    const clientSecret = process.env.COGNITO_INTERNAL_APP_SECRET;
+    const accessToken = req.session.internalUserInfo?.accessToken;
+    
+    // Clear all session data immediately
+    req.session.internalUserInfo = null;
+    req.session.isInternalAuthenticated = false;
+    
+    req.session.destroy(err => {
+        if (err) {
+            console.error('[/api/logout-internal] Session destruction error:', err);
+            return res.status(500).json({ success: false, message: 'Logout failed' });
+        }
+        console.log('[/api/logout-internal] Session destroyed successfully');
+        res.json({ success: true, message: 'Logged out successfully' });
+    });
+    
+    // Background token revocation for enhanced security
+    if (accessToken && clientId && clientSecret) {
+        setTimeout(() => {
+            revokeCognitoTokens(accessToken, clientId, clientSecret);
+        }, 100);
+    }
+});
+
+app.post('/api/logout-admin', (req, res) => {
+    const clientId = process.env.COGNITO_ADMIN_APP_CLIENT_ID;
+    const clientSecret = process.env.COGNITO_ADMIN_APP_SECRET;
+    const accessToken = req.session.adminUserInfo?.accessToken;
+    
+    // Clear all session data immediately
+    req.session.adminUserInfo = null;
+    req.session.isAdminAuthenticated = false;
+    
+    req.session.destroy(err => {
+        if (err) {
+            console.error('[/api/logout-admin] Session destruction error:', err);
+            return res.status(500).json({ success: false, message: 'Logout failed' });
+        }
+        console.log('[/api/logout-admin] Session destroyed successfully');
+        res.json({ success: true, message: 'Logged out successfully' });
+    });
+    
+    // Background token revocation for enhanced security
+    if (accessToken && clientId && clientSecret) {
+        setTimeout(() => {
+            revokeCognitoTokens(accessToken, clientId, clientSecret);
+        }, 100);
+    }
 });
 
 // NEW: Routes to handle NEW_PASSWORD_REQUIRED challenge completion
@@ -576,24 +1079,36 @@ app.post('/complete-new-password-client', async (req, res) => {
             Session: session
         };
 
-        const authResult = await cognitoIdentityServiceProvider.respondToAuthChallenge(params).promise();
+        const command = new RespondToAuthChallengeCommand(params);
+        const authResult = await cognitoClient.send(command);
 
         if (authResult.AuthenticationResult && authResult.AuthenticationResult.AccessToken) {
             const accessToken = authResult.AuthenticationResult.AccessToken;
             const userDetailsParams = { AccessToken: accessToken };
-            const userDetails = await cognitoIdentityServiceProvider.getUser(userDetailsParams).promise();
+            const userDetails = await cognitoClient.send(new GetUserCommand(userDetailsParams));
 
             const userInfo = {};
             userDetails.UserAttributes.forEach(attr => {
                 userInfo[attr.Name] = attr.Value;
             });
             userInfo.username = userDetails.Username;
+            
+            // Extract and add the userId (sub) for consistency
+            const userId = userInfo.sub;
+            userInfo.userId = userId;
 
             req.session.userInfo = userInfo;
             req.session.isAuthenticated = true;
+            req.session.isFirstLogin = true; // Mark as first login to trigger welcome form
 
             console.log('[/complete-new-password-client] New password set and client login successful for:', username);
-            return res.json({ success: true, redirectUrl: '/client/dashboard', userInfo });
+            console.log('[/complete-new-password-client] Marked as first login - will show welcome form');
+            return res.json({ 
+                success: true, 
+                redirectUrl: '/client/compte', // Redirect to account page to show welcome form
+                userInfo,
+                isFirstLogin: true
+            });
         } else {
             console.error('[/complete-new-password-client] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
             // This case might indicate an issue if Cognito doesn't return tokens after a successful challenge response
@@ -647,12 +1162,13 @@ app.post('/complete-new-password-internal', async (req, res) => {
             Session: session
         };
 
-        const authResult = await cognitoIdentityServiceProvider.respondToAuthChallenge(params).promise();
+        const command = new RespondToAuthChallengeCommand(params);
+        const authResult = await cognitoClient.send(command);
 
         if (authResult.AuthenticationResult && authResult.AuthenticationResult.AccessToken) {
             const accessToken = authResult.AuthenticationResult.AccessToken;
             const userDetailsParams = { AccessToken: accessToken };
-            const userDetails = await cognitoIdentityServiceProvider.getUser(userDetailsParams).promise();
+            const userDetails = await cognitoClient.send(new GetUserCommand(userDetailsParams));
 
             const internalUserInfo = {};
             userDetails.UserAttributes.forEach(attr => {
@@ -664,7 +1180,7 @@ app.post('/complete-new-password-internal', async (req, res) => {
             req.session.isInternalAuthenticated = true;
 
             console.log('[/complete-new-password-internal] New password set and internal login successful for:', username);
-            return res.json({ success: true, redirectUrl: '/internal/dashboard', internalUserInfo });
+            return res.json({ success: true, redirectUrl: '/internal/dashboard', userInfo: internalUserInfo });
         } else {
             console.error('[/complete-new-password-internal] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
             return res.status(401).json({ success: false, message: 'Failed to set new password. Please try logging in again.' });
@@ -710,24 +1226,28 @@ app.post('/complete-new-password-admin', async (req, res) => {
             Session: session
         };
 
-        const authResult = await cognitoIdentityServiceProvider.respondToAuthChallenge(params).promise();
+        const command = new RespondToAuthChallengeCommand(params);
+        const authResult = await cognitoClient.send(command);
 
         if (authResult.AuthenticationResult && authResult.AuthenticationResult.AccessToken) {
             const accessToken = authResult.AuthenticationResult.AccessToken;
             const userDetailsParams = { AccessToken: accessToken };
-            const userDetails = await cognitoIdentityServiceProvider.getUser(userDetailsParams).promise();
+            const userDetails = await cognitoClient.send(new GetUserCommand(userDetailsParams));
 
             const adminUserInfo = {};
             userDetails.UserAttributes.forEach(attr => {
                 adminUserInfo[attr.Name] = attr.Value;
             });
             adminUserInfo.username = userDetails.Username;
+            
+            // Store access token for logout revocation
+            adminUserInfo.accessToken = accessToken;
 
             req.session.adminUserInfo = adminUserInfo;
             req.session.isAdminAuthenticated = true;
 
             console.log('[/complete-new-password-admin] New password set and admin login successful for:', username);
-            return res.json({ success: true, redirectUrl: '/admin/dashboard', adminUserInfo });
+            return res.json({ success: true, redirectUrl: '/admin/dashboard', userInfo: adminUserInfo });
         } else {
             console.error('[/complete-new-password-admin] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
             return res.status(401).json({ success: false, message: 'Failed to set new password. Please try logging in again.' });
@@ -835,23 +1355,7 @@ async function startServer() {
     app.listen(preferredPort, () => {
       console.log(`Server running on port ${preferredPort}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      // Log required Cognito environment variables for easier debugging
-      console.log('Required Cognito Env Vars (ensure these are set in your .env file):');
-      console.log(`  COGNITO_REGION: ${process.env.COGNITO_REGION || 'NOT SET'}`);
-      console.log(`  COGNITO_CLIENT_USER_POOL_ID: ${process.env.COGNITO_CLIENT_USER_POOL_ID || 'NOT SET'}`);
-      console.log(`  COGNITO_CLIENT_APP_CLIENT_ID: ${process.env.COGNITO_CLIENT_APP_CLIENT_ID || 'NOT SET'}`);
-      console.log(`  COGNITO_CLIENT_APP_SECRET: ${process.env.COGNITO_CLIENT_APP_SECRET ? 'SET' : 'NOT SET'}`);
-      console.log(`  COGNITO_CLIENT_DOMAIN: ${process.env.COGNITO_CLIENT_DOMAIN || 'NOT SET (for logout)'}`);
-      console.log(`  COGNITO_INTERNAL_USER_POOL_ID: ${process.env.COGNITO_INTERNAL_USER_POOL_ID || 'NOT SET'}`);
-      console.log(`  COGNITO_INTERNAL_APP_CLIENT_ID: ${process.env.COGNITO_INTERNAL_APP_CLIENT_ID || 'NOT SET'}`);
-      console.log(`  COGNITO_INTERNAL_APP_SECRET: ${process.env.COGNITO_INTERNAL_APP_SECRET ? 'SET' : 'NOT SET'}`);
-      console.log(`  COGNITO_INTERNAL_DOMAIN: ${process.env.COGNITO_INTERNAL_DOMAIN || 'NOT SET (for logout)'}`);
-      console.log(`  COGNITO_ADMIN_USER_POOL_ID: ${process.env.COGNITO_ADMIN_USER_POOL_ID || 'NOT SET'}`);
-      console.log(`  COGNITO_ADMIN_APP_CLIENT_ID: ${process.env.COGNITO_ADMIN_APP_CLIENT_ID || 'NOT SET'}`);
-      console.log(`  COGNITO_ADMIN_APP_SECRET: ${process.env.COGNITO_ADMIN_APP_SECRET ? 'SET' : 'NOT SET'}`);
-      console.log(`  COGNITO_ADMIN_DOMAIN: ${process.env.COGNITO_ADMIN_DOMAIN || 'NOT SET (for logout)'}`);
-      console.log(`  SESSION_SECRET: ${process.env.SESSION_SECRET ? 'SET' : 'NOT SET (using default)'}`);
-      console.log(`  PROD_APP_URL: ${process.env.PROD_APP_URL || 'NOT SET (for prod logout redirects)'}`);
+      console.log('Cognito Configuration: Loaded');
 
     });
   } catch (error) {

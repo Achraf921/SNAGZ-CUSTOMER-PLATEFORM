@@ -243,7 +243,17 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
             type_produit = product.get('typeProduit', '') or product.get('type', '')
             titre = product.get('titre', '') or product.get('title', '')
             description = product.get('description', '')
-            code_ean = product.get('codeEAN', '') or product.get('ean', '') or product.get('codeBarres', '')
+            # Extract EAN from eans object first, then fallback to legacy fields
+            eans_obj = product.get('eans', {})
+            if eans_obj:
+                # Get the first available EAN from the eans object
+                code_ean = next((ean for ean in eans_obj.values() if ean), None)
+            else:
+                code_ean = None
+            
+            # Fallback to legacy fields if no EAN found in eans object
+            if not code_ean:
+                code_ean = product.get('codeEAN', '') or product.get('ean', '') or product.get('codeBarres', '')
             poids = product.get('poids', '') or product.get('weight', '')
             prix = product.get('prix', '') or product.get('price', '')
             occ = product.get('occ', False) or product.get('OCC', False)
@@ -256,8 +266,20 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
             couleurs_str = ', '.join(couleurs) if isinstance(couleurs, list) else str(couleurs) if couleurs else ''
             tailles_str = ', '.join(tailles) if isinstance(tailles, list) else str(tailles) if tailles else ''
             
+            # Extract and format product images
+            image_urls = product.get('imageUrls', [])
+            visuels_str = ''
+            if image_urls and isinstance(image_urls, list):
+                # Keep the images in their existing order and format as numbered list
+                visuels_list = []
+                for idx, url in enumerate(image_urls, 1):
+                    if url:  # Only include non-empty URLs
+                        visuels_list.append(f"{idx}. {url}")
+                visuels_str = '\n'.join(visuels_list)
+            
             log(f"Product {i+1} colors: {couleurs} -> '{couleurs_str}'")
             log(f"Product {i+1} sizes: {tailles} -> '{tailles_str}'")
+            log(f"Product {i+1} images: {len(image_urls)} images -> '{visuels_str[:100]}{'...' if len(visuels_str) > 100 else ''}'")
             
             row_data = [
                 type_produit,                            # Column 1: Type de produit
@@ -280,7 +302,7 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
                 '',                                      # Column 18: Empty cell
                 couleurs_str,                            # Column 19: Couleurs (colors selected by users)
                 tailles_str,                             # Column 20: Tailles (sizes selected by users)
-                ''                                       # Column 21: Visuels (empty cell)
+                visuels_str                              # Column 21: Visuels (product images in order)
             ]
             
             # Insert the row with borders

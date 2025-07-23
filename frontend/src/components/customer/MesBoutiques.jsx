@@ -211,17 +211,18 @@ const MesBoutiques = () => {
       </div>
 
       {/* Notification bar for saving changes */}
-      {expandedShopId && Object.keys(editData[expandedShopId] || {}).length > 0 && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-sna-primary text-white px-6 py-3 rounded-md shadow-lg flex items-center space-x-4 animate-fade-in">
-          <span>Des modifications non enregistrées pour cette boutique.</span>
-          <button
-            className="bg-white text-sna-primary font-semibold px-4 py-2 rounded shadow hover:bg-gray-100 transition"
-            onClick={() => handleSaveShop(expandedShopId)}
-          >
-            Enregistrer
-          </button>
-        </div>
-      )}
+      {expandedShopId &&
+        Object.keys(editData[expandedShopId] || {}).length > 0 && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-sna-primary text-white px-6 py-3 rounded-md shadow-lg flex items-center space-x-4 animate-fade-in">
+            <span>Des modifications non enregistrées pour cette boutique.</span>
+            <button
+              className="bg-white text-sna-primary font-semibold px-4 py-2 rounded shadow hover:bg-gray-100 transition"
+              onClick={() => handleSaveShop(expandedShopId)}
+            >
+              Enregistrer
+            </button>
+          </div>
+        )}
       {shops.length === 0 ? (
         <div className="bg-white p-8 rounded-lg shadow-md text-center">
           <FaStore className="mx-auto text-gray-400 text-6xl mb-4" />
@@ -248,9 +249,17 @@ const MesBoutiques = () => {
 
             const editableFields = Object.keys(shop).filter(
               (key) =>
-                !["shopId", "createdAt", "updatedAt", "_id", "status"].includes(
-                  key
-                )
+                ![
+                  "shopId",
+                  "createdAt",
+                  "updatedAt",
+                  "_id",
+                  "status",
+                  "logo",
+                  "imagesDeLaBoutique",
+                  "name",
+                  "shopName",
+                ].includes(key)
             );
             return (
               <div
@@ -266,11 +275,22 @@ const MesBoutiques = () => {
                   }
                 >
                   <div className="flex items-center gap-4">
-                    <FaStore className="text-sna-primary text-2xl" />
+                    {shop.logo ? (
+                      <img
+                        src={shop.logo}
+                        alt={`Logo de ${shop.name}`}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <FaStore className="text-sna-primary text-2xl" />
+                    )}
                     <div className="flex items-center gap-4">
                       <div>
                         <div className="text-lg font-bold text-gray-800 flex items-center gap-3">
-                          {shop.name || shop.shopName || shop.nomProjet || "Boutique"}
+                          {shop.name ||
+                            shop.shopName ||
+                            shop.nomProjet ||
+                            "Boutique"}
                           {/* Status Indicator */}
                           <span className="flex items-center gap-1">
                             <span
@@ -281,12 +301,16 @@ const MesBoutiques = () => {
                                   : "bg-yellow-400")
                               }
                             />
-                            <span className={
-                              shop.status === "valid"
-                                ? "text-green-600"
-                                : "text-yellow-600"
-                            }>
-                              {shop.status === "valid" ? "Validée" : "En attente"}
+                            <span
+                              className={
+                                shop.status === "valid"
+                                  ? "text-green-600"
+                                  : "text-yellow-600"
+                              }
+                            >
+                              {shop.status === "valid"
+                                ? "Validée"
+                                : "En attente"}
                             </span>
                           </span>
                         </div>
@@ -298,12 +322,17 @@ const MesBoutiques = () => {
                       </div>
                     </div>
                   </div>
-                  <button className="text-sna-primary text-2xl ml-4 focus:outline-none" tabIndex={-1}>
+                  <button
+                    className="text-sna-primary text-2xl ml-4 focus:outline-none"
+                    tabIndex={-1}
+                  >
                     <span
                       style={{
                         display: "inline-block",
                         transition: "transform 0.2s",
-                        transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                        transform: isExpanded
+                          ? "rotate(90deg)"
+                          : "rotate(0deg)",
                       }}
                     >
                       ▶
@@ -357,22 +386,44 @@ const MesBoutiques = () => {
                                     type="radio"
                                     name={`typeAbonnementShopify_${shop.shopId}`}
                                     value="mensuel"
-                                    checked={(localEditData[field] ?? shop[field]) === "mensuel"}
-                                    onChange={e => handleEditFieldChange(shop.shopId, field, e.target.value)}
+                                    checked={
+                                      (localEditData[field] ?? shop[field]) ===
+                                      "mensuel"
+                                    }
+                                    onChange={(e) =>
+                                      handleEditFieldChange(
+                                        shop.shopId,
+                                        field,
+                                        e.target.value
+                                      )
+                                    }
                                     className="form-radio h-4 w-4 text-sna-primary border-gray-300"
                                   />
-                                  <span className="ml-2">Abonnement mensuel SHOPIFY (sans engagement)</span>
+                                  <span className="ml-2">
+                                    Abonnement mensuel SHOPIFY (sans engagement)
+                                  </span>
                                 </label>
                                 <label className="flex items-center">
                                   <input
                                     type="radio"
                                     name={`typeAbonnementShopify_${shop.shopId}`}
                                     value="annuel"
-                                    checked={(localEditData[field] ?? shop[field]) === "annuel"}
-                                    onChange={e => handleEditFieldChange(shop.shopId, field, e.target.value)}
+                                    checked={
+                                      (localEditData[field] ?? shop[field]) ===
+                                      "annuel"
+                                    }
+                                    onChange={(e) =>
+                                      handleEditFieldChange(
+                                        shop.shopId,
+                                        field,
+                                        e.target.value
+                                      )
+                                    }
                                     className="form-radio h-4 w-4 text-sna-primary border-gray-300"
                                   />
-                                  <span className="ml-2">Abonnement annuel SHOPIFY (12 mois)</span>
+                                  <span className="ml-2">
+                                    Abonnement annuel SHOPIFY (12 mois)
+                                  </span>
                                 </label>
                                 <label className="flex items-center">
                                   <input
@@ -380,115 +431,160 @@ const MesBoutiques = () => {
                                     name={`typeAbonnementShopify_${shop.shopId}`}
                                     value="aucun"
                                     checked={
-                                      (localEditData[field] ?? shop[field]) === "aucun" ||
-                                      (localEditData[field] ?? shop[field]) === ""
+                                      (localEditData[field] ?? shop[field]) ===
+                                        "aucun" ||
+                                      (localEditData[field] ?? shop[field]) ===
+                                        ""
                                     }
-                                    onChange={e => handleEditFieldChange(shop.shopId, field, e.target.value)}
-                                    className="form-radio h-4 w-4 text-sna-primary border-gray-300"
-                                  />
-                                  <span className="ml-2">Aucun / Pas d'abonnement Shopify géré via ce projet</span>
-                                </label>
-                              </div>
-                            ) : (
-                              // Date fields: use calendar input
-                              (["dateMiseEnLigne", "dateCommercialisation", "dateSortieOfficielle"].includes(field)) ? (
-                                <input
-                                  type="date"
-                                  value={
-                                    localEditData[field] !== undefined
-                                      ? localEditData[field]
-                                      : shop[field] || ""
-                                  }
-                                  onChange={e =>
-                                    handleEditFieldChange(
-                                      shop.shopId,
-                                      field,
-                                      e.target.value
-                                    )
-                                  }
-                                  inputMode="none"
-                                  onKeyDown={e => e.preventDefault()}
-                                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm mt-1 focus:outline-none focus:ring-sna-primary focus:border-sna-primary sm:text-sm"
-                                  autoFocus
-                                />
-                              ) : (
-                                // Boolean field: checkbox, else text input
-                                ((typeof shop[field] === "boolean") ||
-                                  (typeof localEditData[field] === "boolean") ||
-                                  (typeof shop[field] === "string" && ["true","false","oui","non"].includes((shop[field]||"").toLowerCase()))
-                                ) ? (
-                                  <label className="flex items-center gap-2 mt-1">
-                                    <input
-                                      type="checkbox"
-                                      checked={
-                                        localEditData[field] !== undefined
-                                          ? (localEditData[field] === true || localEditData[field] === "true" || localEditData[field] === "oui")
-                                          : (shop[field] === true || shop[field] === "true" || shop[field] === "oui")
-                                      }
-                                      onChange={e => handleEditFieldChange(
-                                        shop.shopId,
-                                        field,
-                                        e.target.checked
-                                      )}
-                                      className="form-checkbox h-5 w-5 text-sna-primary"
-                                    />
-                                    <span className="text-base text-gray-900">{(localEditData[field] !== undefined ? localEditData[field] : shop[field]) ? "Oui" : "Non"}</span>
-                                  </label>
-                                ) : (
-                                  <input
-                                    type="text"
-                                    value={
-                                      localEditData[field] !== undefined
-                                        ? localEditData[field]
-                                        : shop[field] || ""
-                                    }
-                                    onChange={e =>
+                                    onChange={(e) =>
                                       handleEditFieldChange(
                                         shop.shopId,
                                         field,
                                         e.target.value
                                       )
                                     }
-                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm mt-1 focus:outline-none focus:ring-sna-primary focus:border-sna-primary sm:text-sm"
-                                    autoFocus
+                                    className="form-radio h-4 w-4 text-sna-primary border-gray-300"
                                   />
-                                )
-                              )
+                                  <span className="ml-2">
+                                    Aucun / Pas d'abonnement Shopify géré via ce
+                                    projet
+                                  </span>
+                                </label>
+                              </div>
+                            ) : // Date fields: use calendar input
+                            [
+                                "dateMiseEnLigne",
+                                "dateCommercialisation",
+                                "dateSortieOfficielle",
+                              ].includes(field) ? (
+                              <input
+                                type="date"
+                                value={
+                                  localEditData[field] !== undefined
+                                    ? localEditData[field]
+                                    : shop[field] || ""
+                                }
+                                onChange={(e) =>
+                                  handleEditFieldChange(
+                                    shop.shopId,
+                                    field,
+                                    e.target.value
+                                  )
+                                }
+                                inputMode="none"
+                                onKeyDown={(e) => e.preventDefault()}
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm mt-1 focus:outline-none focus:ring-sna-primary focus:border-sna-primary sm:text-sm"
+                                autoFocus
+                              />
+                            ) : // Boolean field: checkbox, else text input
+                            typeof shop[field] === "boolean" ||
+                              typeof localEditData[field] === "boolean" ||
+                              (typeof shop[field] === "string" &&
+                                ["true", "false", "oui", "non"].includes(
+                                  String(shop[field] || "").toLowerCase()
+                                )) ? (
+                              <label className="flex items-center gap-2 mt-1">
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    localEditData[field] !== undefined
+                                      ? localEditData[field] === true ||
+                                        localEditData[field] === "true" ||
+                                        localEditData[field] === "oui"
+                                      : shop[field] === true ||
+                                        shop[field] === "true" ||
+                                        shop[field] === "oui"
+                                  }
+                                  onChange={(e) =>
+                                    handleEditFieldChange(
+                                      shop.shopId,
+                                      field,
+                                      e.target.checked
+                                    )
+                                  }
+                                  className="form-checkbox h-5 w-5 text-sna-primary"
+                                />
+                                <span className="text-base text-gray-900">
+                                  {(
+                                    localEditData[field] !== undefined
+                                      ? localEditData[field]
+                                      : shop[field]
+                                  )
+                                    ? "Oui"
+                                    : "Non"}
+                                </span>
+                              </label>
+                            ) : (
+                              <input
+                                type="text"
+                                value={
+                                  localEditData[field] !== undefined
+                                    ? localEditData[field]
+                                    : shop[field] || ""
+                                }
+                                onChange={(e) =>
+                                  handleEditFieldChange(
+                                    shop.shopId,
+                                    field,
+                                    e.target.value
+                                  )
+                                }
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm mt-1 focus:outline-none focus:ring-sna-primary focus:border-sna-primary sm:text-sm"
+                                autoFocus
+                              />
                             )
                           ) : (
                             <div className="mt-1 text-base text-gray-900">
                               {field === "typeAbonnementShopify"
-                                ? (
-                                  shop[field] === "mensuel"
+                                ? shop[field] === "mensuel"
                                   ? "Abonnement mensuel SHOPIFY (sans engagement)"
                                   : shop[field] === "annuel"
-                                  ? "Abonnement annuel SHOPIFY (12 mois)"
-                                  : shop[field] === "aucun" || shop[field] === ""
-                                  ? "Aucun / Pas d'abonnement Shopify géré via ce projet"
-                                  : shop[field] || "-"
-                                )
-                                : ["dateMiseEnLigne", "dateCommercialisation", "dateSortieOfficielle"].includes(field)
-                                ? (
-                                  (() => {
-                                    const val = shop[field];
-                                    if (!val) return "-";
-                                    // Accepts both YYYY-MM-DD and ISO strings
-                                    const d = new Date(val);
-                                    if (isNaN(d)) return val;
-                                    return d.toLocaleDateString("fr-FR");
-                                  })()
-                                )
-                                : typeof shop[field] === "boolean"
-                                ? (shop[field] ? "Oui" : "Non")
-                                : ["true","false","oui","non"].includes((shop[field]||"").toLowerCase())
-                                ? (["true","oui"].includes((shop[field]||"").toLowerCase()) ? "Oui" : "Non")
-                                : (shop[field] || "-")}
+                                    ? "Abonnement annuel SHOPIFY (12 mois)"
+                                    : shop[field] === "aucun" ||
+                                        shop[field] === ""
+                                      ? "Aucun / Pas d'abonnement Shopify géré via ce projet"
+                                      : shop[field] || "-"
+                                : [
+                                      "dateMiseEnLigne",
+                                      "dateCommercialisation",
+                                      "dateSortieOfficielle",
+                                    ].includes(field)
+                                  ? (() => {
+                                      const val = shop[field];
+                                      if (!val) return "-";
+                                      // Accepts both YYYY-MM-DD and ISO strings
+                                      const d = new Date(val);
+                                      if (isNaN(d)) return val;
+                                      return d.toLocaleDateString("fr-FR");
+                                    })()
+                                  : typeof shop[field] === "boolean"
+                                    ? shop[field]
+                                      ? "Oui"
+                                      : "Non"
+                                    : ["true", "false", "oui", "non"].includes(
+                                          String(
+                                            shop[field] || ""
+                                          ).toLowerCase()
+                                        )
+                                      ? ["true", "oui"].includes(
+                                          String(
+                                            shop[field] || ""
+                                          ).toLowerCase()
+                                        )
+                                        ? "Oui"
+                                        : "Non"
+                                      : field === "products" &&
+                                          Array.isArray(shop[field])
+                                        ? `${shop[field].length} produit(s): ${shop[field].map((p) => p.titre || p.title || "Produit sans titre").join(", ")}`
+                                        : typeof shop[field] === "object" &&
+                                            shop[field] !== null
+                                          ? JSON.stringify(shop[field])
+                                          : shop[field] || "-"}
                             </div>
                           )}
                         </div>
                       ))}
                     </div>
-
                   </div>
                 )}
               </div>

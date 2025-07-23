@@ -18,6 +18,11 @@ import MesProduits from "./components/customer/MesProduits.jsx"; // Import MesPr
 import FeatureUnderConstruction from "./components/customer/FeatureUnderConstruction.jsx"; // Import new component
 import ManageAccount from "./components/customer/ManageAccount.jsx"; // Import ManageAccount component
 import ClientsAValider from "./components/internal/ClientsAValider.jsx"; // Import ClientsAValider component
+import Statistics from "./components/internal/Statistics.jsx"; // Import Statistics component
+import InternalProfile from "./components/internal/InternalProfile.jsx"; // Import InternalProfile component
+
+// Auth components
+import ResetPasswordPage from "./components/auth/ResetPasswordPage.jsx"; // Import ResetPasswordPage component
 
 // Internal components
 import InternalLayout from "./components/internal/InternalLayout.jsx";
@@ -38,17 +43,10 @@ import GenerationEC from "./components/internal/shopify/GenerationEC.jsx";
 
 // Admin components
 import AdminLayout from "./components/admin/AdminLayout.jsx";
-// Assuming placeholder components for admin sections for now
-// You'll need to create these if they don't exist or map to existing ones.
-const AdminClientAccounts = () => (
-  <div className="p-4">Admin: Gestion des comptes clients</div>
-);
-const AdminInternalAccounts = () => (
-  <div className="p-4">Admin: Gestion des comptes internes</div>
-);
-const AdminAdminAccounts = () => (
-  <div className="p-4">Admin: Gestion des comptes admins</div>
-);
+import AdminClientAccounts from "./components/admin/AdminClientAccounts.jsx";
+import AdminInternalAccounts from "./components/admin/AdminInternalAccounts.jsx";
+import AdminAccounts from "./components/admin/AdminAccounts.jsx";
+
 const AdminProfile = () => <div className="p-4">Admin: Profil</div>;
 
 const App = () => {
@@ -74,6 +72,10 @@ const App = () => {
 
   if (pathname === "/") {
     ComponentToRender = MainPage;
+  }
+  // Auth Routes
+  else if (pathname === "/reset-password") {
+    ComponentToRender = ResetPasswordPage;
   }
   // Customer Routes
   else if (pathname === "/client/dashboard") {
@@ -103,7 +105,11 @@ const App = () => {
     pageProps = { returnPath: "/client/dashboard" };
   }
   // Internal Routes
-  else if (pathname === "/internal/clients") {
+  else if (pathname === "/internal/dashboard") {
+    // Redirect to clients (default internal page)
+    window.location.replace("/internal/clients");
+    return null;
+  } else if (pathname === "/internal/clients") {
     LayoutComponent = InternalLayout;
     ComponentToRender = ClientsList;
   } else if (pathname === "/internal/documentation") {
@@ -162,12 +168,10 @@ const App = () => {
     ComponentToRender = ClientsAValider;
   } else if (pathname === "/internal/profile") {
     LayoutComponent = InternalLayout;
-    ComponentToRender = FeatureUnderConstruction;
-    pageProps = { returnPath: "/internal/clients" };
+    ComponentToRender = InternalProfile;
   } else if (pathname === "/internal/statistiques") {
     LayoutComponent = InternalLayout;
-    ComponentToRender = FeatureUnderConstruction;
-    pageProps = { returnPath: "/internal/clients" };
+    ComponentToRender = Statistics;
   } else if (pathname === "/internal/shopify") {
     LayoutComponent = InternalLayout;
     ComponentToRender = ShopifyBoutiques;
@@ -186,8 +190,8 @@ const App = () => {
     pageProps = { returnPath: "/internal/generation-ec" };
   } else if (pathname === "/internal/creation-comptes-client") {
     LayoutComponent = InternalLayout;
-    ComponentToRender = FeatureUnderConstruction;
-    pageProps = { returnPath: "/internal/clients" };
+    ComponentToRender = AdminClientAccounts;
+    pageProps = {};
   }
   // Admin Routes
   else if (pathname === "/admin" || pathname === "/admin/") {
@@ -201,7 +205,7 @@ const App = () => {
     ComponentToRender = AdminInternalAccounts;
   } else if (pathname === "/admin/admin-accounts") {
     LayoutComponent = AdminLayout;
-    ComponentToRender = AdminAdminAccounts;
+    ComponentToRender = AdminAccounts;
   } else if (pathname === "/admin/profile") {
     LayoutComponent = AdminLayout;
     ComponentToRender = AdminProfile;

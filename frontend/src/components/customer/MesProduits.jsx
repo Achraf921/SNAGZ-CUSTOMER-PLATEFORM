@@ -88,7 +88,11 @@ const MesProduits = () => {
           throw new Error("Erreur lors de la récupération des boutiques");
 
         const data = await response.json();
-        setShops(data.shops || []);
+        // Filter only valid shops
+        const validShops = (data.shops || []).filter(
+          (shop) => shop.status === "valid"
+        );
+        setShops(validShops);
       } catch (err) {
         console.error("Error fetching shops:", err);
         setError(
@@ -425,7 +429,7 @@ const MesProduits = () => {
                     </div>
                   </div>
                   <a
-                    href="/client/produits/create"
+                    href={`/client/produits/create?shopId=${selectedShop.shopId}`}
                     className="bg-sna-primary text-white px-4 py-2 rounded-md hover:bg-sna-primary-dark transition duration-300 flex items-center"
                   >
                     <FaPlus className="mr-2" />
@@ -446,7 +450,7 @@ const MesProduits = () => {
                       boutique.
                     </p>
                     <a
-                      href="/client/produits/create"
+                      href={`/client/produits/create?shopId=${selectedShop.shopId}`}
                       className="bg-sna-primary text-white px-6 py-3 rounded-md hover:bg-sna-primary-dark transition duration-300"
                     >
                       Créer un produit
@@ -1023,7 +1027,9 @@ const MesProduits = () => {
                                       EAN:
                                     </span>
                                     <div className="text-gray-600 mt-1">
-                                      {product.ean}
+                                      {typeof product.ean === "object"
+                                        ? JSON.stringify(product.ean)
+                                        : product.ean}
                                     </div>
                                   </div>
                                 )}

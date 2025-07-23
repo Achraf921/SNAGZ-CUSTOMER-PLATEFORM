@@ -5,7 +5,9 @@ import {
   FaBox,
   FaBarcode,
   FaTags,
+  FaShoppingCart,
 } from "react-icons/fa";
+import NotificationModal from "../../shared/NotificationModal";
 
 const GenerationEC = () => {
   const [shops, setShops] = useState([]);
@@ -16,62 +18,168 @@ const GenerationEC = () => {
   const [notification, setNotification] = useState(null);
   const [shopSearch, setShopSearch] = useState("");
   const [productSearch, setProductSearch] = useState({});
+  const [modal, setModal] = useState({ open: false });
 
-  // Fetch shops on mount (documented + hasShopify)
+  // Re-implementing the proven data fetching logic from FicheProduitsShopify
   useEffect(() => {
-    const fetchShops = async () => {
+    const loadShopsAndProducts = async () => {
       try {
         const res = await fetch("/api/customer/all?details=true", {
           headers: { "Cache-Control": "no-cache" },
-          credentials: "include",
         });
         const data = await res.json();
-        const collected = [];
+        if (!res.ok) throw new Error("Failed to fetch shop data");
+
+        const collectedShops = [];
         (data.customers || []).forEach((c) => {
           (c.shops || []).forEach((s) => {
-            const documented =
+            const isDocumented =
               s.documented === true || s.documented === "documented";
-            if (documented && (s.hasShopify || s.shopifyConfigured)) {
-              collected.push({ ...s, customerName: c.raisonSociale });
+            const hasShopifyAccess = s.hasShopify || s.shopifyConfigured;
+            if (isDocumented && hasShopifyAccess) {
+              collectedShops.push({
+                ...s,
+                customerName: c.raisonSociale,
+                clientId: c._id?.toString() || c.id,
+              });
             }
           });
         });
-        setShops(collected);
+
+        const productsMap = {};
+        await Promise.all(
+          collectedShops.map(async (s) => {
+            try {
+              const productRes = await fetch(
+                `/api/customer/shop/${s.shopId}/products`
+              );
+              const productData = await productRes.json();
+              // Filter for products that are PUBLISHED to Shopify for this page
+              productsMap[s.shopId] = (productData.products || []).filter(
+                (p) => p.hasShopify === true
+              );
+            } catch (e) {
+              console.error(`Failed to load products for shop ${s.shopId}`, e);
+              productsMap[s.shopId] = [];
+            }
+          })
+        );
+
+        // Only include shops that have at least one product with hasShopify: true
+        const finalShops = collectedShops.filter(
+          (s) => productsMap[s.shopId] && productsMap[s.shopId].length > 0
+        );
+
+        setShops(finalShops);
+        setShopProducts(productsMap);
       } catch (err) {
-        console.error(err);
+        console.error("Error loading shops for EC generation:", err);
+        setNotification({
+          type: "error",
+          message: "Impossible de charger les boutiques.",
+        });
       }
     };
-    fetchShops();
+
+    loadShopsAndProducts();
   }, []);
 
-  const fetchProducts = async (shopId) => {
-    if (shopProducts[shopId]) return;
-    const res = await fetch(`/api/customer/shop/${shopId}/products`);
-    const data = await res.json();
-    const products = (data.products || []).filter((p) => p.documented === true);
-    setShopProducts((prev) => ({ ...prev, [shopId]: products }));
-  };
-
-  const toggleShop = async (shopId) => {
-    if (expandedShops.has(shopId)) {
-      const newSet = new Set(expandedShops);
+  const toggleShop = (shopId) => {
+    const newSet = new Set(expandedShops);
+    if (newSet.has(shopId)) {
       newSet.delete(shopId);
-      setExpandedShops(newSet);
     } else {
-      await fetchProducts(shopId);
-      setExpandedShops(new Set(expandedShops).add(shopId));
-      setProductSearch((prev) => ({ ...prev, [shopId]: "" }));
+      newSet.add(shopId);
+      if (!productSearch[shopId]) {
+        setProductSearch((prev) => ({ ...prev, [shopId]: "" }));
+      }
     }
+    setExpandedShops(newSet);
   };
 
   const toggleProductSelect = (shopId, productId) => {
+    const key = `${shopId}-${productId}`;
     setSelectedProducts((prev) => {
-      const key = `${shopId}-${productId}`;
-      const copy = { ...prev };
-      if (copy[key]) delete copy[key];
-      else copy[key] = { shopId, productId };
-      return copy;
+      const newSelected = { ...prev };
+      if (newSelected[key]) {
+        delete newSelected[key];
+      } else {
+        newSelected[key] = { shopId, productId };
+      }
+      return newSelected;
     });
+  };
+
+  const toggleSelectAllForShop = (shopId) => {
+    const productsForShop = (shopProducts[shopId] || []).filter((p) =>
+      (p.titre || "")
+        .toLowerCase()
+        .includes((productSearch[shopId] || "").toLowerCase())
+    );
+
+    const allSelected = productsForShop.every(
+      (prod) => selectedProducts[`${shopId}-${prod.productId}`]
+    );
+
+    setSelectedProducts((prev) => {
+      const newSelected = { ...prev };
+      if (allSelected) {
+        productsForShop.forEach(
+          (prod) => delete newSelected[`${shopId}-${prod.productId}`]
+        );
+      } else {
+        productsForShop.forEach((prod) => {
+          newSelected[`${shopId}-${prod.productId}`] = {
+            shopId,
+            productId: prod.productId,
+          };
+        });
+      }
+      return newSelected;
+    });
+  };
+
+  const generateEC = async () => {
+    const productsToGenerate = Object.values(selectedProducts);
+    if (productsToGenerate.length === 0) return;
+
+    const shopId = productsToGenerate[0].shopId;
+    const productIds = productsToGenerate.map((p) => p.productId);
+
+    setIsGenerating(true);
+    setNotification(null);
+    try {
+      const res = await fetch(`/api/internal/ec/shop/${shopId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productIds }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(
+          data.message || "La génération du fichier EC a échoué."
+        );
+      }
+      setModal({
+        open: true,
+        type: "success",
+        title: "Génération réussie",
+        message:
+          "Le fichier EC a été généré et est disponible dans les téléchargements.",
+        onClose: () => setModal({ open: false }),
+      });
+      setSelectedProducts({});
+    } catch (err) {
+      setModal({
+        open: true,
+        type: "error",
+        title: "Erreur de Génération",
+        message: err.message,
+        onClose: () => setModal({ open: false }),
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const formatPrice = (price) => {
@@ -84,16 +192,18 @@ const GenerationEC = () => {
     if (val == null) return null;
     if (typeof val === "object") {
       if (Array.isArray(val)) return val.join(", ");
-      return Object.keys(val)
-        .filter((k) => (typeof val[k] === "boolean" ? val[k] : val[k] != null))
-        .join(", ");
+      return Object.keys(val).join(", ");
     }
     return String(val);
   };
 
   const renderProductDetails = (prod) => {
     const rawPrice = prod.prix ?? prod.price;
-    const rawEan = prod.codeEAN ?? prod.ean;
+    const eans = prod.eans || {};
+    const skus = prod.skus || {};
+    const eanValues = Object.values(eans).filter(Boolean);
+    const skuValues = Object.values(skus).filter(Boolean);
+
     let totalStock = null;
     if (prod.stock != null) {
       if (typeof prod.stock === "object") {
@@ -101,7 +211,9 @@ const GenerationEC = () => {
           (sum, v) => sum + (typeof v === "number" ? v : 0),
           0
         );
-      } else totalStock = prod.stock;
+      } else {
+        totalStock = prod.stock;
+      }
     }
 
     return (
@@ -109,8 +221,7 @@ const GenerationEC = () => {
         <div className="flex flex-wrap gap-2">
           {prod.categories && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-              <FaTags className="mr-1" />
-              {formatChild(prod.categories)}
+              <FaTags className="mr-1" /> {formatChild(prod.categories)}
             </span>
           )}
           {formatPrice(rawPrice) && (
@@ -123,9 +234,22 @@ const GenerationEC = () => {
               <FaBox className="mr-1" /> Stock: {totalStock}
             </span>
           )}
-          {rawEan && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-              <FaBarcode className="mr-1" /> EAN: {formatChild(rawEan)}
+          {eanValues.length > 0 && (
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+              title={eanValues.join(", ")}
+            >
+              <FaBarcode className="mr-1" />
+              {`EANs (${eanValues.length})`}
+            </span>
+          )}
+          {skuValues.length > 0 && (
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+              title={skuValues.join(", ")}
+            >
+              <FaTags className="mr-1" />
+              {`SKUs (${skuValues.length})`}
             </span>
           )}
         </div>
@@ -133,180 +257,160 @@ const GenerationEC = () => {
     );
   };
 
-  const generateEC = async () => {
-    const grouped = {};
-    Object.values(selectedProducts).forEach(({ shopId, productId }) => {
-      if (!grouped[shopId]) grouped[shopId] = [];
-      grouped[shopId].push(productId);
-    });
-    if (Object.keys(grouped).length === 0) return;
-
-    setIsGenerating(true);
-    try {
-      for (const shopId of Object.keys(grouped)) {
-        const res = await fetch(
-          `/api/internal/shopify/shop/${shopId}/generate-ec`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productIds: grouped[shopId] }),
-          }
-        );
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Erreur");
-      }
-      setNotification({ type: "success", message: "Fichiers EC générés" });
-      setSelectedProducts({});
-    } catch (err) {
-      setNotification({ type: "error", message: err.message });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const filteredShops = shops
-    .filter((s) =>
-      (s.nomProjet || "").toLowerCase().includes(shopSearch.toLowerCase())
-    )
-    .filter((s) => shopProducts[s.shopId]?.length > 0);
+  const filteredShops = shops.filter((s) =>
+    (s.nomProjet || "").toLowerCase().includes(shopSearch.toLowerCase())
+  );
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Génération d'EC</h1>
-        <div className="relative w-64">
-          <input
-            type="text"
-            placeholder="Rechercher une boutique..."
-            className="pl-10 pr-4 py-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-sna-primary/50"
-            value={shopSearch}
-            onChange={(e) => setShopSearch(e.target.value)}
-          />
-          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <NotificationModal {...modal} />
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Génération d'EC</h1>
+          <div className="relative w-72">
+            <input
+              type="text"
+              placeholder="Rechercher une boutique..."
+              className="pl-10 pr-4 py-2 border rounded-full w-full focus:outline-none focus:ring-2 focus:ring-sna-primary"
+              value={shopSearch}
+              onChange={(e) => setShopSearch(e.target.value)}
+            />
+            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          </div>
         </div>
-      </div>
 
-      {notification && (
-        <div
-          className={`mb-4 p-4 rounded-lg flex items-center ${
-            notification.type === "success"
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
-          }`}
-        >
-          {notification.message}
+        {notification && (
+          <div
+            className={`mb-4 p-4 rounded-lg flex items-center shadow-sm ${
+              notification.type === "success"
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {notification.message}
+          </div>
+        )}
+
+        <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg mb-6 flex items-start">
+          <FaInfoCircle className="h-5 w-5 mr-3 mt-0.5" />
+          <p className="text-sm">
+            Cette page liste les boutiques <strong>documentées</strong> ayant
+            des produits déjà <strong>publiés sur Shopify</strong>. Utilisez
+            cette interface pour générer les fichiers EC correspondants.
+          </p>
         </div>
-      )}
 
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg flex items-start space-x-3">
-        <FaInfoCircle className="text-blue-500 mt-1 flex-shrink-0" />
-        <p className="text-sm text-blue-700">
-          Seules les boutiques <strong>documentées</strong> et disposant d'une
-          intégration Shopify sont listées. Dans chaque boutique, seuls les
-          produits documentés apparaissent.
-        </p>
-      </div>
+        <div className="flex justify-start mb-6">
+          <button
+            disabled={
+              isGenerating || Object.keys(selectedProducts).length === 0
+            }
+            onClick={generateEC}
+            className={`px-6 py-2.5 rounded-lg text-white font-semibold transition-all duration-200 flex items-center shadow-md ${
+              isGenerating || Object.keys(selectedProducts).length === 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-sna-primary hover:bg-sna-primary-dark"
+            }`}
+          >
+            <FaShoppingCart className="mr-2" />
+            Générer EC pour {Object.keys(selectedProducts).length} produit(s)
+          </button>
+        </div>
 
-      <button
-        disabled={isGenerating || Object.keys(selectedProducts).length === 0}
-        onClick={generateEC}
-        className={`mb-4 px-6 py-2 rounded-lg text-white font-medium transition-colors ${
-          isGenerating || Object.keys(selectedProducts).length === 0
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-sna-primary hover:bg-sna-primary/90"
-        }`}
-      >
-        Générer EC ({Object.keys(selectedProducts).length})
-      </button>
-
-      <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
-        {filteredShops.map((shop) => (
-          <div key={shop.shopId} className="p-4">
+        <div className="space-y-4">
+          {filteredShops.map((shop) => (
             <div
-              className="flex justify-between items-center cursor-pointer"
-              onClick={() => toggleShop(shop.shopId)}
+              key={shop.shopId}
+              className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300"
             >
-              <div>
-                <h3 className="font-medium text-sna-primary">
-                  {shop.nomProjet}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Client : {shop.customerName}
-                </p>
-              </div>
-              <span className="text-gray-400">
-                {expandedShops.has(shop.shopId) ? "▲" : "▼"}
-              </span>
-            </div>
-
-            {expandedShops.has(shop.shopId) && (
-              <div className="mt-4 space-y-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Rechercher un produit..."
-                    className="pl-10 pr-4 py-2 border rounded-lg w-full text-sm focus:outline-none focus:ring-2 focus:ring-sna-primary/50"
-                    value={productSearch[shop.shopId] || ""}
-                    onChange={(e) =>
-                      setProductSearch((prev) => ({
-                        ...prev,
-                        [shop.shopId]: e.target.value,
-                      }))
-                    }
-                  />
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <div
+                className="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50"
+                onClick={() => toggleShop(shop.shopId)}
+              >
+                <div>
+                  <h3 className="font-semibold text-lg text-sna-primary">
+                    {shop.nomProjet}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Client : {shop.customerName}
+                  </p>
                 </div>
+                <span className="text-gray-400 text-xl">
+                  {expandedShops.has(shop.shopId) ? "▲" : "▼"}
+                </span>
+              </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                  {(shopProducts[shop.shopId] || [])
-                    .filter((p) =>
-                      (p.titre || "")
-                        .toLowerCase()
-                        .includes(
-                          (productSearch[shop.shopId] || "").toLowerCase()
-                        )
-                    )
-                    .map((prod) => {
-                      const key = `${shop.shopId}-${prod.productId}`;
-                      const checked = !!selectedProducts[key];
-                      return (
+              {expandedShops.has(shop.shopId) && (
+                <div className="p-5 border-t border-gray-200 bg-gray-50">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="relative w-full max-w-md">
+                      <input
+                        type="text"
+                        placeholder="Rechercher un produit par nom..."
+                        className="pl-10 pr-4 py-2 border rounded-full w-full text-sm focus:outline-none focus:ring-2 focus:ring-sna-primary"
+                        value={productSearch[shop.shopId] || ""}
+                        onChange={(e) =>
+                          setProductSearch((prev) => ({
+                            ...prev,
+                            [shop.shopId]: e.target.value,
+                          }))
+                        }
+                      />
+                      <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    </div>
+                    <button
+                      onClick={() => toggleSelectAllForShop(shop.shopId)}
+                      className="text-sm font-medium text-sna-primary hover:underline"
+                    >
+                      Tout sélectionner/désélectionner
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {(shopProducts[shop.shopId] || [])
+                      .filter((p) =>
+                        (p.titre || "")
+                          .toLowerCase()
+                          .includes(
+                            (productSearch[shop.shopId] || "").toLowerCase()
+                          )
+                      )
+                      .map((prod) => (
                         <div
                           key={prod.productId}
-                          className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                          className="bg-white p-4 rounded-lg border border-gray-200 flex items-center space-x-4"
                         >
-                          <label className="flex items-start space-x-3 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() =>
-                                toggleProductSelect(shop.shopId, prod.productId)
-                              }
-                              className="mt-1"
-                            />
-                            <div className="flex-1">
-                              <h4 className="font-medium">{prod.titre}</h4>
-                              {prod.description && (
-                                <p className="text-sm text-gray-500 mt-1">
-                                  {formatChild(prod.description)}
-                                </p>
-                              )}
-                              {renderProductDetails(prod)}
-                            </div>
-                          </label>
+                          <input
+                            type="checkbox"
+                            className="h-5 w-5 rounded text-sna-primary focus:ring-sna-primary"
+                            checked={
+                              !!selectedProducts[
+                                `${shop.shopId}-${prod.productId}`
+                              ]
+                            }
+                            onChange={() =>
+                              toggleProductSelect(shop.shopId, prod.productId)
+                            }
+                          />
+                          <div className="flex-grow">
+                            <p className="font-semibold text-gray-800">
+                              {prod.titre}
+                            </p>
+                            {renderProductDetails(prod)}
+                          </div>
+                          {prod.hasShopify && (
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              Publié
+                            </span>
+                          )}
                         </div>
-                      );
-                    })}
-                  {shopProducts[shop.shopId] &&
-                    shopProducts[shop.shopId].length === 0 && (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        Aucun produit documenté
-                      </p>
-                    )}
+                      ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

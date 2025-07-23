@@ -6,6 +6,9 @@ import {
   FaBarcode,
   FaTags,
   FaShoppingCart,
+  FaTimes,
+  FaExclamationTriangle,
+  FaSpinner,
 } from "react-icons/fa";
 import NotificationModal from "../../shared/NotificationModal";
 
@@ -19,6 +22,12 @@ const FicheProduitsShopify = () => {
   const [shopSearch, setShopSearch] = useState("");
   const [productSearch, setProductSearch] = useState({});
   const [modal, setModal] = useState({ open: false });
+
+  // State for domain input modal
+  const [isDomainModalOpen, setIsDomainModalOpen] = useState(false);
+  const [shopNeedingDomain, setShopNeedingDomain] = useState(null);
+  const [adminUrl, setAdminUrl] = useState("");
+  const [isSavingDomain, setIsSavingDomain] = useState(false);
 
   const loadShops = async () => {
     try {
@@ -154,7 +163,9 @@ const FicheProduitsShopify = () => {
               <li>
                 Connectez-vous à l'Admin de la boutique : <br />
                 <a
-                  href={`https://${shop.shopifyDomain || shop.myshopify_domain}.myshopify.com/admin/apps`}
+                  href={`https://${
+                    shop.shopifyDomain || shop.myshopify_domain
+                  }.myshopify.com/admin/apps`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline"
@@ -232,13 +243,13 @@ const FicheProduitsShopify = () => {
           if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
           // refresh shops list to include new keys
           await loadShops();
-          setModal({ open: false });
           setNotification({
             type: "success",
             message: "Clés API enregistrées – génération en cours...",
           });
+          setModal({ open: false });
           // relaunch publication
-          publishSelected();
+          await publishSelected();
         } catch (err) {
           alert(err.message);
         }
@@ -319,7 +330,9 @@ const FicheProduitsShopify = () => {
         if (data.success) {
           setNotification({
             type: "success",
-            message: `${data.message || "Produits publiés avec succès"} (${data.successCount}/${data.totalProcessed})`,
+            message: `${data.message || "Produits publiés avec succès"} (${
+              data.successCount
+            }/${data.totalProcessed})`,
           });
 
           // Log detailed results
@@ -337,6 +350,20 @@ const FicheProduitsShopify = () => {
         } else {
           const errorMsg =
             data.error || data.details || "Erreur lors de la publication";
+
+          // Check if error is about missing domain configuration
+          if (
+            errorMsg.includes("No Shopify domain configured") ||
+            errorMsg.includes("domain")
+          ) {
+            const shop = shops.find((s) => s.shopId === shopId);
+            if (shop) {
+              setShopNeedingDomain(shop);
+              setIsDomainModalOpen(true);
+              return; // Don't show general error notification
+            }
+          }
+
           setNotification({
             type: "error",
             message: `Échec de publication: ${errorMsg}`,
@@ -397,7 +424,11 @@ const FicheProduitsShopify = () => {
     // Price fallback
     const rawPrice = prod.prix != null ? prod.prix : prod.price;
     // EAN fallback
-    const rawEan = prod.codeEAN != null ? prod.codeEAN : prod.ean;
+    const eans = prod.eans || {};
+    const skus = prod.skus || {};
+    const eanValues = Object.values(eans).filter(Boolean);
+    const skuValues = Object.values(skus).filter(Boolean);
+
     // Total stock calculation
     let totalStock = null;
     if (prod.stock != null) {
@@ -435,16 +466,28 @@ const FicheProduitsShopify = () => {
               Stock: {totalStock}
             </span>
           )}
-          {rawEan && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-              <FaBarcode className="mr-1" />
-              EAN: {formatChild(rawEan)}
+          {prod.hasShopify && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <FaShoppingCart className="mr-1" />
+              Ce produit a déjà une fiche Shopify
             </span>
           )}
-          {prod.hasShopify && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-              <FaShoppingCart className="mr-1" />
-              Publié sur Shopify
+          {eanValues.length > 0 && (
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+              title={eanValues.join(", ")}
+            >
+              <FaBarcode className="mr-1" />
+              {`EANs (${eanValues.length})`}
+            </span>
+          )}
+          {skuValues.length > 0 && (
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+              title={skuValues.join(", ")}
+            >
+              <FaTags className="mr-1" />
+              {`SKUs (${skuValues.length})`}
             </span>
           )}
         </div>
@@ -498,6 +541,161 @@ const FicheProduitsShopify = () => {
         )}
       </div>
     );
+  };
+
+  // Helper to update local shopProducts state for immediate UI feedback
+  const updateProductLocalStatus = (shopId, productId, newStatus) => {
+    setShopProducts((prev) => {
+      const updated = { ...prev };
+      if (!updated[shopId]) return prev;
+      updated[shopId] = updated[shopId].map((p) =>
+        p.productId === productId ? { ...p, hasShopify: newStatus } : p
+      );
+      return updated;
+    });
+  };
+
+  // Handler to disassociate Shopify from a shop
+  const disassociateShopify = async (shop) => {
+    try {
+      await fetch(
+        `/api/internal/clients/${shop.clientId}/shops/${shop.shopId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ hasShopify: false }),
+        }
+      );
+      // Refresh list
+      loadShops();
+    } catch (err) {
+      console.error("Error disassociating Shopify:", err);
+    }
+  };
+
+  // Function to save domain from admin URL
+  const saveDomain = async () => {
+    if (!adminUrl.trim()) {
+      setNotification({
+        type: "error",
+        message: "Veuillez entrer l'URL d'administration",
+      });
+      return;
+    }
+
+    setIsSavingDomain(true);
+    try {
+      const response = await fetch(
+        `/api/internal/shops/${shopNeedingDomain.shopId}/save-domain`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            adminUrl: adminUrl.trim(),
+            shopifyDomain: extractDomainFromUrl(adminUrl.trim()),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(
+          data.message || "Erreur lors de la sauvegarde du domaine"
+        );
+      }
+
+      setNotification({
+        type: "success",
+        message:
+          "Domaine sauvegardé avec succès! Vous pouvez maintenant relancer la génération.",
+      });
+
+      setIsDomainModalOpen(false);
+      setShopNeedingDomain(null);
+      setAdminUrl("");
+
+      // Refresh shops to get updated domain
+      await loadShops();
+    } catch (error) {
+      setNotification({
+        type: "error",
+        message: `Erreur: ${error.message}`,
+      });
+    } finally {
+      setIsSavingDomain(false);
+    }
+  };
+
+  // Helper function to extract domain from admin URL
+  const extractDomainFromUrl = (url) => {
+    try {
+      // Handle URLs like https://shop-name.myshopify.com/admin
+      // or https://admin.shopify.com/store/shop-name
+      const urlObj = new URL(url);
+
+      if (urlObj.hostname.includes(".myshopify.com")) {
+        return urlObj.hostname.replace(".myshopify.com", "");
+      } else if (urlObj.hostname === "admin.shopify.com") {
+        const pathParts = urlObj.pathname.split("/");
+        const storeIndex = pathParts.indexOf("store");
+        if (storeIndex !== -1 && pathParts[storeIndex + 1]) {
+          return pathParts[storeIndex + 1];
+        }
+      }
+
+      return urlObj.hostname;
+    } catch (error) {
+      console.error("Error extracting domain:", error);
+      return url;
+    }
+  };
+
+  // Insert handler for product-level Shopify disassociation
+  const disassociateProduct = async (shop, prod) => {
+    try {
+      const { clientId, shopId } = shop;
+      const { productId } = prod;
+      const res = await fetch(
+        `/api/internal/products/${clientId}/${shopId}/${productId}/set-shopify-status`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ hasShopify: false }),
+        }
+      );
+      if (!res.ok) throw new Error("Erreur lors de la mise à jour du produit");
+      // Optimistically update local state
+      updateProductLocalStatus(shopId, productId, false);
+    } catch (err) {
+      console.error("Error disassociating Shopify from product:", err);
+      setNotification({ type: "error", message: err.message });
+    }
+  };
+
+  // Handler to mark a product as having a Shopify fiche
+  const associateProduct = async (shop, prod) => {
+    try {
+      const { clientId, shopId } = shop;
+      const { productId } = prod;
+      const res = await fetch(
+        `/api/internal/products/${clientId}/${shopId}/${productId}/set-shopify-status`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ hasShopify: true }),
+        }
+      );
+      if (!res.ok) throw new Error("Erreur lors de la mise à jour du produit");
+      // Optimistically update local state
+      updateProductLocalStatus(shopId, productId, true);
+    } catch (err) {
+      console.error("Error associating Shopify to product:", err);
+      setNotification({ type: "error", message: err.message });
+    }
   };
 
   const filteredShops = shops
@@ -657,10 +855,10 @@ const FicheProduitsShopify = () => {
                       return (
                         <div
                           key={prod.productId}
-                          className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors ${
+                          className={`relative p-4 rounded-lg flex items-center space-x-4 transition-colors ${
                             prod.hasShopify
-                              ? "border-emerald-300 bg-emerald-50/30"
-                              : "border-gray-200"
+                              ? "border border-emerald-500 bg-emerald-50/30"
+                              : "border border-gray-200 bg-white"
                           }`}
                         >
                           <label className="flex items-start space-x-3 cursor-pointer">
@@ -670,10 +868,12 @@ const FicheProduitsShopify = () => {
                               onChange={() =>
                                 toggleProductSelect(shop.shopId, prod.productId)
                               }
-                              className="mt-1"
+                              className="h-5 w-5 rounded text-sna-primary focus:ring-sna-primary"
                             />
-                            <div className="flex-1">
-                              <h4 className="font-medium">{prod.titre}</h4>
+                            <div className="flex-grow">
+                              <h4 className="font-semibold text-gray-800">
+                                {prod.titre}
+                              </h4>
                               {prod.description && (
                                 <p className="text-sm text-gray-500 mt-1">
                                   {formatChild(prod.description)}
@@ -681,6 +881,21 @@ const FicheProduitsShopify = () => {
                               )}
                               {renderProductDetails(prod)}
                             </div>
+                            {prod.hasShopify ? (
+                              <button
+                                className="absolute top-2 right-2 bg-red-50 border border-red-200 text-red-700 px-2 py-1 text-xs font-medium rounded hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
+                                onClick={() => disassociateProduct(shop, prod)}
+                              >
+                                Ce produit n'a pas de fiche produit
+                              </button>
+                            ) : (
+                              <button
+                                className="absolute top-2 right-2 bg-emerald-50 border border-emerald-300 text-emerald-700 px-2 py-1 text-xs font-medium rounded hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-200 transition"
+                                onClick={() => associateProduct(shop, prod)}
+                              >
+                                Ce produit a déjà une fiche Shopify
+                              </button>
+                            )}
                           </label>
                         </div>
                       );
@@ -697,6 +912,111 @@ const FicheProduitsShopify = () => {
           </div>
         ))}
       </div>
+
+      {/* Domain Input Modal */}
+      {isDomainModalOpen && shopNeedingDomain && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Configuration du domaine Shopify
+              </h3>
+              <button
+                onClick={() => {
+                  setIsDomainModalOpen(false);
+                  setShopNeedingDomain(null);
+                  setAdminUrl("");
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FaTimes className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <div className="flex">
+                  <FaExclamationTriangle className="h-5 w-5 text-yellow-400 mt-0.5 mr-3" />
+                  <div>
+                    <h4 className="text-sm font-medium text-yellow-800">
+                      Domaine Shopify manquant
+                    </h4>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Pour générer les fiches produits, nous avons besoin de
+                      l'URL d'administration de votre boutique Shopify.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">
+                  Comment trouver votre URL d'administration :
+                </h4>
+                <ol className="text-sm text-blue-700 space-y-1 list-decimal ml-4">
+                  <li>Connectez-vous à votre boutique Shopify</li>
+                  <li>
+                    Une fois dans l'admin, copiez l'URL complète de votre
+                    navigateur
+                  </li>
+                  <li>
+                    L'URL ressemble à :
+                    <div className="mt-1 text-xs bg-blue-100 p-2 rounded font-mono">
+                      https://your-shop.myshopify.com/admin
+                    </div>
+                    <div className="text-xs mt-1">ou</div>
+                    <div className="mt-1 text-xs bg-blue-100 p-2 rounded font-mono">
+                      https://admin.shopify.com/store/your-shop
+                    </div>
+                  </li>
+                </ol>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="adminUrl"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  URL d'administration de la boutique "
+                  {shopNeedingDomain.nomProjet ||
+                    shopNeedingDomain.customerName}
+                  "
+                </label>
+                <input
+                  type="url"
+                  id="adminUrl"
+                  value={adminUrl}
+                  onChange={(e) => setAdminUrl(e.target.value)}
+                  placeholder="https://your-shop.myshopify.com/admin"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setIsDomainModalOpen(false);
+                  setShopNeedingDomain(null);
+                  setAdminUrl("");
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                disabled={isSavingDomain}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={saveDomain}
+                disabled={isSavingDomain || !adminUrl.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-md flex items-center"
+              >
+                {isSavingDomain && <FaSpinner className="animate-spin mr-2" />}
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal component */}
       {modal.open && (

@@ -1,0 +1,85 @@
+[2025-07-16 11:28:09] Merchandising XLSX processor script started
+[2025-07-16 11:28:09] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-16 11:28:09] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_TESTFIXBUGS.xlsx
+[2025-07-16 11:28:09] Decoding base64 data...
+[2025-07-16 11:28:09] Successfully decoded base64 data
+[2025-07-16 11:28:09] Parsing JSON data...
+[2025-07-16 11:28:09] Successfully parsed JSON data
+[2025-07-16 11:28:09] Starting merchandising XLSX processing...
+[2025-07-16 11:28:09] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-16 11:28:09] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_TESTFIXBUGS.xlsx
+[2025-07-16 11:28:09] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-16 11:28:09] Shop data keys: ['nomProjet', 'shopifyDomain', 'products']
+[2025-07-16 11:28:09] Extracted dates - Sortie: '', Commercialisation: ''
+[2025-07-16 11:28:09] Extracted raison sociale: ''
+[2025-07-16 11:28:09] Combined dates field: ''
+[2025-07-16 11:28:09] Processing 1 products for shop: TestFixBugs
+[2025-07-16 11:28:09] Processing worksheet: Catalogue en ligne
+[2025-07-16 11:28:09] Replaced 'CLIENT' with 'TestFixBugs' in cell A2
+[2025-07-16 11:28:09] Replaced 'nomProjet' with 'TestFixBugs' in cell B2
+[2025-07-16 11:28:09] Replaced 'shopifyDomain' with 'nqymrh-az' in cell C2
+[2025-07-16 11:28:09] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-16 11:28:09] Will start inserting product data at row: 5
+[2025-07-16 11:28:09] Starting to add 1 products at row 5
+[2025-07-16 11:28:09] Processing product 1/1: TestFix Bugs
+[2025-07-16 11:28:09] Product 1 total stock: 249 from stock_dict: {'Noir': 120, 'Vert': 129}
+[2025-07-16 11:28:09] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-16 11:28:09] Product 1 colors: ['Noir', 'Vert'] -> 'Noir, Vert'
+[2025-07-16 11:28:09] Product 1 sizes: [] -> ''
+[2025-07-16 11:28:09] Product 1 images: 5 images -> '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c85...'
+[2025-07-16 11:28:09] Successfully added product 1 data at row 5: TestFix Bugs
+[2025-07-16 11:28:09] Combined dates field content: ''
+[2025-07-16 11:28:09] Colors field content: 'Noir, Vert'
+[2025-07-16 11:28:09] Sizes field content: ''
+[2025-07-16 11:28:09] Data written: ['Merch', 'TestFix Bugs', 'to fix the bugs', '0000000000000', 249, 0, 0, 0, 0, 0, 800, 49.99, 'NON', '', '', '', '', '', 'Noir, Vert', '', '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917900-gut4epmv8t5.webp\n2. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917901-nsqdauf1nt.jpeg\n3. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917922-qig40pw4buh.webp\n4. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917924-c5ryrhuoyzi.jpg\n5. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917926-gkfqjx9ot6.jpeg']
+[2025-07-16 11:28:09] Finished processing all products. Final row: 5
+[2025-07-16 11:28:09] Processing worksheet: POD
+[2025-07-16 11:28:09] Could not find header rows - using default row 6 with safety buffer
+[2025-07-16 11:28:09] Will start inserting product data at row: 6
+[2025-07-16 11:28:09] Starting to add 1 products at row 6
+[2025-07-16 11:28:09] Processing product 1/1: TestFix Bugs
+[2025-07-16 11:28:09] Product 1 total stock: 249 from stock_dict: {'Noir': 120, 'Vert': 129}
+[2025-07-16 11:28:09] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-16 11:28:09] Product 1 colors: ['Noir', 'Vert'] -> 'Noir, Vert'
+[2025-07-16 11:28:09] Product 1 sizes: [] -> ''
+[2025-07-16 11:28:09] Product 1 images: 5 images -> '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c85...'
+[2025-07-16 11:28:09] Successfully added product 1 data at row 6: TestFix Bugs
+[2025-07-16 11:28:09] Combined dates field content: ''
+[2025-07-16 11:28:09] Colors field content: 'Noir, Vert'
+[2025-07-16 11:28:09] Sizes field content: ''
+[2025-07-16 11:28:09] Data written: ['Merch', 'TestFix Bugs', 'to fix the bugs', '0000000000000', 249, 0, 0, 0, 0, 0, 800, 49.99, 'NON', '', '', '', '', '', 'Noir, Vert', '', '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917900-gut4epmv8t5.webp\n2. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917901-nsqdauf1nt.jpeg\n3. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917922-qig40pw4buh.webp\n4. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917924-c5ryrhuoyzi.jpg\n5. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917926-gkfqjx9ot6.jpeg']
+[2025-07-16 11:28:09] Finished processing all products. Final row: 6
+[2025-07-16 11:28:09] Processing worksheet: Feuil1
+[2025-07-16 11:28:09] Could not find header rows - using default row 6 with safety buffer
+[2025-07-16 11:28:09] Will start inserting product data at row: 6
+[2025-07-16 11:28:09] Starting to add 1 products at row 6
+[2025-07-16 11:28:09] Processing product 1/1: TestFix Bugs
+[2025-07-16 11:28:09] Product 1 total stock: 249 from stock_dict: {'Noir': 120, 'Vert': 129}
+[2025-07-16 11:28:09] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-16 11:28:09] Product 1 colors: ['Noir', 'Vert'] -> 'Noir, Vert'
+[2025-07-16 11:28:09] Product 1 sizes: [] -> ''
+[2025-07-16 11:28:09] Product 1 images: 5 images -> '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c85...'
+[2025-07-16 11:28:09] Successfully added product 1 data at row 6: TestFix Bugs
+[2025-07-16 11:28:09] Combined dates field content: ''
+[2025-07-16 11:28:09] Colors field content: 'Noir, Vert'
+[2025-07-16 11:28:09] Sizes field content: ''
+[2025-07-16 11:28:09] Data written: ['Merch', 'TestFix Bugs', 'to fix the bugs', '0000000000000', 249, 0, 0, 0, 0, 0, 800, 49.99, 'NON', '', '', '', '', '', 'Noir, Vert', '', '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917900-gut4epmv8t5.webp\n2. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917901-nsqdauf1nt.jpeg\n3. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917922-qig40pw4buh.webp\n4. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917924-c5ryrhuoyzi.jpg\n5. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917926-gkfqjx9ot6.jpeg']
+[2025-07-16 11:28:09] Finished processing all products. Final row: 6
+[2025-07-16 11:28:09] Processing worksheet: NE PAS MODIFIER
+[2025-07-16 11:28:09] Could not find header rows - using default row 6 with safety buffer
+[2025-07-16 11:28:09] Will start inserting product data at row: 6
+[2025-07-16 11:28:09] Starting to add 1 products at row 6
+[2025-07-16 11:28:09] Processing product 1/1: TestFix Bugs
+[2025-07-16 11:28:09] Product 1 total stock: 249 from stock_dict: {'Noir': 120, 'Vert': 129}
+[2025-07-16 11:28:09] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-16 11:28:09] Product 1 colors: ['Noir', 'Vert'] -> 'Noir, Vert'
+[2025-07-16 11:28:09] Product 1 sizes: [] -> ''
+[2025-07-16 11:28:09] Product 1 images: 5 images -> '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c85...'
+[2025-07-16 11:28:09] Successfully added product 1 data at row 6: TestFix Bugs
+[2025-07-16 11:28:09] Combined dates field content: ''
+[2025-07-16 11:28:09] Colors field content: 'Noir, Vert'
+[2025-07-16 11:28:09] Sizes field content: ''
+[2025-07-16 11:28:09] Data written: ['Merch', 'TestFix Bugs', 'to fix the bugs', '0000000000000', 249, 0, 0, 0, 0, 0, 800, 49.99, 'NON', '', '', '', '', '', 'Noir, Vert', '', '1. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917900-gut4epmv8t5.webp\n2. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917901-nsqdauf1nt.jpeg\n3. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917922-qig40pw4buh.webp\n4. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917924-c5ryrhuoyzi.jpg\n5. https://snagz.s3.eu-north-1.amazonaws.com/products/shop-687608fa1fa998ee43125e95/product-68760c851fa998ee43125e96/1752566917926-gkfqjx9ot6.jpeg']
+[2025-07-16 11:28:09] Finished processing all products. Final row: 6
+[2025-07-16 11:28:09] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_TESTFIXBUGS.xlsx
+[2025-07-16 11:28:09] Merchandising XLSX processing completed successfully

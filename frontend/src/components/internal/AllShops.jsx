@@ -27,6 +27,7 @@ const AllShops = () => {
             status: shop.status,
             hasShopify: shop.hasShopify,
             documented: shop.documented,
+            logoUrl: shop.logoUrl, // Add logoUrl to the state
           }))
         );
       } catch (err) {
@@ -48,6 +49,12 @@ const AllShops = () => {
       ...prev,
       [shopId]: !prev[shopId],
     }));
+  };
+
+  const handleShopDelete = (deletedShopId) => {
+    setShops((prevShops) =>
+      prevShops.filter((shop) => shop.id !== deletedShopId)
+    );
   };
 
   if (isLoading) return <p>Chargement de toutes les boutiques...</p>;
@@ -115,14 +122,28 @@ const AllShops = () => {
                 <React.Fragment key={shop.id}>
                   <tr className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {shop.name || "-"}
+                      <div className="flex items-center">
+                        {console.log(shop.logoUrl)}
+                        {shop.logoUrl && (
+                          <img
+                            src={shop.logoUrl}
+                            alt="Logo"
+                            className="h-8 w-8 rounded-full mr-3 object-cover"
+                          />
+                        )}
+                        <span>{shop.name || "-"}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {shop.clientName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${shop.status === "valid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          shop.status === "valid"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
                       >
                         {shop.status === "valid" ? "Validée" : "En attente"}
                       </span>
@@ -164,6 +185,7 @@ const AllShops = () => {
                         <ShopDetails
                           clientId={shop.clientId}
                           shopId={shop.id}
+                          onDelete={handleShopDelete}
                         />
                       </td>
                     </tr>

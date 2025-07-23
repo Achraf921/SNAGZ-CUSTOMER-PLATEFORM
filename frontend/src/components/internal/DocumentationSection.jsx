@@ -519,12 +519,14 @@ const DocumentationSection = () => {
                           Statut documentation:{" "}
                           <span
                             className={`font-medium ${
-                              shop.documented === "documented"
+                              shop.documented === "documented" ||
+                              shop.documented === true
                                 ? "text-green-600"
                                 : "text-yellow-600"
                             }`}
                           >
-                            {shop.documented === "documented"
+                            {shop.documented === "documented" ||
+                            shop.documented === true
                               ? "Documentée"
                               : "Non documentée"}
                           </span>
@@ -533,7 +535,8 @@ const DocumentationSection = () => {
                     </div>
                   </div>
                   <div className="ml-4 flex-shrink-0 flex space-x-4">
-                    {shop.documented === "undocumented" ? (
+                    {shop.documented !== "documented" &&
+                    shop.documented !== true ? (
                       <>
                         <button
                           onClick={() =>

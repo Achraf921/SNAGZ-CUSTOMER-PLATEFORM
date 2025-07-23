@@ -5,62 +5,178 @@ const { ObjectId } = require('mongodb');
 const { generateDocumentation } = require('../services/sharepointService');
 const path = require('path');
 const fs = require('fs');
+const { connectToDatabase } = require('../config/db');
+const { logoUpload, bannerUpload, faviconUpload, getSignedUrl } = require('../services/s3Service');
+const { validateUserAccess, addRequestSecurity } = require('../middleware/authSecurity');
 
-// Route to get all shops for all customers (for internal portal)
-router.get('/all-shops', async (req, res) => {
+// SECURITY: Removed dangerous /all-shops route that exposed all customers' shops
+// SECURITY: Removed dangerous /all route that exposed all customers' data  
+// SECURITY: Removed dangerous /all-products route that exposed all customers' products
+
+// Route to get customer's own shops only - SECURE
+router.get('/my-shops', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
+    // Get userId from session for security
+    const userId = req.session.userInfo?.sub || req.session.userInfo?.userId;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        securityAlert: 'NO_USER_SESSION'
+      });
+    }
+
     const customersCollection = await getCustomersCollection();
-    const customers = await customersCollection.find({}).toArray();
-    // Aggregate all shops from all customers, attach client info
-    const allShops = [];
-    customers.forEach(customer => {
-      const clientName = customer.raisonSociale || customer.name || '-';
-      const clientId = customer._id?.toString() || customer.id || '-';
-      if (Array.isArray(customer.shops)) {
-        customer.shops.forEach(shop => {
-          allShops.push({
-            shopId: shop.shopId || shop.id,
-            name: shop.nomProjet || shop.name || '-',
-            clientName,
-            clientId,
-            productsCount: Array.isArray(shop.products) ? shop.products.length : (shop.productsCount || 0),
-            status: shop.status || '-',
-            hasShopify: shop.hasShopify === true || shop.shopifyConfigured === true,
-            documented: shop.documented || 'undocumented'
-          });
-        });
-      }
+    const customer = await customersCollection.findOne({ userId });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer profile not found'
+      });
+    }
+
+    const customerShops = customer.shops || [];
+    
+    // Generate signed URLs for shop assets
+    const shopsWithSignedUrls = await Promise.all(
+      customerShops.map(async (shop) => {
+        const shopWithUrls = { ...shop };
+        
+        if (shop.logoUrl) {
+          try {
+            const key = new URL(shop.logoUrl).pathname.substring(1);
+            shopWithUrls.logoUrl = await getSignedUrl(decodeURIComponent(key));
+          } catch (e) {
+            console.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
+          }
+        }
+        
+        return {
+          ...shopWithUrls,
+          clientName: customer.raisonSociale || customer.name || 'My Business',
+          clientId: customer._id?.toString() || customer.id || '-',
+          payment: customer.payment || customer.Payement
+        };
+      })
+    );
+    
+    res.status(200).json({ 
+      success: true, 
+      shops: shopsWithSignedUrls,
+      message: `Found ${shopsWithSignedUrls.length} shops for your account`
     });
-    res.status(200).json({ success: true, shops: allShops });
   } catch (error) {
+    console.error("[SECURITY] Error in /my-shops:", error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération de toutes les boutiques',
+      message: 'Error retrieving your shops',
       error: error.message
     });
   }
 });
 
-// Route to get all customers (for internal portal)
-router.get('/all', async (req, res) => {
+// Route to get customer's own data only - SECURE
+router.get('/my-profile', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
+    // Get userId from session for security
+    const userId = req.session.userInfo?.sub || req.session.userInfo?.userId;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        securityAlert: 'NO_USER_SESSION'
+      });
+    }
+
     const customersCollection = await getCustomersCollection();
-    const customers = await customersCollection.find({}).toArray();
+    const customer = await customersCollection.findOne({ userId });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer profile not found'
+      });
+    }
+
+    // Remove sensitive fields before sending
+    const { _id, ...customerData } = customer;
+    
     res.status(200).json({
       success: true,
-      customers: customers.map(c => ({
-        _id: c._id,
-        raisonSociale: c.raisonSociale || c.name || '-',
-        email: c.email || c.contact1Email || c.contactFacturationEmail || '-',
-        status: c.status || 'inactive',
-        shops: c.shops || [],
-        shopsCount: Array.isArray(c.shops) ? c.shops.length : (c.shopsCount || 0),
-      }))
+      customer: {
+        ...customerData,
+        id: _id.toString()
+      }
     });
   } catch (error) {
+    console.error("[SECURITY] Error in /my-profile:", error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération des clients',
+      message: 'Error retrieving your profile',
+      error: error.message
+    });
+  }
+});
+
+// Route to get customer's own products only - SECURE
+router.get('/my-products', addRequestSecurity, validateUserAccess, async (req, res) => {
+  try {
+    // Get userId from session for security
+    const userId = req.session.userInfo?.sub || req.session.userInfo?.userId;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        securityAlert: 'NO_USER_SESSION'
+      });
+    }
+
+    const customersCollection = await getCustomersCollection();
+    const customer = await customersCollection.findOne({ userId });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer profile not found'
+      });
+    }
+
+    const myProducts = [];
+    
+    if (Array.isArray(customer.shops)) {
+      customer.shops.forEach(shop => {
+        const shopName = shop.nomProjet || shop.name || 'My Shop';
+        const shopId = shop.shopId || shop.id;
+        
+        if (Array.isArray(shop.products)) {
+          shop.products.forEach(product => {
+            myProducts.push({
+              ...product,
+              shopName,
+              shopId,
+              clientName: customer.raisonSociale || customer.name || 'My Business'
+            });
+          });
+        }
+      });
+    }
+    
+    console.log(`[SECURITY] Customer ${userId} accessed their ${myProducts.length} products`);
+    
+    res.status(200).json({
+      success: true,
+      products: myProducts,
+      message: `Found ${myProducts.length} products in your shops`
+    });
+  } catch (error) {
+    console.error("[SECURITY] Error in /my-products:", error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving your products',
       error: error.message
     });
   }
@@ -103,6 +219,235 @@ router.post('/welcome-form', async (req, res) => {
   }
 });
 
+// INTERNAL-ONLY ROUTES - For management purposes by internal personnel
+// These routes are protected and only accessible by internal users
+// MUST be placed BEFORE parameterized routes to avoid conflicts
+
+// Route to get all customers - INTERNAL ONLY
+router.get('/all', async (req, res) => {
+  console.log('🚀 [DEBUG] /all route reached - Starting execution');
+  
+  try {
+    // DEBUG: Log session information
+    console.log('🔍 [DEBUG] /all route - Session info:', {
+      hasInternalUserInfo: !!req.session.internalUserInfo,
+      hasUserInfo: !!req.session.userInfo,
+      hasAdminUserInfo: !!req.session.adminUserInfo,
+      sessionKeys: Object.keys(req.session || {}),
+      internalUserEmail: req.session.internalUserInfo?.email,
+      userEmail: req.session.userInfo?.email
+    });
+
+    // SECURITY: Only internal users can access all customer data
+    if (!req.session.internalUserInfo) {
+      console.log(`🚨 [SECURITY] Unauthorized attempt to access /all from IP: ${req.ip}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied - Internal personnel only',
+        securityAlert: 'UNAUTHORIZED_ALL_CUSTOMERS_ACCESS'
+      });
+    }
+
+    const { details } = req.query;
+    const customersCollection = await getCustomersCollection();
+    let customers;
+
+    console.log(`[INTERNAL] Internal user ${req.session.internalUserInfo.email} accessing all customers`);
+
+    if (details === 'true') {
+      customers = await customersCollection.find({}).toArray();
+    } else {
+      customers = await customersCollection.find({}, {
+        projection: { 
+          raisonSociale: 1, 
+          status: 1, 
+          'shops.nomProjet': 1, 
+          'shops.status': 1 
+        }
+      }).toArray();
+    }
+
+    customers.forEach(customer => {
+      if (customer.shops && Array.isArray(customer.shops)) {
+        customer.shops.forEach(shop => {
+          shop.Payement = customer.Payement;
+          shop.payment = customer.payment;
+        });
+      }
+    });
+
+    console.log(`[INTERNAL] Returned ${customers.length} customers to internal user`);
+
+    res.status(200).json({
+      success: true,
+      customers
+    });
+  } catch (error) {
+    console.error("[INTERNAL] Error in /all:", error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving customers',
+      error: error.message
+    });
+  }
+});
+
+// Route to get all shops - INTERNAL ONLY
+router.get('/all-shops', async (req, res) => {
+  console.log('🚀 [DEBUG] /all-shops route reached - Starting execution');
+  
+  try {
+    // DEBUG: Log session information
+    console.log('🔍 [DEBUG] /all-shops route - Session info:', {
+      hasInternalUserInfo: !!req.session.internalUserInfo,
+      hasUserInfo: !!req.session.userInfo,
+      hasAdminUserInfo: !!req.session.adminUserInfo,
+      sessionKeys: Object.keys(req.session || {}),
+      internalUserEmail: req.session.internalUserInfo?.email,
+      userEmail: req.session.userInfo?.email
+    });
+
+    // SECURITY: Only internal users can access all shops data
+    if (!req.session.internalUserInfo) {
+      console.log(`🚨 [SECURITY] Unauthorized attempt to access /all-shops from IP: ${req.ip}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied - Internal personnel only',
+        securityAlert: 'UNAUTHORIZED_ALL_SHOPS_ACCESS'
+      });
+    }
+
+    const customersCollection = await getCustomersCollection();
+    const customers = await customersCollection.find({}).toArray();
+    const allShops = [];
+    
+    console.log(`[INTERNAL] Internal user ${req.session.internalUserInfo.email} accessing all shops`);
+    
+    for (const customer of customers) {
+      const clientName = customer.raisonSociale || customer.name || 'Unknown Client';
+
+      if (Array.isArray(customer.shops)) {
+        for (const shop of customer.shops) {
+          
+          let logoUrl = null;
+          if (shop.logoUrl) {
+            try {
+              const key = new URL(shop.logoUrl).pathname.substring(1);
+              logoUrl = await getSignedUrl(decodeURIComponent(key));
+            } catch (e) {
+              console.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
+            }
+          }
+          
+          const constructedShopObject = {
+            ...shop,
+            _id: shop._id || shop.shopId,
+            shopId: shop.shopId || shop.id,
+            name: shop.nomProjet || shop.name || '-',
+            clientName,
+            clientId: customer._id?.toString() || customer.id || '-',
+            Payement: customer.Payement,
+            payment: customer.payment,
+            hasShopify: shop.hasShopify === true || shop.shopifyConfigured === true,
+            logoUrl: logoUrl,
+          };
+          allShops.push(constructedShopObject);
+        }
+      }
+    }
+    
+    console.log(`[INTERNAL] Returned ${allShops.length} shops to internal user`);
+    
+    res.status(200).json({ success: true, shops: allShops });
+  } catch (error) {
+    console.error("[INTERNAL] Error in /all-shops:", error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving all shops',
+      error: error.message
+    });
+  }
+});
+
+// Route to get all products - INTERNAL ONLY
+router.get('/all-products', async (req, res) => {
+  try {
+    // SECURITY: Only internal users can access all products data
+    if (!req.session.internalUserInfo) {
+      console.log(`🚨 [SECURITY] Unauthorized attempt to access /all-products from IP: ${req.ip}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied - Internal personnel only',
+        securityAlert: 'UNAUTHORIZED_ALL_PRODUCTS_ACCESS'
+      });
+    }
+
+    const { status } = req.query;
+    
+    console.log(`[INTERNAL] Internal user ${req.session.internalUserInfo.email} accessing all products`);
+    
+    const customersCollection = await getCustomersCollection();
+    
+    // Get all customers with their shops and products
+    const customers = await customersCollection.find({}).toArray();
+    
+    const allProducts = [];
+    
+    customers.forEach(customer => {
+      const clientName = customer.raisonSociale || customer.name || 'Client inconnu';
+      const clientId = customer._id?.toString() || customer.userId;
+      
+      if (Array.isArray(customer.shops)) {
+        customer.shops.forEach(shop => {
+          const shopName = shop.nomProjet || shop.name || 'Boutique inconnue';
+          const shopId = shop.shopId || shop.id;
+          
+          if (Array.isArray(shop.products)) {
+            shop.products.forEach(product => {
+              // Apply status filter if provided
+              if (status === 'validated') {
+                // Only include products that are active
+                if (product.active) {
+                  allProducts.push({
+                    ...product,
+                    clientName,
+                    clientId,
+                    shopName,
+                    shopId
+                  });
+                }
+              } else {
+                // Include all products
+                allProducts.push({
+                  ...product,
+                  clientName,
+                  clientId,
+                  shopName,
+                  shopId
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    console.log(`[INTERNAL] Returned ${allProducts.length} products to internal user`);
+    
+    res.status(200).json({
+      success: true,
+      products: allProducts
+    });
+  } catch (error) {
+    console.error("[INTERNAL] Error in /all-products:", error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving all products',
+      error: error.message
+    });
+  }
+});
+
 // Route to get customer data by MongoDB ID
 router.get('/:customerId', async (req, res) => {
   try {
@@ -138,8 +483,8 @@ router.get('/:customerId', async (req, res) => {
   }
 });
 
-// Route to get customer data by userId
-router.get('/by-user-id/:userId', async (req, res) => {
+// Route to get customer data by userId - SECURED WITH VALIDATION
+router.get('/by-user-id/:userId', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { userId } = req.params;
     console.log('==== CUSTOMER ROUTE DEBUG INFO ====');
@@ -174,33 +519,81 @@ router.get('/by-user-id/:userId', async (req, res) => {
     console.log('This should be the sub from Cognito for the logged-in user');
     console.log('Timestamp:', new Date().toISOString());
     
-    // Find customer by exact userId match only
-    let customer = await customersCollection.findOne({ userId: userId });
+    // CRITICAL SECURITY: Strict validation to prevent privacy leaks
+    // Only allow exact userId matches - NO fallbacks or alternative lookups
+    console.log('🔒 SECURITY CHECK: Performing strict userId validation');
+    console.log('Looking for EXACT match with userId:', userId);
     
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.error('🚨 SECURITY ALERT: Invalid userId provided:', userId);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user identifier',
+        securityAlert: 'Invalid userId'
+      });
+    }
+    
+    // Find customer by exact userId match only - NO FALLBACKS ALLOWED
+    let customer = await customersCollection.findOne({ 
+      userId: { $eq: userId } // Explicit equality check
+    });
+    
+    // SECURITY VALIDATION: Verify the found customer actually belongs to this user
     if (customer) {
-      console.log(`SUCCESS: Found customer with exact userId: ${userId}`);
+      // Double-check the userId matches exactly
+      if (customer.userId !== userId) {
+        console.error('🚨 CRITICAL SECURITY ALERT: UserId mismatch detected!');
+        console.error('Expected userId:', userId);
+        console.error('Found customer userId:', customer.userId);
+        console.error('Customer:', customer.raisonSociale);
+        
+        // This should never happen - indicates a serious security breach
+        return res.status(500).json({
+          success: false,
+          message: 'Security validation failed',
+          securityAlert: 'UserId mismatch detected'
+        });
+      }
+      
+      console.log(`✅ SECURITY VALIDATED: Found customer with exact userId: ${userId}`);
       console.log('Customer details:', {
         _id: customer._id,
         userId: customer.userId,
         raisonSociale: customer.raisonSociale || 'N/A'
       });
     } else {
-      console.log(`FAILURE: No customer found with exact userId: ${userId}`);
-      console.log('Make sure the customer document in the database has the correct userId (sub)');
+      console.log(`ℹ️ No customer found with userId: ${userId} (This is normal for new users)`);
     }
     console.log('==== END CUSTOMER LOOKUP DEBUG INFO ====');
     
-    console.log('Customer search result:', customer ? 'Found' : 'Not found');
-    
-    // If customer not found, return 404 with appropriate message
+    // If customer not found, handle gracefully for new users
     if (!customer) {
-      console.log('No customer found with userId:', userId);
+      console.log('ℹ️ No customer document found - likely a new user');
       console.log('==== END DEBUG INFO ====');
-      return res.status(404).json({
-        success: false,
-        message: 'Customer profile not found for this user',
-        userIdProvided: userId
-      });
+      
+      // Check if this is a valid Cognito user by checking session
+      const sessionUserInfo = req.session?.userInfo;
+      if (sessionUserInfo && (sessionUserInfo.sub === userId || sessionUserInfo.userId === userId)) {
+        console.log('✅ Valid new user - returning welcome form flag');
+        return res.status(200).json({
+          success: false,
+          isNewUser: true,
+          needsWelcomeForm: true,
+          message: 'Welcome! Please complete your profile to get started.',
+          userInfo: {
+            email: sessionUserInfo.email,
+            name: sessionUserInfo.name,
+            sub: sessionUserInfo.sub
+          }
+        });
+      } else {
+        console.log('🚨 SECURITY: No valid session for userId');
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          securityAlert: 'No valid session'
+        });
+      }
     }
     
     console.log('Customer found with _id:', customer._id);
@@ -307,12 +700,59 @@ router.get('/shops/:userId', async (req, res) => {
     // Check if customer has shops
     const shops = customer.shops || [];
     console.log(`Found ${shops.length} shops for this customer`);
+    
+    // Generate pre-signed URLs for all shop images
+    const shopsWithSignedUrls = await Promise.all(
+      shops.map(async (shop) => {
+        const shopWithUrls = { ...shop };
+        
+        // Generate signed URLs for all image types
+        if (shop.logoUrl) {
+          try {
+            const key = decodeURIComponent(new URL(shop.logoUrl).pathname.substring(1));
+            shopWithUrls.logoUrl = await getSignedUrl(key);
+          } catch (e) {
+            console.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
+          }
+        }
+        
+        if (shop.desktopBannerUrl) {
+          try {
+            const key = decodeURIComponent(new URL(shop.desktopBannerUrl).pathname.substring(1));
+            shopWithUrls.desktopBannerUrl = await getSignedUrl(key);
+          } catch (e) {
+            console.error(`Error generating signed URL for desktop banner: ${shop.desktopBannerUrl}`, e);
+          }
+        }
+        
+        if (shop.mobileBannerUrl) {
+          try {
+            const key = decodeURIComponent(new URL(shop.mobileBannerUrl).pathname.substring(1));
+            shopWithUrls.mobileBannerUrl = await getSignedUrl(key);
+          } catch (e) {
+            console.error(`Error generating signed URL for mobile banner: ${shop.mobileBannerUrl}`, e);
+          }
+        }
+        
+        if (shop.faviconUrl) {
+          try {
+            const key = decodeURIComponent(new URL(shop.faviconUrl).pathname.substring(1));
+            shopWithUrls.faviconUrl = await getSignedUrl(key);
+          } catch (e) {
+            console.error(`Error generating signed URL for favicon: ${shop.faviconUrl}`, e);
+          }
+        }
+        
+        return shopWithUrls;
+      })
+    );
+    
     console.log('==== END FETCH SHOPS DEBUG INFO ====');
     
-    // Return shops array
+    // Return shops array with signed URLs
     res.status(200).json({
       success: true,
-      shops: shops
+      shops: shopsWithSignedUrls
     });
   } catch (error) {
     console.error('Error fetching shops:', error);
@@ -838,7 +1278,25 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
     // Handle SharePoint documentation generation
     if (action === 'document') {
       try {
-        // Determine paths for XLSX append logic
+        // SECURITY: Use spawn instead of exec to prevent command injection
+        const { spawn } = require('child_process');
+        const base64 = require('base64-js');
+        
+        // Create shop data with single product for appending
+        const shopData = {
+          nomProjet: shop.nomProjet || shop.name,
+          shopifyDomain: shop.shopifyDomain,
+          dateSortie: shop.dateSortie,
+          dateCommercialisation: shop.dateCommercialisation,
+          raisonSociale: customer.raisonSociale,
+          products: [product] // Only this single product
+        };
+        
+        // Encode shop data as base64
+        const shopDataString = JSON.stringify(shopData);
+        const encodedShopData = base64.fromByteArray(new TextEncoder().encode(shopDataString));
+        
+        // Paths for the template and output
         const docsDir = path.join(__dirname, '../services/generated_docs');
         if (!fs.existsSync(docsDir)) {
           fs.mkdirSync(docsDir, { recursive: true });
@@ -875,10 +1333,54 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
           outputPath = path.join(docsDir, `${filenamePrefix}_${Date.now()}.xlsx`);
           console.log(`Creating new XLSX for product documentation: ${outputPath}`);
         }
-
-        // Generate SharePoint documentation and wait for completion
-        await generateDocumentation(customer, shop, forceOverwrite);
-        console.log('Documentation generated in SharePoint');
+        
+        console.log('Calling merch XLSX processor for single product...');
+        
+        // SECURITY: Use spawn with array arguments to prevent command injection
+        const pythonScript = path.join(__dirname, '../services/merch_xlsx_processor.py');
+        const args = [pythonScript, templatePath, encodedShopData, outputPath];
+        
+        const pythonProcess = spawn('python3', args, {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          shell: false // SECURITY: Disable shell to prevent injection
+        });
+        
+        let stdout = '';
+        let stderr = '';
+        
+        pythonProcess.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+        
+        pythonProcess.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+        
+        // Wait for process to complete
+        await new Promise((resolve, reject) => {
+          pythonProcess.on('close', (code) => {
+            if (code === 0) {
+              resolve();
+            } else {
+              reject(new Error(`Python process exited with code ${code}`));
+            }
+          });
+          
+          pythonProcess.on('error', (error) => {
+            reject(error);
+          });
+        });
+        
+        // Log any stderr output as a warning, but do NOT treat it as a fatal error.
+        // openpyxl (used by merch_xlsx_processor.py) prints benign warnings such as
+        // "Data Validation extension is not supported" on stderr. These do not
+        // indicate a failure and should be ignored.
+        if (stderr) {
+          console.warn('[merch_xlsx_processor warning]', stderr);
+        }
+        
+        console.log('XLSX processor stdout:', stdout);
+        console.log(`Product documentation generated successfully: ${outputPath}`);
         
         // Update the shop's documentation status only after successful generation
         const updateResult = await customersCollection.updateOne(
@@ -907,7 +1409,7 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
         } catch (regenErr) {
           console.error('Error regenerating merchandising XLSX after single product doc:', regenErr);
         }
-
+        
         res.status(200).json({
           success: true,
           message: `Documentation SharePoint générée avec succès`,
@@ -946,16 +1448,16 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
       
       // Update the shop and all its products documentation status
       const updateOperations = {
-        'shops.$.documented': newStatus,
-        'shops.$.updatedAt': new Date()
+            'shops.$.documented': newStatus,
+            'shops.$.updatedAt': new Date()
       };
       
       // Update all products' documented status
       if (productsCount > 0) {
         for (let i = 0; i < productsCount; i++) {
           updateOperations[`shops.$.products.${i}.documented`] = productDocumentedStatus;
+          }
         }
-      }
       
       const updateResult = await customersCollection.updateOne(
         { 'shops.shopId': shopId },
@@ -1083,9 +1585,7 @@ router.post('/shop/:shopId/product/:productId/documentation', async (req, res) =
     if (action === 'document') {
       try {
         // Call the merch XLSX processor to append product to existing document
-        const { exec } = require('child_process');
-        const util = require('util');
-        const execPromise = util.promisify(exec);
+        const { spawn } = require('child_process');
         const base64 = require('base64-js');
         
         // Create shop data with single product for appending
@@ -1141,9 +1641,41 @@ router.post('/shop/:shopId/product/:productId/documentation', async (req, res) =
         }
         
         console.log('Calling merch XLSX processor for single product...');
-        const command = `python3 "${path.join(__dirname, '../services/merch_xlsx_processor.py')}" "${templatePath}" "${encodedShopData}" "${outputPath}"`;
         
-        const { stdout, stderr } = await execPromise(command);
+        // SECURITY: Use spawn with array arguments to prevent command injection
+        const pythonScript = path.join(__dirname, '../services/merch_xlsx_processor.py');
+        const args = [pythonScript, templatePath, encodedShopData, outputPath];
+        
+        const pythonProcess = spawn('python3', args, {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          shell: false // SECURITY: Disable shell to prevent injection
+        });
+        
+        let stdout = '';
+        let stderr = '';
+        
+        pythonProcess.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+        
+        pythonProcess.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+        
+        // Wait for process to complete
+        await new Promise((resolve, reject) => {
+          pythonProcess.on('close', (code) => {
+            if (code === 0) {
+              resolve();
+            } else {
+              reject(new Error(`Python process exited with code ${code}`));
+            }
+          });
+          
+          pythonProcess.on('error', (error) => {
+            reject(error);
+          });
+        });
         
         // Log any stderr output as a warning, but do NOT treat it as a fatal error.
         // openpyxl (used by merch_xlsx_processor.py) prints benign warnings such as
@@ -1516,75 +2048,175 @@ router.put('/shops/:userId/:shopId/products/:productId', async (req, res) => {
   }
 });
 
-// Route to get all products from all customers (for internal portal)
-router.get('/all-products', async (req, res) => {
+
+
+router.post('/shops/:shopId/upload/logo', logoUpload.single('logo'), async (req, res) => {
   try {
-    const { status } = req.query;
-    
-    console.log('==== FETCH ALL PRODUCTS DEBUG INFO ====');
-    console.log('Fetching all products from all customers');
-    console.log('Status filter:', status);
-    
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No logo file uploaded' });
+    }
+
     const customersCollection = await getCustomersCollection();
+    const shopId = req.params.shopId;
     
-    // Get all customers with their shops and products
-    const customers = await customersCollection.find({}).toArray();
-    
-    const allProducts = [];
-    
-    customers.forEach(customer => {
-      const clientName = customer.raisonSociale || customer.name || 'Client inconnu';
-      const clientId = customer._id?.toString() || customer.userId;
-      
-      if (Array.isArray(customer.shops)) {
-        customer.shops.forEach(shop => {
-          const shopName = shop.nomProjet || shop.name || 'Boutique inconnue';
-          const shopId = shop.shopId || shop.id;
-          
-          if (Array.isArray(shop.products)) {
-            shop.products.forEach(product => {
-              // Apply status filter if provided
-              if (status === 'validated') {
-                // Only include products that are active
-                if (product.active) {
-                  allProducts.push({
-                    ...product,
-                    clientName,
-                    clientId,
-                    shopName,
-                    shopId
-                  });
-                }
-              } else {
-                // Include all products
-                allProducts.push({
-                  ...product,
-                  clientName,
-                  clientId,
-                  shopName,
-                  shopId
-                });
-              }
-            });
-          }
-        });
+    // Update shop with logo URL
+    const result = await customersCollection.updateOne(
+      { 'shops.shopId': shopId },
+      { 
+        $set: { 
+          'shops.$.logoUrl': req.file.location,
+          'shops.$.updatedAt': new Date()
+        }
       }
-    });
-    
-    console.log(`Found ${allProducts.length} products total`);
-    console.log('==== END FETCH ALL PRODUCTS DEBUG INFO ====');
-    
-    res.status(200).json({
-      success: true,
-      products: allProducts
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Shop not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      logoUrl: req.file.location,
+      message: 'Logo uploaded successfully' 
     });
   } catch (error) {
-    console.error('Error fetching all products:', error);
-    res.status(500).json({
-      success: false,
-      message: 'An error occurred while fetching products',
-      error: error.message
+    console.error('Error uploading logo:', error);
+    res.status(500).json({ success: false, message: 'Error uploading logo' });
+  }
+});
+
+router.post('/shops/:shopId/upload/banner', bannerUpload.fields([
+  { name: 'desktopBanner', maxCount: 1 },
+  { name: 'mobileBanner', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    if (!req.files || (!req.files.desktopBanner && !req.files.mobileBanner)) {
+      return res.status(400).json({ success: false, message: 'No banner files uploaded' });
+    }
+
+    const customersCollection = await getCustomersCollection();
+    const shopId = req.params.shopId;
+    
+    const updateData = { 'shops.$.updatedAt': new Date() };
+    
+    if (req.files.desktopBanner) {
+      updateData['shops.$.desktopBannerUrl'] = req.files.desktopBanner[0].location;
+    }
+    
+    if (req.files.mobileBanner) {
+      updateData['shops.$.mobileBannerUrl'] = req.files.mobileBanner[0].location;
+    }
+
+    const result = await customersCollection.updateOne(
+      { 'shops.shopId': shopId },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Shop not found' });
+    }
+
+    const responseData = { success: true, message: 'Banners uploaded successfully' };
+    if (req.files.desktopBanner) responseData.desktopBannerUrl = req.files.desktopBanner[0].location;
+    if (req.files.mobileBanner) responseData.mobileBannerUrl = req.files.mobileBanner[0].location;
+
+    res.json(responseData);
+  } catch (error) {
+    console.error('Error uploading banners:', error);
+    res.status(500).json({ success: false, message: 'Error uploading banners' });
+  }
+});
+
+// NEW: Route to upload favicon
+router.post('/shops/:shopId/upload/favicon', faviconUpload.single('favicon'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No favicon file uploaded' });
+    }
+
+    const customersCollection = await getCustomersCollection();
+    const shopId = req.params.shopId;
+    
+    // Update shop with favicon URL
+    const result = await customersCollection.updateOne(
+      { 'shops.shopId': shopId },
+      { 
+        $set: { 
+          'shops.$.faviconUrl': req.file.location,
+          'shops.$.updatedAt': new Date()
+        }
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Shop not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      faviconUrl: req.file.location,
+      message: 'Favicon uploaded successfully' 
     });
+  } catch (error) {
+    console.error('Error uploading favicon:', error);
+    res.status(500).json({ success: false, message: 'Error uploading favicon' });
+  }
+});
+
+// Route to upload product images
+router.post('/shops/:shopId/products/:productId/upload', require('../services/s3Service').productUpload.array('productImages', 5), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No product images uploaded' });
+    }
+
+    const customersCollection = await getCustomersCollection();
+    const shopId = req.params.shopId;
+    const productId = req.params.productId;
+    
+    const imageUrls = req.files.map(file => file.location);
+
+    // Update product with image URLs
+    const result = await customersCollection.updateOne(
+      { 
+        'shops.shopId': shopId,
+        'shops.products.productId': productId
+      },
+      { 
+        $set: { 
+          'shops.$[shop].products.$[product].imageUrls': imageUrls,
+          'shops.$[shop].products.$[product].updatedAt': new Date()
+        }
+      },
+      {
+        arrayFilters: [
+          { 'shop.shopId': shopId },
+          { 'product.productId': productId }
+        ]
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      imageUrls: imageUrls,
+      message: `${imageUrls.length} product images uploaded successfully` 
+    });
+  } catch (error) {
+    console.error('Error uploading product images:', error);
+    res.status(500).json({ success: false, message: 'Error uploading product images' });
+  }
+});
+
+// Debug: Log all registered routes
+console.log('🔍 [DEBUG] Customer routes loaded. Available routes:');
+router.stack.forEach((layer) => {
+  if (layer.route) {
+    const methods = Object.keys(layer.route.methods);
+    console.log(`  ${methods.join(',').toUpperCase()} ${layer.route.path}`);
   }
 });
 

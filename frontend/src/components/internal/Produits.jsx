@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { FaEdit, FaSave, FaTimes, FaSearch } from "react-icons/fa";
+import {
+  FaEdit,
+  FaSave,
+  FaTimes,
+  FaSearch,
+  FaCube,
+  FaTrash,
+  FaExclamationTriangle,
+} from "react-icons/fa";
 
 const Produits = () => {
   const [products, setProducts] = useState([]);
@@ -10,6 +18,42 @@ const Produits = () => {
   const [editingField, setEditingField] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+
+  const handleDeleteClick = (product) => {
+    setProductToDelete(product);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!productToDelete) return;
+
+    try {
+      const response = await fetch(
+        `/api/internal/products/${productToDelete.clientId}/${productToDelete.shopId}/${productToDelete.productId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setProducts((prev) =>
+          prev.filter((p) => p.productId !== productToDelete.productId)
+        );
+        setError(null);
+      } else {
+        setError(data.message || "Erreur lors de la suppression du produit");
+      }
+    } catch (err) {
+      setError("Erreur de connexion lors de la suppression");
+    } finally {
+      setIsDeleteModalOpen(false);
+      setProductToDelete(null);
+    }
+  };
 
   const colorOptions = [
     "Rouge",
@@ -167,10 +211,28 @@ const Produits = () => {
     const fieldKey = `${product.productId}-${fieldName}`;
     setEditingField(fieldKey);
 
-    const currentValue =
-      getFieldValue(product, fieldName, fieldName) || product[fieldName];
+    let initialValue;
+    if (fieldName === "eans") {
+      // For eans field, get the first available EAN or fallback to codeEAN
+      const eansObj = product.eans || {};
+      const firstEan = Object.values(eansObj).find(Boolean);
+      initialValue = firstEan || product.codeEAN || "";
+    } else {
+      // Map French field names to English equivalents
+      const fieldMapping = {
+        prix: "price",
+        poids: "weight",
+        tailles: "sizes",
+        couleurs: "colors",
+      };
+      const englishFieldName = fieldMapping[fieldName] || fieldName;
+      initialValue =
+        getFieldValue(product, fieldName, englishFieldName) ||
+        product[fieldName];
+    }
+
     setEditForm({
-      [fieldName]: currentValue,
+      [fieldName]: initialValue,
     });
   };
 
@@ -183,6 +245,19 @@ const Produits = () => {
     try {
       setSaving(true);
 
+      let updateData;
+      if (fieldName === "eans") {
+        // For eans field, save to the 'default' key in eans object
+        updateData = {
+          eans: {
+            ...(product.eans || {}),
+            default: editForm[fieldName],
+          },
+        };
+      } else {
+        updateData = { [fieldName]: editForm[fieldName] };
+      }
+
       const response = await fetch(
         `/api/internal/products/${product.clientId}/${product.shopId}/${product.productId}`,
         {
@@ -190,7 +265,7 @@ const Produits = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ [fieldName]: editForm[fieldName] }),
+          body: JSON.stringify(updateData),
         }
       );
 
@@ -202,7 +277,9 @@ const Produits = () => {
             p.productId === product.productId
               ? {
                   ...p,
-                  [fieldName]: editForm[fieldName],
+                  ...(fieldName === "eans"
+                    ? { eans: updateData.eans }
+                    : { [fieldName]: editForm[fieldName] }),
                   updatedAt: new Date().toISOString(),
                 }
               : p
@@ -237,14 +314,26 @@ const Produits = () => {
     const fieldMapping = {
       prix: "price",
       poids: "weight",
-      codeEAN: "ean",
+      eans: "ean",
       tailles: "sizes",
       couleurs: "colors",
     };
 
     const englishFieldName = fieldMapping[fieldName] || fieldName;
-    const currentValue =
-      getFieldValue(product, fieldName, englishFieldName) || product[fieldName];
+
+    // Special handling for eans field
+    let currentValue;
+    if (fieldName === "eans") {
+      const eansObj = product.eans || {};
+      const firstEan = Object.values(eansObj).find(Boolean);
+      currentValue = firstEan || product.codeEAN || "";
+    } else {
+      currentValue =
+        getFieldValue(product, fieldName, englishFieldName) ||
+        (typeof product[fieldName] === "object"
+          ? JSON.stringify(product[fieldName])
+          : product[fieldName]);
+    }
 
     if (isEditing) {
       return (
@@ -679,7 +768,7 @@ const Produits = () => {
       {filteredProducts.length === 0 ? (
         <p>Aucun produit trouvé.</p>
       ) : (
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <div className="bg-white shadow-md rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -730,17 +819,35 @@ const Produits = () => {
                 return (
                   <React.Fragment key={productKey}>
                     <tr className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {product.titre || "-"}
-                        </div>
-                        {product.description && (
-                          <div className="text-sm text-gray-500 truncate max-w-xs">
-                            {product.description}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            {product.imageUrls &&
+                            product.imageUrls.length > 0 ? (
+                              <img
+                                className="h-10 w-10 rounded-md object-cover"
+                                src={product.imageUrls[0]}
+                                alt={product.titre || "Product image"}
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center">
+                                <FaCube className="h-5 w-5 text-gray-400" />
+                              </div>
+                            )}
                           </div>
-                        )}
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {product.titre || "-"}
+                            </div>
+                            {product.description && (
+                              <div className="text-sm text-gray-500 truncate max-w-xs">
+                                {product.description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">
                           {product.clientName}
                         </div>
@@ -748,7 +855,7 @@ const Produits = () => {
                           {product.shopName}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                           {product.typeProduit}
                         </span>
@@ -766,7 +873,7 @@ const Produits = () => {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-gray-900">
                         <div className="font-medium">
                           {getFieldValue(product, "prix", "price")
                             ? `${getFieldValue(product, "prix", "price")}€`
@@ -778,7 +885,7 @@ const Produits = () => {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-gray-900">
                         {product.stock &&
                         Object.keys(product.stock).length > 0 ? (
                           <div>
@@ -799,7 +906,7 @@ const Produits = () => {
                           <div className="text-gray-500">Non défini</div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
                         <div className="space-y-1">
                           {getStatusBadge(product.active, "Actif", "Inactif")}
                           {getStatusBadge(
@@ -815,7 +922,7 @@ const Produits = () => {
                           {getStatusBadge(product.hasEC, "EC", "Pas d'EC")}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 text-right text-sm font-medium">
                         <button
                           onClick={() => toggleRow(productKey)}
                           className="text-sna-primary hover:underline"
@@ -834,6 +941,13 @@ const Produits = () => {
                               <h3 className="text-lg font-medium text-gray-900">
                                 Détails du Produit: {product.titre}
                               </h3>
+                              <button
+                                onClick={() => handleDeleteClick(product)}
+                                className="flex items-center px-3 py-1 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors"
+                              >
+                                <FaTrash className="mr-2" />
+                                Supprimer
+                              </button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               <div className="space-y-3">
@@ -890,10 +1004,37 @@ const Produits = () => {
                                 />
                                 <EditableField
                                   product={product}
-                                  fieldName="codeEAN"
+                                  fieldName="eans"
                                   label="Code EAN"
                                   type="text"
                                 />
+                                {/* SKU Display */}
+                                {product.skus && (
+                                  <div className="text-sm text-gray-600">
+                                    <strong>SKU(s):</strong>{" "}
+                                    {Object.keys(product.skus).length === 1 &&
+                                    product.skus.default !== undefined ? (
+                                      <span className="text-sna-primary font-medium">
+                                        {product.skus.default}
+                                      </span>
+                                    ) : (
+                                      <span>
+                                        {Object.values(product.skus)
+                                          .filter(Boolean)
+                                          .slice(0, 3)
+                                          .join(", ")}
+                                        {Object.values(product.skus).filter(
+                                          Boolean
+                                        ).length > 3 &&
+                                          ` + ${
+                                            Object.values(product.skus).filter(
+                                              Boolean
+                                            ).length - 3
+                                          } autre(s)`}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
 
                               <div className="space-y-3">
@@ -960,6 +1101,107 @@ const Produits = () => {
                                     </div>
                                   )}
                               </div>
+
+                              {/* Product Images */}
+                              <div className="md:col-span-2 space-y-3">
+                                <h4 className="font-medium text-gray-900 mb-3">
+                                  Images du produit
+                                  {product.imageUrls &&
+                                  product.imageUrls.length > 0
+                                    ? ` (${product.imageUrls.length})`
+                                    : " (aucune)"}
+                                </h4>
+                                {product.imageUrls &&
+                                product.imageUrls.length > 0 ? (
+                                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                    {product.imageUrls.map(
+                                      (imageUrl, index) => (
+                                        <div
+                                          key={index}
+                                          className="relative group bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200"
+                                        >
+                                          <div className="aspect-square">
+                                            <img
+                                              src={imageUrl}
+                                              alt={`${product.titre} - Image ${index + 1}`}
+                                              className="w-full h-full object-cover cursor-pointer transition-transform duration-200 group-hover:scale-105"
+                                              onClick={() =>
+                                                window.open(imageUrl, "_blank")
+                                              }
+                                              onError={(e) => {
+                                                e.target.src =
+                                                  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y3ZjdmNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub24gZGlzcG9uaWJsZTwvdGV4dD48L3N2Zz4=";
+                                                e.target.classList.add(
+                                                  "opacity-50"
+                                                );
+                                              }}
+                                            />
+                                          </div>
+
+                                          {/* Overlay with image number */}
+                                          <div className="absolute top-1 right-1 bg-black bg-opacity-50 text-white text-xs px-1.5 py-0.5 rounded">
+                                            {index + 1}
+                                          </div>
+
+                                          {/* Hover overlay */}
+                                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                                            <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                              <svg
+                                                className="w-6 h-6"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                                />
+                                              </svg>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-center h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg">
+                                    <div className="text-center">
+                                      <svg
+                                        className="mx-auto h-8 w-8 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                        />
+                                      </svg>
+                                      <p className="text-sm text-gray-500 mt-1">
+                                        Aucune image ajoutée
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Debug info for imageUrls - can be removed later */}
+                              {process.env.NODE_ENV === "development" && (
+                                <div className="md:col-span-2 text-xs text-gray-500 bg-yellow-50 p-2 rounded">
+                                  <strong>Debug - ImageUrls:</strong>{" "}
+                                  {JSON.stringify(product.imageUrls)}
+                                  <br />
+                                  <strong>Product ID:</strong>{" "}
+                                  {product.productId}
+                                  <br />
+                                  <strong>Product Keys:</strong>{" "}
+                                  {Object.keys(product).join(", ")}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -970,6 +1212,39 @@ const Produits = () => {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <div className="flex flex-col items-center text-center">
+              <div className="bg-red-100 p-3 rounded-full">
+                <FaExclamationTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mt-4">
+                Supprimer le produit
+              </h3>
+              <p className="mt-2 text-sm text-gray-500">
+                Êtes-vous sûr de vouloir supprimer le produit "
+                <strong>{productToDelete?.titre}</strong>"? Cette action est
+                irréversible.
+              </p>
+            </div>
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

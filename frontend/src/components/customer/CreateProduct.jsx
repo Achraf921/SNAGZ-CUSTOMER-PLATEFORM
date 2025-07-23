@@ -4,7 +4,9 @@ import {
   FaShoppingBag,
   FaCheckCircle,
   FaExclamationTriangle,
+  FaTimes,
 } from "react-icons/fa";
+import NotificationModal from "../shared/NotificationModal"; // Import the modal
 
 const CreateProduct = () => {
   const [shops, setShops] = useState([]);
@@ -14,26 +16,39 @@ const CreateProduct = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    title: "",
+    type: "info",
+  });
 
   // Product form state
   const [productForm, setProductForm] = useState({
     titre: "",
     description: "",
-    hasSizes: false,
-    sizes: [],
-    price: "",
-    weight: "",
-    ean: "",
+    prix: "",
+    poids: "",
+    price: "", // EN field equivalent
+    weight: "", // EN field equivalent
+    eans: {}, // EAN per combination
     hasColors: false,
     colors: [],
-    typeProduit: "",
+    hasSizes: false,
+    sizes: [],
+    typeProduit: "Phono", // Set initial value to ensure dropdown renders
+    produit: "", // specific product category
     occ: false,
     active: false,
     documented: false,
     hasShopify: false,
     hasEC: false,
-    stock: {}, // Stock for each size/color combination
+    stock: {},
+    skus: {},
   });
+  const [images, setImages] = useState([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const availableSizes = ["XS", "S", "M", "L", "XL"];
   const availableColors = [
@@ -48,6 +63,118 @@ const CreateProduct = () => {
     "Orange",
     "Gris",
   ];
+
+  // Mapping from main product type to its specific product options
+  const produitOptionsMap = {
+    Phono: ["CD", "Vinyl", "DVD", "Blue-Ray", "Autre"],
+    Merch: [
+      "T-Shirt",
+      "Hoodie",
+      "Pantalon",
+      "Chemise",
+      "Coque",
+      "Casquette",
+      "Mug",
+      "Bracelet",
+      "Sticker",
+      "Lithographie",
+      "Livre",
+      "Photographie",
+      "Autre",
+    ],
+    POD: [
+      "T-Shirt",
+      "Hoodie",
+      "Pantalon",
+      "Chemise",
+      "Coque",
+      "Casquette",
+      "Mug",
+      "Bracelet",
+      "Sticker",
+      "Lithographie",
+      "Livre",
+      "Photographie",
+      "Autre",
+    ],
+  };
+
+  // Helper to sanitize strings used in SKU
+  const sanitizeForSku = (str) => {
+    if (!str) return "";
+    return str
+      .toString()
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .replace(/[^A-Z0-9]/g, "");
+  };
+
+  // Generate SKU for a given size/color combination based on business rules
+  const generateSkuForCombination = (combo) => {
+    const { typeProduit, produit, titre, occ } = productForm;
+
+    const albumPart = sanitizeForSku(titre);
+    const colorPart = combo.color ? sanitizeForSku(combo.color) : null;
+    const sizePart = combo.size ? sanitizeForSku(combo.size) : null;
+
+    let sku = "";
+
+    if (typeProduit === "Phono") {
+      // TYPEDEPRODUIT-NOMALBUM-NOM-ARTISTE-STDOUDEDICACE
+      const typeSegment = sanitizeForSku(produit || typeProduit);
+      const artistSegment = sanitizeForSku(
+        selectedShop?.artist ||
+          selectedShop?.name ||
+          selectedShop?.nomProjet ||
+          "ARTIST"
+      );
+      const occPart = occ ? "OCC" : null;
+      sku = [typeSegment, albumPart, artistSegment, occPart]
+        .filter(Boolean)
+        .join("-");
+    } else if (typeProduit === "Merch") {
+      // TYPEDEPRODUIT-NOMALBUM-COULEUROUMODELE-TAILLE
+      const typeSegment = sanitizeForSku(produit);
+      const parts = [typeSegment, albumPart];
+      if (colorPart) parts.push(colorPart);
+      if (sizePart) parts.push(sizePart);
+      sku = parts.filter(Boolean).join("-");
+    } else if (typeProduit === "POD") {
+      // PRINT-x 38 chars max
+      const produitSegment = sanitizeForSku(produit);
+      const parts = ["PRINT", produitSegment, albumPart];
+      if (colorPart) parts.push(colorPart);
+      if (sizePart) parts.push(sizePart);
+      sku = parts.filter(Boolean).join("-");
+      if (sku.length > 38) sku = sku.substring(0, 38);
+    }
+
+    return sku;
+  };
+
+  // Update SKUs whenever relevant dependencies change
+  useEffect(() => {
+    const combinations = generateStockCombinations();
+    const newSkus = {};
+    combinations.forEach((combo) => {
+      newSkus[combo.key] = generateSkuForCombination(combo);
+    });
+
+    setProductForm((prev) => ({
+      ...prev,
+      skus: newSkus,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    productForm.sizes,
+    productForm.colors,
+    productForm.hasSizes,
+    productForm.hasColors,
+    productForm.typeProduit,
+    productForm.produit,
+    productForm.titre,
+    productForm.occ,
+  ]);
 
   // Get user ID from storage
   useEffect(() => {
@@ -104,12 +231,9 @@ const CreateProduct = () => {
           throw new Error("Erreur lors de la récupération des boutiques");
 
         const data = await response.json();
-        // Filter only shops that are valid, documented, and have shopify configured
+        // Filter only shops that are valid (removed hasShopify requirement)
         const validShops = (data.shops || []).filter(
-          (shop) =>
-            shop.status === "valid" &&
-            shop.documented === "documented" &&
-            shop.hasShopify === true
+          (shop) => shop.status === "valid"
         );
         setShops(validShops);
       } catch (err) {
@@ -125,6 +249,17 @@ const CreateProduct = () => {
     fetchShops();
   }, [userId]);
 
+  // Preselect shop from URL query param
+  useEffect(() => {
+    if (shops.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const preShopId = params.get("shopId");
+    if (preShopId && !selectedShop) {
+      const match = shops.find((s) => s.shopId === preShopId);
+      if (match) setSelectedShop(match);
+    }
+  }, [shops, selectedShop]);
+
   // Clean up stock when sizes or colors change
   useEffect(() => {
     cleanupStock();
@@ -136,7 +271,16 @@ const CreateProduct = () => {
   ]);
 
   const handleInputChange = (field, value) => {
-    setProductForm((prev) => ({ ...prev, [field]: value }));
+    // Reset dependant fields when changing main product type
+    if (field === "typeProduit") {
+      setProductForm((prev) => ({
+        ...prev,
+        typeProduit: value,
+        produit: "", // reset sub-type when main type changes
+      }));
+    } else {
+      setProductForm((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSizeToggle = (size) => {
@@ -226,23 +370,163 @@ const CreateProduct = () => {
     }));
   };
 
-  // Clean up stock when sizes/colors change
+  // Handle EAN input changes per variant
+  const handleEANChange = (combinationKey, value) => {
+    // Keep only digits and limit to 13 characters
+    const sanitized = value.replace(/\D/g, "").slice(0, 13);
+    setProductForm((prev) => ({
+      ...prev,
+      eans: {
+        ...prev.eans,
+        [combinationKey]: sanitized,
+      },
+    }));
+  };
+
+  // Clean up stock & eans when sizes/colors change
   const cleanupStock = () => {
     const validCombinations = generateStockCombinations();
     const validKeys = validCombinations.map((combo) => combo.key);
 
     setProductForm((prev) => {
       const cleanedStock = {};
+      const cleanedEans = {};
       validKeys.forEach((key) => {
         if (prev.stock[key] !== undefined) {
           cleanedStock[key] = prev.stock[key];
+        }
+        if (prev.eans[key] !== undefined) {
+          cleanedEans[key] = prev.eans[key];
         }
       });
       return {
         ...prev,
         stock: cleanedStock,
+        eans: cleanedEans,
       };
     });
+  };
+
+  const handleImageChange = (files) => {
+    const newFiles = Array.from(files);
+
+    if (images.length + newFiles.length > 5) {
+      setNotification({
+        show: true,
+        message: "Vous ne pouvez télécharger que 5 images au maximum.",
+        title: "Limite d'images atteinte",
+        type: "warning",
+      });
+      return;
+    }
+
+    const updatedImages = [...images, ...newFiles];
+    setImages(updatedImages);
+
+    // Create and update preview URLs
+    const newPreviewUrls = [];
+    newFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        newPreviewUrls.push(e.target.result);
+        // When all new files are read, update the state
+        if (newPreviewUrls.length === newFiles.length) {
+          setImagePreviewUrls((prevUrls) => [...prevUrls, ...newPreviewUrls]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (indexToRemove) => {
+    setImages((prevImages) =>
+      prevImages.filter((_, index) => index !== indexToRemove)
+    );
+    setImagePreviewUrls((prevUrls) =>
+      prevUrls.filter((_, index) => index !== indexToRemove)
+    );
+  };
+
+  // Drag and drop functionality for reordering images
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    // Reorder images and preview URLs
+    const newImages = [...images];
+    const newPreviewUrls = [...imagePreviewUrls];
+
+    const draggedImage = newImages[draggedIndex];
+    const draggedPreviewUrl = newPreviewUrls[draggedIndex];
+
+    // Remove dragged items
+    newImages.splice(draggedIndex, 1);
+    newPreviewUrls.splice(draggedIndex, 1);
+
+    // Insert at new position
+    newImages.splice(dropIndex, 0, draggedImage);
+    newPreviewUrls.splice(dropIndex, 0, draggedPreviewUrl);
+
+    setImages(newImages);
+    setImagePreviewUrls(newPreviewUrls);
+    setDraggedIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
+  const uploadProductImages = async (shopId, productId) => {
+    if (images.length === 0) return true;
+
+    setUploadingImages(true);
+    const formData = new FormData();
+
+    images.forEach((image) => {
+      formData.append("productImages", image);
+    });
+
+    try {
+      const response = await fetch(
+        `/api/customer/shops/${shopId}/products/${productId}/upload`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Erreur lors de l'upload des images"
+        );
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error uploading product images:", error);
+      setError("Erreur lors de l'upload des images: " + error.message);
+      return false;
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -250,9 +534,48 @@ const CreateProduct = () => {
     if (!selectedShop) return;
 
     // Validation
-    if (!productForm.titre || !productForm.price || !productForm.typeProduit) {
+    const baseInvalid =
+      !productForm.titre ||
+      !productForm.price ||
+      !productForm.typeProduit ||
+      !productForm.produit;
+
+    // Validate EANs: every combination must have exactly 13 digits
+    const combinations = generateStockCombinations();
+    let invalidEAN = false;
+    combinations.forEach((combo) => {
+      const eanVal = productForm.eans[combo.key];
+      if (!eanVal || !/^\d{13}$/.test(eanVal)) {
+        invalidEAN = true;
+      }
+    });
+
+    // Validate SKUs: ensure no SKU is empty
+    let invalidSKU = false;
+    combinations.forEach((combo) => {
+      const skuVal = productForm.skus[combo.key];
+      if (!skuVal || skuVal.trim() === "") {
+        invalidSKU = true;
+      }
+    });
+
+    if (baseInvalid) {
       setError(
-        "Veuillez remplir tous les champs obligatoires (Titre, Prix, Type de produit)"
+        "Veuillez remplir tous les champs obligatoires (Titre, Prix, Type de produit, Produit)"
+      );
+      return;
+    }
+
+    if (invalidEAN) {
+      setError(
+        "Chaque variante doit avoir un EAN composé de 13 chiffres sans espaces ni virgules"
+      );
+      return;
+    }
+
+    if (invalidSKU) {
+      setError(
+        "Un SKU est manquant ou invalide. Assurez-vous que les champs 'Type de produit' et 'Produit' sont bien remplis."
       );
       return;
     }
@@ -266,13 +589,15 @@ const CreateProduct = () => {
         description: productForm.description,
         prix: parseFloat(productForm.price),
         poids: productForm.weight ? parseFloat(productForm.weight) : null,
-        codeEAN: productForm.ean,
+        eans: productForm.eans,
         typeProduit: productForm.typeProduit,
+        produit: productForm.produit,
         OCC: productForm.occ,
         tailles: productForm.hasSizes ? productForm.sizes : [],
         couleurs: productForm.hasColors ? productForm.colors : [],
         stock: productForm.stock,
         shopId: selectedShop.shopId,
+        skus: productForm.skus,
       };
 
       const apiUrl =
@@ -294,26 +619,48 @@ const CreateProduct = () => {
         );
       }
 
+      const responseData = await response.json();
+
+      // Upload images if any were selected
+      if (images.length > 0 && responseData.product?.productId) {
+        const uploadSuccess = await uploadProductImages(
+          selectedShop.shopId,
+          responseData.product.productId
+        );
+        if (!uploadSuccess) {
+          // If image upload fails, show warning but don't fail the whole operation
+          setError(
+            "Produit créé avec succès, mais l'upload des images a échoué. Vous pouvez les ajouter plus tard."
+          );
+        }
+      }
+
       setSubmitSuccess(true);
       // Reset form
       setProductForm({
         titre: "",
         description: "",
-        hasSizes: false,
-        sizes: [],
+        prix: "",
+        poids: "",
         price: "",
         weight: "",
-        ean: "",
+        eans: {},
         hasColors: false,
         colors: [],
-        typeProduit: "",
+        hasSizes: false,
+        sizes: [],
+        typeProduit: "Phono",
+        produit: "",
         occ: false,
         active: false,
         documented: false,
         hasShopify: false,
         hasEC: false,
         stock: {},
+        skus: {},
       });
+      setImages([]);
+      setImagePreviewUrls([]);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -352,9 +699,8 @@ const CreateProduct = () => {
           Créer un Produit
         </h1>
         <p className="text-gray-600">
-          Seules les boutiques valides, documentées et ayant un store Shopify
-          configuré peuvent avoir des produits. Sélectionnez d'abord une
-          boutique éligible.
+          Seules les boutiques valides peuvent avoir des produits. Sélectionnez
+          d'abord une boutique éligible.
         </p>
       </div>
 
@@ -391,8 +737,7 @@ const CreateProduct = () => {
               </h3>
               <p className="text-gray-600 mb-6">
                 Pour créer des produits, votre boutique doit être{" "}
-                <strong>validée</strong>, <strong>documentée</strong> et avoir
-                un <strong>store Shopify configuré</strong>.
+                <strong>validée</strong>.
               </p>
               <a
                 href="/client/boutiques"
@@ -483,11 +828,35 @@ const CreateProduct = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
                   required
                 >
-                  <option value="">Sélectionner un type</option>
                   <option value="Phono">Phono</option>
                   <option value="Merch">Merch</option>
+                  <option value="POD">POD (Print on Demand)</option>
                 </select>
               </div>
+
+              {/* Produit (sub-type) dropdown */}
+              {productForm.typeProduit && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Produit <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={productForm.produit}
+                    onChange={(e) =>
+                      handleInputChange("produit", e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
+                    required
+                  >
+                    <option value="">Sélectionner un produit</option>
+                    {produitOptionsMap[productForm.typeProduit].map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -533,17 +902,7 @@ const CreateProduct = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Numéro EAN
-                </label>
-                <input
-                  type="text"
-                  value={productForm.ean}
-                  onChange={(e) => handleInputChange("ean", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
-                />
-              </div>
+              {/* EAN per variante: handled below */}
             </div>
 
             {/* Sizes Section */}
@@ -680,9 +1039,15 @@ const CreateProduct = () => {
                             key={combo.key}
                             className="flex items-center space-x-3"
                           >
-                            <label className="flex-1 text-sm font-medium text-gray-700">
-                              {combo.label}
-                            </label>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-700">
+                                {combo.label}
+                              </p>
+                              <p className="text-xs text-gray-500 break-all">
+                                {productForm.skus[combo.key] ||
+                                  generateSkuForCombination(combo)}
+                              </p>
+                            </div>
                             <input
                               type="number"
                               min="0"
@@ -692,6 +1057,17 @@ const CreateProduct = () => {
                               }
                               className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary text-sm"
                               placeholder="0"
+                            />
+                            <input
+                              type="text"
+                              value={productForm.eans[combo.key] || ""}
+                              onChange={(e) =>
+                                handleEANChange(combo.key, e.target.value)
+                              }
+                              className="w-28 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary text-sm"
+                              pattern="^\d{13}$"
+                              inputMode="numeric"
+                              placeholder="EAN"
                             />
                           </div>
                         ))}
@@ -704,9 +1080,15 @@ const CreateProduct = () => {
                             key={combo.key}
                             className="flex items-center justify-between"
                           >
-                            <label className="text-sm font-medium text-gray-700">
-                              {combo.label}
-                            </label>
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                {combo.label}
+                              </p>
+                              <p className="text-xs text-gray-500 break-all">
+                                {productForm.skus[combo.key] ||
+                                  generateSkuForCombination(combo)}
+                              </p>
+                            </div>
                             <div className="flex items-center space-x-2">
                               <input
                                 type="number"
@@ -717,6 +1099,17 @@ const CreateProduct = () => {
                                 }
                                 className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
                                 placeholder="0"
+                              />
+                              <input
+                                type="text"
+                                value={productForm.eans[combo.key] || ""}
+                                onChange={(e) =>
+                                  handleEANChange(combo.key, e.target.value)
+                                }
+                                className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
+                                pattern="^\d{13}$"
+                                inputMode="numeric"
+                                placeholder="EAN"
                               />
                               <span className="text-sm text-gray-500">
                                 unités
@@ -782,6 +1175,76 @@ const CreateProduct = () => {
               </div>
             )}
 
+            {/* Product Images Upload */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h4 className="text-lg font-medium text-gray-900 mb-4">
+                Images du produit (optionnel)
+              </h4>
+              <p className="text-gray-600 text-sm mb-2">
+                Vous pouvez ajouter jusqu'à 5 images pour ce produit.
+              </p>
+              <p className="text-blue-600 text-sm font-medium mb-4">
+                📝 Les images seront ajoutées à Shopify dans l'ordre affiché
+                ci-dessous. Vous pouvez réorganiser les images en les faisant
+                glisser.
+              </p>
+
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => handleImageChange(e.target.files)}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sna-primary file:text-white hover:file:bg-sna-primary-dark"
+              />
+
+              {imagePreviewUrls.length > 0 && (
+                <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                  {imagePreviewUrls.map((url, index) => (
+                    <div
+                      key={index}
+                      className={`relative group cursor-move ${draggedIndex === index ? "opacity-50" : ""}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <img
+                        src={url}
+                        alt={`Preview ${index + 1}`}
+                        className="h-24 w-24 object-cover rounded-lg border"
+                      />
+                      <div className="absolute top-1 left-1 bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                        {index + 1}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label="Remove image"
+                      >
+                        <FaTimes />
+                      </button>
+                      <div className="absolute bottom-1 left-1 right-1 bg-black bg-opacity-70 text-white text-xs text-center rounded">
+                        Glisser pour réorganiser
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {uploadingImages && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
+                    <span className="text-sm text-blue-700">
+                      Upload des images en cours...
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Submit Button */}
             <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
               <button
@@ -812,6 +1275,15 @@ const CreateProduct = () => {
           </form>
         </div>
       )}
+      <NotificationModal
+        open={notification.show}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        onClose={() =>
+          setNotification({ show: false, message: "", title: "", type: "info" })
+        }
+      />
     </div>
   );
 };

@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaShopify, FaCheck, FaSpinner } from "react-icons/fa";
+import {
+  FaShopify,
+  FaCheck,
+  FaSpinner,
+  FaCog,
+  FaTimes,
+  FaTrash,
+} from "react-icons/fa";
 import NotificationModal from "../../shared/NotificationModal";
+import ParametrizationWizardModal from "./ParametrizationWizardModal";
+import ShopifyCreationWizardModal from "./ShopifyCreationWizardModal";
 
 const ShopifyConfiguration = () => {
   const [shops, setShops] = useState([]);
@@ -15,6 +24,16 @@ const ShopifyConfiguration = () => {
   const [isOpeningStore, setIsOpeningStore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const otpRef = useRef("");
+  const [isParametrizationModalOpen, setIsParametrizationModalOpen] =
+    useState(false);
+  const [parametrizationShop, setParametrizationShop] = useState(null);
+  const [isCreationWizardOpen, setIsCreationWizardOpen] = useState(false);
+  const [creationWizardShop, setCreationWizardShop] = useState(null);
+
+  // State for Unparametrize Confirmation Modal
+  const [isUnparametrizeModalOpen, setIsUnparametrizeModalOpen] =
+    useState(false);
+  const [shopToUnparametrize, setShopToUnparametrize] = useState(null);
 
   // Max waiting time for generation (ms)
   const GENERATION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
@@ -142,14 +161,20 @@ const ShopifyConfiguration = () => {
             name: shop.nomProjet || shop.shopName || shop.name || "-",
             clientName: customer.raisonSociale || customer.name,
             clientId: customer._id?.toString() || customer.id,
+            Payement: customer.Payement, // This is the fix. Copy the field from the parent.
             isValidated: shop.status === "valid",
             isDocumented:
               shop.documented === "documented" || shop.documented === true,
             hasShopify:
               shop.hasShopify === true || shop.shopifyConfigured === true,
-            isParametrized: shop.shopifyParametrized === true,
+            isParametrized:
+              shop.isParametrized === true ||
+              shop.shopifyParametrized === true ||
+              shop.isParametrized === "true" ||
+              shop.isParametrized === 1,
             parametrizationError: shop.shopifyParametrizationError,
             shopifyDomain: shop.shopifyDomain,
+            moduleMondialRelay: shop.moduleMondialRelay, // <-- ADD THIS LINE
             raw: shop,
           }));
           return [...acc, ...mapped];
@@ -306,6 +331,8 @@ const ShopifyConfiguration = () => {
       setCaptchaData(null);
       setModal({ open: false });
       await fetchShops();
+      setGeneratingFor(null);
+      setIsOpeningStore(false);
       setModal({
         open: true,
         type: "success",
@@ -334,8 +361,69 @@ const ShopifyConfiguration = () => {
     }
   };
 
-  const handleGenerateShopify = (shopId) => {
-    askConfirmation(shopId);
+  const handleGenerateShopify = (shop) => {
+    // Use the new manual creation wizard instead of Puppeteer
+    setCreationWizardShop(shop);
+    setIsCreationWizardOpen(true);
+  };
+
+  const handleUnparametrizeShop = (shop) => {
+    setShopToUnparametrize(shop);
+    setIsUnparametrizeModalOpen(true);
+  };
+
+  const handleConfirmUnparametrize = async () => {
+    if (!shopToUnparametrize) return;
+
+    try {
+      const response = await fetch(
+        `/api/internal/shopify/shop/${shopToUnparametrize._id}/unparametrize`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to unparametrize shop");
+      }
+
+      await fetchShops();
+      setModal({
+        open: true,
+        type: "success",
+        title: "Boutique désparamétrée",
+        message: "La boutique a été désparamétrée avec succès.",
+        onClose: () => setModal({ open: false }),
+      });
+    } catch (error) {
+      console.error("Error unparametrizing shop:", error);
+      setModal({
+        open: true,
+        type: "error",
+        title: "Erreur",
+        message: `Erreur lors de la désparametrisation: ${error.message}`,
+        onClose: () => setModal({ open: false }),
+      });
+    } finally {
+      setIsUnparametrizeModalOpen(false);
+      setShopToUnparametrize(null);
+    }
+  };
+
+  const handleCreationWizardSuccess = async () => {
+    await fetchShops();
+    setModal({
+      open: true,
+      type: "success",
+      title: "Configuration terminée",
+      message: "La boutique Shopify a été configurée avec succès!",
+      onClose: () => setModal({ open: false }),
+    });
   };
 
   const handleMarkAlreadyConfigured = async (shop) => {
@@ -389,129 +477,16 @@ const ShopifyConfiguration = () => {
   };
 
   const handleParametrizeShop = async (shop) => {
-    console.log("[ShopifyConfig] Démarrage paramétrage pour", shop._id);
-
-    // First, prompt for access token
-    setModal({
-      open: true,
-      type: "confirmation",
-      title: "🔧 Configuration de la boutique",
-      message: (
-        <div className="space-y-4">
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
-            <h4 className="font-semibold text-blue-800 mb-2">
-              Access Token requis
-            </h4>
-            <p className="text-blue-700 text-sm mb-3">
-              Pour configurer automatiquement votre boutique Shopify, nous avons
-              besoin d'un access token.
-            </p>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded border">
-            <h5 className="font-medium mb-2">📝 Instructions :</h5>
-            <ol className="text-sm space-y-1 list-decimal list-inside text-gray-700">
-              <li>
-                Allez dans votre Shopify Admin {">"} Settings {">"} Apps and
-                sales channels
-              </li>
-              <li>Cliquez sur "Develop apps"</li>
-              <li>Créez une nouvelle app privée</li>
-              <li>
-                Activez les scopes:{" "}
-                <code className="bg-gray-200 px-1 rounded">
-                  read_shop_information
-                </code>{" "}
-                et{" "}
-                <code className="bg-gray-200 px-1 rounded">
-                  write_shop_information
-                </code>
-              </li>
-              <li>Copiez l'access token généré</li>
-            </ol>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Access Token :
-            </label>
-            <input
-              type="text"
-              id="access-token-input"
-              name="new-password-ignore-autofill"
-              autoComplete="new-password"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck="false"
-              data-form-type="other"
-              className="w-full border rounded p-2 text-sm font-mono"
-              placeholder="shpat_..."
-              defaultValue=""
-              onFocus={(e) => {
-                e.target.value = "";
-                e.target.select();
-              }}
-              onPaste={(e) => {
-                // Allow pasting but clear any autofill first
-                setTimeout(() => {
-                  const value = e.target.value.trim();
-                  if (!value.startsWith("shpat_")) {
-                    e.target.value = "";
-                  }
-                }, 10);
-              }}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              ⚠️ Si du texte apparaît automatiquement, supprimez-le et collez
-              votre token
-            </p>
-          </div>
-
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-            <p className="text-yellow-700 text-xs">
-              <strong>Note :</strong> Les paramètres de facturation et de
-              préfixe de commande ne peuvent pas être configurés automatiquement
-              via l'API GraphQL. Des instructions manuelles vous seront
-              fournies.
-            </p>
-          </div>
-        </div>
-      ),
-      onClose: () => setModal({ open: false }),
-      onConfirm: async () => {
-        const accessToken = document
-          .getElementById("access-token-input")
-          ?.value?.trim();
-        console.log(
-          "🔧 Frontend - Access token captured:",
-          accessToken?.substring(0, 20) + "..."
-        );
-
-        if (!accessToken) {
-          alert("Veuillez entrer un access token");
-          return;
-        }
-
-        if (!accessToken.startsWith("shpat_")) {
-          alert(
-            `❌ Access token invalide!\n\nReçu: "${accessToken.substring(0, 30)}..."\n\nL'access token Shopify doit commencer par 'shpat_'\n\n💡 Tip: Supprimez tout texte auto-rempli et collez votre vrai token`
-          );
-          return;
-        }
-
-        if (accessToken.length < 20) {
-          alert(
-            "L'access token semble trop court. Vérifiez que vous avez copié le token complet."
-          );
-          return;
-        }
-
-        setModal({ open: false });
-        await performParametrization(shop, accessToken);
-      },
-      cancelText: "❌ Annuler",
-      confirmText: "🔧 Configurer",
-    });
+    console.log(
+      "[ShopifyConfig] handleParametrizeShop called with shop:",
+      shop
+    );
+    console.log(
+      "[ShopifyConfig] shop.moduleMondialRelay:",
+      shop?.moduleMondialRelay
+    );
+    setParametrizationShop(shop);
+    setIsParametrizationModalOpen(true);
   };
 
   const performParametrization = async (shop, accessToken) => {
@@ -654,6 +629,10 @@ const ShopifyConfiguration = () => {
       setCurrentSessionId(null);
       setGeneratingFor(null);
       setIsOpeningStore(false);
+      // Clear localStorage to prevent modal from reopening
+      localStorage.removeItem("shopifyGeneratingFor");
+      localStorage.removeItem("shopify2FASession");
+      localStorage.removeItem("shopifyGenStart");
     }
   };
 
@@ -666,6 +645,13 @@ const ShopifyConfiguration = () => {
       title: "Code d'authentification",
       message: (
         <div>
+          <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+            <p className="text-yellow-700 text-sm">
+              <strong>⚠️ Attention :</strong> Cette étape ne doit pas échouer.
+              Assurez-vous de saisir le bon code car un échec pourrait bloquer
+              l'outil de génération de boutique pendant 30 minutes à 1 heure.
+            </p>
+          </div>
           <p>
             Veuillez entrer le code à 6 chiffres généré par votre application
             d'authentification.
@@ -765,6 +751,8 @@ const ShopifyConfiguration = () => {
       }
 
       await fetchShops();
+      setGeneratingFor(null);
+      setIsOpeningStore(false);
       setModal({
         open: true,
         type: "success",
@@ -783,42 +771,66 @@ const ShopifyConfiguration = () => {
       setGeneratingFor(null);
       setIsOpeningStore(false);
 
-      setModal({
-        open: true,
-        type: "confirmation",
-        title: "❌ Erreur de validation",
-        message: (
-          <div>
-            <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-400 rounded">
-              <p className="text-red-700 text-sm">
-                <strong>Erreur!</strong>{" "}
-                {err.message ||
-                  "Une erreur est survenue lors de la validation du code."}
+      // Check if this is a network error or generation error vs an authentication error
+      const isAuthError =
+        err.message &&
+        (err.message.includes("Code incorrect") ||
+          err.message.includes("code") ||
+          err.message.includes("authentification"));
+
+      if (isAuthError) {
+        // Show 2FA modal again for authentication errors
+        setModal({
+          open: true,
+          type: "confirmation",
+          title: "❌ Erreur de validation",
+          message: (
+            <div>
+              <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-400 rounded">
+                <p className="text-red-700 text-sm">
+                  <strong>Erreur!</strong>{" "}
+                  {err.message ||
+                    "Une erreur est survenue lors de la validation du code."}
+                </p>
+              </div>
+              <p className="mb-4">
+                Veuillez entrer le code à 6 chiffres généré par votre
+                application d'authentification.
               </p>
+              <input
+                type="text"
+                maxLength="6"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  otpRef.current = val;
+                  setOtp(val);
+                }}
+                className="mt-4 w-full border rounded p-2 text-center tracking-widest"
+                placeholder="123456"
+                autoFocus
+              />
             </div>
-            <p className="mb-4">
-              Veuillez entrer le code à 6 chiffres généré par votre application
-              d'authentification.
-            </p>
-            <input
-              type="text"
-              maxLength="6"
-              onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, "");
-                otpRef.current = val;
-                setOtp(val);
-              }}
-              className="mt-4 w-full border rounded p-2 text-center tracking-widest"
-              placeholder="123456"
-              autoFocus
-            />
-          </div>
-        ),
-        onClose: () => cancel2FAProcess(sessionIdParam),
-        onConfirm: () => submit2FACode(sessionIdParam, otpRef.current),
-        cancelText: "❌ Annuler et fermer le navigateur",
-        confirmText: "✅ Valider",
-      });
+          ),
+          onClose: () => cancel2FAProcess(sessionIdParam),
+          onConfirm: () => submit2FACode(sessionIdParam, otpRef.current),
+          cancelText: "❌ Annuler et fermer le navigateur",
+          confirmText: "✅ Valider",
+        });
+      } else {
+        // Show simple error modal for generation errors
+        setModal({
+          open: true,
+          type: "error",
+          title: "Erreur de génération",
+          message:
+            err.message ||
+            "Une erreur est survenue lors de la génération de la boutique.",
+          onClose: () => {
+            setModal({ open: false });
+            cancel2FAProcess(sessionIdParam);
+          },
+        });
+      }
     } finally {
       setOtp("");
     }
@@ -901,6 +913,16 @@ const ShopifyConfiguration = () => {
               className="w-full border rounded p-2"
               placeholder="ex: shpss_..."
             />
+
+            <label className="block text-sm font-medium mt-3">
+              Access Token :
+            </label>
+            <input
+              id="shop-access-token"
+              type="text"
+              className="w-full border rounded p-2"
+              placeholder="ex: shpat_..."
+            />
           </div>
         </div>
       ),
@@ -910,8 +932,11 @@ const ShopifyConfiguration = () => {
         const apiSecret = document
           .getElementById("shop-api-secret")
           ?.value.trim();
-        if (!apiKey || !apiSecret)
-          return alert("Veuillez remplir les deux champs");
+        const accessToken = document
+          .getElementById("shop-access-token")
+          ?.value.trim();
+        if (!apiKey || !apiSecret || !accessToken)
+          return alert("Veuillez remplir les trois champs");
 
         try {
           const res = await fetch(
@@ -923,6 +948,7 @@ const ShopifyConfiguration = () => {
               body: JSON.stringify({
                 "shopifyConfig.apiKey": apiKey,
                 "shopifyConfig.apiSecret": apiSecret,
+                "shopifyConfig.accessToken": accessToken,
               }),
             }
           );
@@ -941,7 +967,7 @@ const ShopifyConfiguration = () => {
   return (
     <div className="space-y-6 p-6 relative">
       {generatingFor && !captchaData && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 z-40">
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-white/70 z-40">
           <FaSpinner className="animate-spin h-8 w-8 text-sna-primary mb-4" />
           <p className="text-sna-primary">
             {isOpeningStore
@@ -1287,6 +1313,17 @@ const ShopifyConfiguration = () => {
         </div>
       )}
 
+      <ParametrizationWizardModal
+        isOpen={isParametrizationModalOpen}
+        onClose={() => setIsParametrizationModalOpen(false)}
+        shop={parametrizationShop}
+      />
+      <ShopifyCreationWizardModal
+        isOpen={isCreationWizardOpen}
+        onClose={() => setIsCreationWizardOpen(false)}
+        shop={creationWizardShop}
+        onSuccess={handleCreationWizardSuccess}
+      />
       <NotificationModal
         open={modal.open}
         type={modal.type}
@@ -1369,28 +1406,35 @@ const ShopifyConfiguration = () => {
                         <div className="flex items-center space-x-4">
                           {shop.hasShopify ? (
                             <>
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                <FaCheck className="mr-2 h-4 w-4" />
-                                Boutique Shopify configurée
-                              </span>
-                              {!shop.isParametrized && (
+                              {!Boolean(shop.isParametrized) && (
                                 <button
                                   onClick={() => handleParametrizeShop(shop)}
-                                  className="inline-flex items-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-white hover:bg-blue-50"
+                                  className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors duration-200"
                                 >
-                                  🔧 Paramétrer
+                                  <FaCog className="h-4 w-4 mr-2" />
+                                  Paramétrer la boutique
+                                </button>
+                              )}
+                              {Boolean(shop.isParametrized) && (
+                                <button
+                                  onClick={() => handleUnparametrizeShop(shop)}
+                                  className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors duration-200"
+                                >
+                                  <FaTrash className="h-4 w-4 mr-2" />
+                                  Désparametriser
                                 </button>
                               )}
                               <button
                                 onClick={() => handleMarkNotConfigured(shop)}
-                                className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50"
+                                className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 transition-colors duration-200"
                               >
-                                Le shop n'a pas de Shopify
+                                <FaTimes className="h-4 w-4 mr-2" />
+                                Retirer Shopify
                               </button>
                               {!shop.shopifyConfig?.apiKey && (
                                 <button
                                   onClick={() => promptApiKeys(shop)}
-                                  className="ml-2 text-xs text-blue-600 underline"
+                                  className="ml-2 text-xs text-purple-600 underline"
                                 >
                                   Ajouter clés API
                                 </button>
@@ -1407,7 +1451,7 @@ const ShopifyConfiguration = () => {
                                 Le shop a déjà un Shopify
                               </button>
                               <button
-                                onClick={() => handleGenerateShopify(shop._id)}
+                                onClick={() => handleGenerateShopify(shop)}
                                 disabled={
                                   generatingFor !== null ||
                                   !shop.isValidated ||
@@ -1426,7 +1470,7 @@ const ShopifyConfiguration = () => {
                                 ) : (
                                   <>
                                     <FaShopify className="mr-2 h-4 w-4" />
-                                    Générer boutique Shopify
+                                    Configurer Shopify
                                   </>
                                 )}
                               </button>
@@ -1437,42 +1481,50 @@ const ShopifyConfiguration = () => {
                       {/* Badges état validation & documentation */}
                       <div className="mt-2">
                         <div className="flex space-x-4 flex-wrap">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              shop.isValidated
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {shop.isValidated ? "Validée" : "Non validée"}
-                          </span>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              shop.isDocumented
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {shop.isDocumented
-                              ? "Documentée"
-                              : "Non documentée"}
-                          </span>
+                          {shop.hasShopify ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              <FaShopify className="h-4 w-4 mr-1" /> Shopify
+                            </span>
+                          ) : (
+                            <>
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  shop.isValidated
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {shop.isValidated ? "Validée" : "Non validée"}
+                              </span>
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  shop.isDocumented
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {shop.isDocumented
+                                  ? "Documentée"
+                                  : "Non documentée"}
+                              </span>
+                            </>
+                          )}
                           {shop.hasShopify && (
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                shop.isParametrized
-                                  ? "bg-blue-100 text-blue-800"
+                                Boolean(shop.isParametrized)
+                                  ? "bg-green-100 text-green-800"
                                   : shop.parametrizationError
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-yellow-100 text-yellow-800"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-yellow-100 text-yellow-800"
                               }`}
                               title={shop.parametrizationError || ""}
                             >
-                              {shop.isParametrized
-                                ? "Paramétrisée"
+                              {Boolean(shop.isParametrized)
+                                ? "Paramétrée"
                                 : shop.parametrizationError
-                                  ? "Erreur paramétrage"
-                                  : "Paramétrage en attente"}
+                                ? "Erreur paramétrage"
+                                : "Paramétrage en attente"}
                             </span>
                           )}
                         </div>
@@ -1484,6 +1536,59 @@ const ShopifyConfiguration = () => {
           </div>
         )}
       </div>
+
+      {/* Unparametrize Confirmation Modal */}
+      {isUnparametrizeModalOpen && shopToUnparametrize && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Confirmer la désparametrisation
+              </h3>
+              <button
+                onClick={() => {
+                  setIsUnparametrizeModalOpen(false);
+                  setShopToUnparametrize(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FaTimes className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mb-6">
+              <p className="text-sm text-gray-600">
+                Êtes-vous sûr de vouloir désparametriser la boutique "
+                <span className="font-medium">
+                  {shopToUnparametrize.nomProjet ||
+                    shopToUnparametrize.projectName}
+                </span>
+                " ?
+              </p>
+              <p className="text-sm text-gray-600 mt-2">
+                Cela supprimera toutes les configurations Shopify mais
+                conservera le statut "A un Shopify".
+              </p>
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setIsUnparametrizeModalOpen(false);
+                  setShopToUnparametrize(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmUnparametrize}
+                className="px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-md"
+              >
+                Désparametriser
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

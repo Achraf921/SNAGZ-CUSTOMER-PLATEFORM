@@ -38,8 +38,8 @@ function ValidateClientButton({
           !allFieldsValidated
             ? `Veuillez vérifier tous les champs (${totalFields} requis)`
             : loading
-              ? "Validation en cours..."
-              : "Cliquez pour valider le client"
+            ? "Validation en cours..."
+            : "Cliquez pour valider le client"
         }
         type="button"
       >
@@ -168,11 +168,17 @@ export default function ClientsAValider() {
   };
 
   const handleEditableFieldChange = (clientId, fieldName, value) => {
+    let sanitizedValue = value;
+    // For CompteClientNumber, only allow numbers and cap at 6 digits
+    if (fieldName === "CompteClientNumber") {
+      sanitizedValue = value.replace(/[^0-9]/g, "").slice(0, 6);
+    }
+
     setEditableFieldValues((prev) => ({
       ...prev,
       [clientId]: {
         ...(prev[clientId] || {}),
-        [fieldName]: value,
+        [fieldName]: sanitizedValue,
       },
     }));
   };
@@ -191,21 +197,30 @@ export default function ClientsAValider() {
       (fieldInfo) => clientValidations[fieldInfo.key] === true
     );
 
-    // Check that all editable fields have values
-    const editableFieldsFilled = validationFields
-      .filter((fieldInfo) => fieldInfo.editable)
+    // Check specific validation for CompteClientNumber (must be exactly 6 digits)
+    const isCompteClientNumValid =
+      clientEditableValues["CompteClientNumber"]?.length === 6;
+
+    // Check that all other editable fields have values
+    const otherEditableFieldsFilled = validationFields
+      .filter(
+        (fieldInfo) =>
+          fieldInfo.editable && fieldInfo.key !== "CompteClientNumber"
+      )
       .every((fieldInfo) => {
         const value = clientEditableValues[fieldInfo.key];
         return value && value.trim() !== "";
       });
 
-    const allValid = allChecked && editableFieldsFilled;
+    const allValid =
+      allChecked && isCompteClientNumValid && otherEditableFieldsFilled;
 
     console.log(`Validating client ${clientId}:`, {
       clientValidations,
       clientEditableValues,
       allChecked,
-      editableFieldsFilled,
+      isCompteClientNumValid,
+      otherEditableFieldsFilled,
       allValid,
       fieldStates: validationFields.map((fieldInfo) => ({
         field: fieldInfo.key,
@@ -688,103 +703,140 @@ export default function ClientsAValider() {
                         <tr className="bg-gray-50">
                           <td colSpan="4" className="p-6">
                             <div className="space-y-4">
-                              <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">
+                              <h4 className="text-lg font-semibold mb-4">
                                 Informations du Client
                               </h4>
-                              {validationFields.map((fieldInfo) => (
-                                <div
-                                  key={fieldInfo.key}
-                                  className="flex items-start py-3 border-b border-gray-100"
-                                >
-                                  <span className="font-medium w-1/3 text-gray-700">
-                                    {fieldInfo.label}
-                                  </span>
-                                  <div className="flex-1 flex flex-col">
-                                    {fieldInfo.editable ? (
-                                      fieldInfo.type === "radio" ? (
-                                        <div className="flex items-center space-x-4">
-                                          {fieldInfo.options.map((option) => (
-                                            <label
-                                              key={option}
-                                              className="flex items-center"
-                                            >
-                                              <input
-                                                type="radio"
-                                                name={`${client._id}_${fieldInfo.key}`}
-                                                value={option}
-                                                checked={
-                                                  editableFieldValues[
-                                                    client._id
-                                                  ]?.[fieldInfo.key] === option
-                                                }
-                                                onChange={(e) =>
-                                                  handleEditableFieldChange(
-                                                    client._id,
-                                                    fieldInfo.key,
-                                                    e.target.value
-                                                  )
-                                                }
-                                                className="mr-2"
-                                              />
-                                              <span className="capitalize">
-                                                {option}
-                                              </span>
-                                            </label>
-                                          ))}
+                              {validationFields.map((fieldInfo) => {
+                                // Determine if the compte client number is invalid for THIS client
+                                const isCompteClientNumInvalid =
+                                  fieldInfo.key === "CompteClientNumber" &&
+                                  editableFieldValues[client._id]?.[
+                                    "CompteClientNumber"
+                                  ] &&
+                                  editableFieldValues[client._id]?.[
+                                    "CompteClientNumber"
+                                  ].length !== 6;
+
+                                return (
+                                  <div
+                                    key={fieldInfo.key}
+                                    className="flex items-center space-x-4 p-3 bg-white rounded border mb-2"
+                                  >
+                                    <span className="w-40 text-sm font-medium text-gray-700 flex-shrink-0">
+                                      {fieldInfo.label}
+                                    </span>
+                                    <div className="flex-1">
+                                      {fieldInfo.editable ? (
+                                        <div>
+                                          {fieldInfo.type === "radio" ? (
+                                            <div className="flex space-x-4">
+                                              {fieldInfo.options.map(
+                                                (option) => (
+                                                  <label
+                                                    key={option}
+                                                    className="flex items-center"
+                                                  >
+                                                    <input
+                                                      type="radio"
+                                                      name={`${fieldInfo.key}-${client._id}`}
+                                                      value={option}
+                                                      checked={
+                                                        editableFieldValues[
+                                                          client._id
+                                                        ]?.[fieldInfo.key] ===
+                                                        option
+                                                      }
+                                                      onChange={(e) =>
+                                                        handleEditableFieldChange(
+                                                          client._id,
+                                                          fieldInfo.key,
+                                                          e.target.value
+                                                        )
+                                                      }
+                                                      className="form-radio"
+                                                    />
+                                                    <span className="ml-2 capitalize">
+                                                      {option}
+                                                    </span>
+                                                  </label>
+                                                )
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <input
+                                              type="text"
+                                              id={`${fieldInfo.key}-${client._id}`}
+                                              value={
+                                                editableFieldValues[
+                                                  client._id
+                                                ]?.[fieldInfo.key] || ""
+                                              }
+                                              onChange={(e) =>
+                                                handleEditableFieldChange(
+                                                  client._id,
+                                                  fieldInfo.key,
+                                                  e.target.value
+                                                )
+                                              }
+                                              className={`px-3 py-2 border rounded-md w-full ${
+                                                isCompteClientNumInvalid
+                                                  ? "border-red-500 bg-red-50"
+                                                  : validatedFields[
+                                                      client._id
+                                                    ]?.[fieldInfo.key]
+                                                  ? "border-green-200 bg-green-50"
+                                                  : "border-gray-300"
+                                              }`}
+                                            />
+                                          )}
+                                          {isCompteClientNumInvalid && (
+                                            <p className="text-red-600 text-xs mt-1">
+                                              Le numéro de compte doit contenir
+                                              exactement 6 chiffres.
+                                            </p>
+                                          )}
                                         </div>
                                       ) : (
-                                        <input
-                                          type="text"
-                                          placeholder={`Saisir ${fieldInfo.label}`}
-                                          value={
-                                            editableFieldValues[client._id]?.[
+                                        <span
+                                          className={`px-3 py-2 rounded bg-gray-50 border block ${
+                                            validatedFields[client._id]?.[
                                               fieldInfo.key
-                                            ] || ""
-                                          }
-                                          onChange={(e) =>
-                                            handleEditableFieldChange(
-                                              client._id,
-                                              fieldInfo.key,
-                                              e.target.value
-                                            )
-                                          }
-                                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                      )
-                                    ) : (
-                                      <span
-                                        className={`px-3 py-2 rounded bg-gray-50 border ${
-                                          validatedFields[client._id]?.[
-                                            fieldInfo.key
-                                          ]
-                                            ? "bg-green-50 border-green-200"
-                                            : ""
-                                        }`}
-                                      >
-                                        {client[fieldInfo.key] || "-"}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <button
-                                    onClick={() =>
-                                      toggleFieldValidation(
-                                        client._id,
+                                            ]
+                                              ? "bg-green-50 border-green-200"
+                                              : "border-gray-300"
+                                          }`}
+                                        >
+                                          {client[fieldInfo.key] || "N/A"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <button
+                                      onClick={() =>
+                                        toggleFieldValidation(
+                                          client._id,
+                                          fieldInfo.key
+                                        )
+                                      }
+                                      className="ml-2 p-2 rounded-full hover:bg-gray-200 flex-shrink-0"
+                                      title={
+                                        validatedFields[client._id]?.[
+                                          fieldInfo.key
+                                        ]
+                                          ? "Marquer comme non vérifié"
+                                          : "Marquer comme vérifié"
+                                      }
+                                    >
+                                      {validatedFields[client._id]?.[
                                         fieldInfo.key
-                                      )
-                                    }
-                                    className="ml-2 p-2 rounded-full hover:bg-gray-200 flex-shrink-0"
-                                  >
-                                    {validatedFields[client._id]?.[
-                                      fieldInfo.key
-                                    ] ? (
-                                      <FaCheckCircle className="text-green-500 text-lg" />
-                                    ) : (
-                                      <FaRegCheckCircle className="text-gray-400" />
-                                    )}
-                                  </button>
-                                </div>
-                              ))}
-
+                                      ] ? (
+                                        <FaCheckCircle className="text-green-500 text-lg" />
+                                      ) : (
+                                        <FaRegCheckCircle className="text-gray-400 text-lg" />
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              })}
                               <div className="mt-6 flex justify-end">
                                 <ValidateClientButton
                                   clientId={client._id}

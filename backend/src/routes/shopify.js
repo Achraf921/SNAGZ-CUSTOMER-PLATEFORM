@@ -4,6 +4,7 @@ const { getCustomersCollection } = require('../config/db');
 const { startDevStore, continueDevStore, continueCaptcha } = require('../services/createDevStore');
 const { getSession, deleteSession, getAllSessions } = require('../services/shopifySessionManager');
 const { ObjectId } = require('mongodb');
+require('isomorphic-fetch');
 
 // Get all shops that can have Shopify integration
 router.get('/shops', async (req, res) => {
@@ -1267,6 +1268,466 @@ router.post('/parametrize/:shopId', async (req, res) => {
             details: error.message,
             stack: error.stack
         });
+    }
+});
+
+// GET /api/shopify/parametrization-page/:shopId - Serve Shopify admin page for parametrization wizard
+router.get('/parametrization-page/:shopId', async (req, res) => {
+  const { shopId } = req.params;
+  try {
+    // Find the shop in the database for context info
+    const customersCollection = await getCustomersCollection();
+    const customer = await customersCollection.findOne({
+      'shops.shopId': shopId
+    });
+
+    let shopName = 'Votre boutique';
+    if (customer) {
+      const shop = customer.shops.find(s => s.shopId === shopId);
+      if (shop) {
+        shopName = shop.name || shop.nomProjet || 'Votre boutique';
+      }
+    }
+
+    // Allow custom target passed via ?u= (encoded URI component)
+    const rawUrl = req.query.u ? decodeURIComponent(req.query.u) : null;
+    const allowedPattern = /^(https?:\/\/(?:[\w.-]+\.)?shopify\.com|https?:\/\/(?:[\w-]+)\.myshopify\.com)(\/.*)?$/i;
+    let targetUrl = 'https://www.shopify.com/fr';
+    if (rawUrl && allowedPattern.test(rawUrl)) {
+      targetUrl = rawUrl;
+    }
+
+    // Debug logging
+    console.log('[ParamProxy] shopId:', shopId, '->', targetUrl);
+
+    // Try to fetch the Shopify homepage
+    let pageContent = null;
+    let fetchSuccessful = false;
+    let finalUrl = targetUrl;
+    
+    try {
+      const response = await fetch(targetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Referer': 'https://accounts.shopify.com/'
+        },
+        timeout: 10000 // 10 second timeout
+      });
+
+      finalUrl = response.url || targetUrl;
+      if (response.ok) {
+        pageContent = await response.text();
+        fetchSuccessful = true;
+        console.log('[ParamProxy] Fetched', response.status, response.url, 'X-FRAME-OPTIONS:', response.headers.get('x-frame-options'), 'CSP:', response.headers.get('content-security-policy'));
+      } else {
+        console.log(`Shopify lookup page returned ${response.status}, using fallback`);
+      }
+    } catch (fetchError) {
+      console.log('Failed to fetch Shopify lookup page, using fallback:', fetchError.message);
+    }
+
+    // If fetch failed, use our custom lookup page
+    if (!fetchSuccessful || !pageContent) {
+      console.log('Using custom lookup page fallback');
+      throw new Error('Using fallback'); // This will trigger the fallback HTML
+    }
+
+    // Remove all script tags to avoid heavy scripts or frame-busting logic
+    const sanitizedHtml = pageContent
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<script[^>]*>/gi, '')
+      .replace(/<meta[^>]*http-equiv=["']?Content-Security-Policy["']?[^>]*>/gi, '');
+
+    // Inject our adjustments so the page works in iframe
+    const modifiedContent = sanitizedHtml.replace(
+      '<head>',
+      `<head>
+        <base href="${finalUrl.endsWith('/') ? finalUrl : finalUrl + '/'}">
+        <meta name="referrer" content="same-origin">
+        <style>
+          /* Ensure the page fits well in iframe */
+          body { 
+            margin: 0; 
+            padding: 10px;
+            background: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          }
+          
+          /* Make sure all content is clickable and functional */
+          * {
+            pointer-events: auto !important;
+          }
+          
+          /* Ensure forms and buttons work properly */
+          form, button, input, select, textarea, a {
+            pointer-events: auto !important;
+            position: relative !important;
+            z-index: 10 !important;
+          }
+          
+          /* Hide any potential frame-busting scripts */
+          iframe[src*="frame-buster"], 
+          script[src*="frame-buster"] {
+            display: none !important;
+          }
+          
+          /* Ensure proper scrolling */
+          html, body {
+            overflow: auto !important;
+            height: auto !important;
+          }
+          
+          /* Make sure login buttons and forms are visible */
+          .btn, .button, [role="button"], input[type="submit"], input[type="button"] {
+            background: #5b73e8 !important;
+            color: white !important;
+            border: none !important;
+            padding: 12px 24px !important;
+            border-radius: 4px !important;
+            cursor: pointer !important;
+            text-decoration: none !important;
+            display: inline-block !important;
+          }
+          
+          .btn:hover, .button:hover, [role="button"]:hover, input[type="submit"]:hover {
+            background: #4f63d2 !important;
+          }
+          
+          /* Ensure lookup and login forms are visible and functional */
+          form[action*="lookup"], form[action*="login"], form[action*="auth"], .lookup-form, .login-form, .auth-form {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+          }
+          
+          /* Input fields styling */
+          input[type="email"], input[type="password"], input[type="text"] {
+            border: 1px solid #ccc !important;
+            padding: 8px 12px !important;
+            border-radius: 4px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+        </style>
+        <script>
+          /* Laissez le navigateur gérer window.top pour éviter les erreurs de sécurité */
+
+          // Ensure all links and forms work in iframe
+          document.addEventListener('DOMContentLoaded', function() {
+            // Handle all links to stay in frame
+            const links = document.querySelectorAll('a');
+            links.forEach(link => {
+              link.removeAttribute('target');
+              if (link.href && (link.href.includes('shopify.com') || link.href.includes('accounts.shopify'))) {
+                link.target = '_self';
+              }
+            });
+            
+            // Handle all forms to submit in frame
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+              form.target = '_self';
+              form.removeAttribute('target');
+            });
+            
+            // Ensure lookup and login forms are visible and functional
+            const lookupForms = document.querySelectorAll('form[action*="lookup"], form[action*="login"], form[action*="auth"], .lookup-form, .login-form');
+            lookupForms.forEach(form => {
+              form.style.display = 'block';
+              form.style.visibility = 'visible';
+              form.style.opacity = '1';
+            });
+            
+            // Ensure lookup input field is visible
+            const lookupInputs = document.querySelectorAll('input[name*="shop"], input[placeholder*="store"], input[placeholder*="boutique"], input[type="search"]');
+            lookupInputs.forEach(input => {
+              input.style.display = 'block';
+              input.style.visibility = 'visible';
+              input.style.opacity = '1';
+            });
+
+            /* --------------------------------------------------
+               Réécriture des liens pour passer par le proxy afin
+               d'éviter X-Frame-Options bloquants lors des navigations.
+            -------------------------------------------------- */
+            const shopId = '${shopId}';
+            function rewriteLink(link) {
+              const href = link.getAttribute('href');
+              if (!href || href.startsWith('#')) return;
+
+              try {
+                const abs = href.startsWith('http') ? href : new URL(href, '${finalUrl}').href;
+                if (/shopify\.com|myshopify\.com/i.test(abs)) {
+                  const proxied = '/api/shopify/parametrization-page/' + shopId + '?u=' + encodeURIComponent(abs);
+                  console.debug('[ParamProxy][link]', abs, '→', proxied);
+                  link.removeAttribute('target');
+                  link.href = proxied;
+                }
+              } catch (e) {
+                console.warn('[ParamProxy] rewriteLink error:', e);
+              }
+            }
+
+            const allLinks = document.querySelectorAll('a');
+            allLinks.forEach(rewriteLink);
+
+            // Intercept future clicks (for dynamically added links)
+            document.addEventListener('click', (ev) => {
+              const a = ev.target.closest('a');
+              if (a) {
+                rewriteLink(a);
+                const proxiedHref = a.getAttribute('href');
+                if (proxiedHref && proxiedHref.startsWith('/api/shopify/parametrization-page/')) {
+                  ev.preventDefault();
+                  console.debug('[ParamProxy][click navigate]', proxiedHref);
+                  window.location.assign(proxiedHref);
+                }
+              }
+            }, true);
+
+            /* --------------------------------------------------
+               Réécriture des formulaires pour qu'ils soumettent via le proxy
+            -------------------------------------------------- */
+            function rewriteForm(f) {
+              const act = f.getAttribute('action') || window.location.href;
+              try {
+                const abs = act.startsWith('http') ? act : new URL(act, '${finalUrl}').href;
+                if (/shopify\.com|myshopify\.com/i.test(abs)) {
+                  const proxied = '/api/shopify/parametrization-page/' + shopId + '?u=' + encodeURIComponent(abs);
+                  console.debug('[ParamProxy][form]', abs, '→', proxied);
+                  f.action = proxied;
+                  f.target = '_self';
+                }
+              } catch(e) { console.warn('[ParamProxy] rewriteForm error', e); }
+            }
+            const allForms = document.querySelectorAll('form');
+            allForms.forEach(rewriteForm);
+
+            document.addEventListener('submit', (ev) => {
+              const f = ev.target;
+              if (f && f.tagName === 'FORM') {
+                rewriteForm(f);
+              }
+            }, true);
+
+            /* --------------------------------------------------
+               Interception de window.location.* pour rediriger via proxy
+            -------------------------------------------------- */
+            const proxyPrefix = '/api/shopify/parametrization-page/' + shopId + '?u=';
+            function proxify(url) {
+              try {
+                if (/shopify\.com|myshopify\.com/i.test(url)) {
+                  return proxyPrefix + encodeURIComponent(url);
+                }
+              } catch(e) {}
+              return url;
+            }
+            const origAssign = window.location.assign.bind(window.location);
+            const origReplace = window.location.replace.bind(window.location);
+            window.location.assign = function(url) { origAssign(proxify(url)); };
+            window.location.replace = function(url) { origReplace(proxify(url)); };
+            Object.defineProperty(window.location, 'href', {
+              get() { return origAssign.href; },
+              set(url) { origAssign.call(window.location, proxify(url)); }
+            });
+
+            /* Intercepter window.open pour qu'il ouvre dans un nouvel onglet plutôt 
+               que de tenter dans le même iframe (optionnel) */
+            const originalOpen = window.open;
+            window.open = function(url, target, feats) {
+              const proxied = '/api/shopify/parametrization-page/' + shopId + '?u=' + encodeURIComponent(url);
+              console.debug('[ParamProxy][window.open]', url, '→', proxied);
+              return originalOpen.call(window, proxied, target || '_self', feats);
+            };
+ 
+          // Observer to remove any dynamic attempts at frame busting
+            const observer = new MutationObserver(() => {
+              const busters = document.querySelectorAll('[onbeforeunload], script');
+              busters.forEach(el => {
+                if (el.innerText && /top\.location|parent\.location/.test(el.innerText)) {
+                  el.remove();
+                }
+              });
+            });
+            observer.observe(document.documentElement, { subtree: true, childList: true });
+
+            /* --------------------------------------------------
+               Réécriture des <iframe> internes pour passer par le proxy
+            -------------------------------------------------- */
+            function rewriteIframe(el) {
+              const src = el.getAttribute('src');
+              if (!src) return;
+              try {
+                const abs = src.startsWith('http') ? src : new URL(src, '${finalUrl}').href;
+                if (/shopify\.com|myshopify\.com/i.test(abs)) {
+                  const proxied = '/api/shopify/parametrization-page/' + shopId + '?u=' + encodeURIComponent(abs);
+                  console.debug('[ParamProxy][iframe]', abs, '→', proxied);
+                  el.src = proxied;
+                }
+              } catch(e) { console.warn('[ParamProxy] rewriteIframe error', e); }
+            }
+
+            document.querySelectorAll('iframe').forEach(rewriteIframe);
+
+            const iframeObs = new MutationObserver((mutList) => {
+              mutList.forEach(m => {
+                m.addedNodes.forEach(node => {
+                  if (node.tagName === 'IFRAME') rewriteIframe(node);
+                  if (node.querySelectorAll) node.querySelectorAll('iframe').forEach(rewriteIframe);
+                });
+              });
+            });
+            iframeObs.observe(document.body, { childList: true, subtree: true });
+          });
+        </script>`
+    );
+
+    // Set proper headers for iframe embedding
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+    
+    res.send(modifiedContent);
+
+  } catch (error) {
+    console.error('Error serving Shopify parametrization page:', error);
+    
+    // Fallback HTML if we can't fetch the real page
+    const fallbackHtml = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Accès Shopify - ${shopName}</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            text-align: center;
+          }
+          h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+          }
+          .cta-button {
+            background: #5b73e8;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 20px 10px;
+            transition: background 0.3s;
+          }
+          .cta-button:hover {
+            background: #4f63d2;
+            color: white;
+          }
+          .info-box {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+          }
+        </style>
+      </head>
+      <body>
+                <div class="container">
+          <h1>🔍 Recherche de boutique Shopify</h1>
+          <p>Trouvez votre boutique <strong>${shopName}</strong> ou créez votre compte.</p>
+          
+          <div class="lookup-form">
+            <h3>🏪 Rechercher une boutique existante</h3>
+            <form onsubmit="searchShop(event)" style="margin: 20px 0;">
+              <input 
+                type="text" 
+                id="shop-name" 
+                placeholder="Nom de votre boutique (ex: ma-boutique)" 
+                style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; margin-bottom: 10px; font-size: 16px;"
+                required
+              />
+              <button type="submit" class="cta-button" style="width: 100%; margin: 0;">
+                🔍 Rechercher ma boutique
+              </button>
+            </form>
+            <p style="font-size: 14px; color: #666; text-align: center;">
+              Entrez le nom de votre boutique sans '.myshopify.com'
+            </p>
+          </div>
+          
+          <div class="info-box">
+            <h3>🆕 Ou créez une nouvelle boutique</h3>
+            <p>Si vous n'avez pas encore de boutique Shopify :</p>
+            <a href="https://www.shopify.com/fr/essai-gratuit" target="_blank" class="cta-button">
+              Commencer l'essai gratuit
+            </a>
+          </div>
+          
+          <div class="info-box">
+            <h3>📋 Étapes suivantes :</h3>
+            <ol style="text-align: left; padding-left: 20px;">
+              <li>Recherchez votre boutique ci-dessus</li>
+              <li>Connectez-vous avec vos identifiants</li>
+              <li>Accédez à votre administration</li>
+              <li>Suivez les étapes de configuration</li>
+            </ol>
+          </div>
+          
+          <div class="info-box">
+            <h3>🔗 Liens utiles</h3>
+            <a href="https://accounts.shopify.com/lookup" target="_blank" class="cta-button" style="margin: 5px; display: inline-block;">
+              Page de recherche officielle
+            </a>
+            <a href="https://admin.shopify.com/" target="_blank" class="cta-button" style="margin: 5px; display: inline-block;">
+              Administration Shopify
+            </a>
+          </div>
+          
+          <script>
+            function searchShop(event) {
+              event.preventDefault();
+              const shopName = document.getElementById('shop-name').value.trim();
+              if (shopName) {
+                // Clean the shop name (remove spaces, special chars)
+                const cleanShopName = shopName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+                const shopUrl = 'https://' + cleanShopName + '.myshopify.com/admin';
+                window.open(shopUrl, '_blank');
+              }
+            }
+          </script>
+          
+          <p><small>💡 Conseil: Ouvrez les liens dans un nouvel onglet pour conserver cet assistant ouvert</small></p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(fallbackHtml);
     }
 });
 

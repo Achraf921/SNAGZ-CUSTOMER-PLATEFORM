@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import SetNewPasswordForm from "./SetNewPasswordForm"; // Will be refactored to Tailwind later
+import ForgotPasswordModal from "./ForgotPasswordModal";
+import ReCaptcha from "../common/ReCaptcha";
 
 function LoginCard({
   portalTitle,
@@ -12,6 +14,8 @@ function LoginCard({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const captchaRef = useRef();
 
   // State for NEW_PASSWORD_REQUIRED challenge
   const [showNewPasswordForm, setShowNewPasswordForm] = useState(false);
@@ -20,9 +24,19 @@ function LoginCard({
   const [cognitoChallengeParameters, setCognitoChallengeParameters] =
     useState(null);
 
+  // State for forgot password modal
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+
   const handleLoginSubmit = async (event) => {
     event.preventDefault();
     setError("");
+
+    // Validate CAPTCHA
+    if (!captchaToken) {
+      setError("Veuillez compléter la vérification CAPTCHA.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -31,41 +45,58 @@ function LoginCard({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          captchaToken,
+        }),
       });
 
       const data = await response.json();
       setIsLoading(false);
 
       if (response.ok && data.success) {
-        // Store the complete userInfo object in localStorage and sessionStorage
+        // SECURITY: Securely store user data with validation
         if (data.userInfo) {
-          console.log(`LoginCard (${portalType}): Storing userInfo:`, data.userInfo);
-          // Store the entire userInfo object as JSON string
-          localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
-          sessionStorage.setItem("userInfo", JSON.stringify(data.userInfo));
-          
-          // Also store userId separately for backward compatibility
-          if (data.userInfo.userId) {
-            console.log(`LoginCard (${portalType}): Storing userId:`, data.userInfo.userId);
-            localStorage.setItem("userId", data.userInfo.userId);
-            sessionStorage.setItem("userId", data.userInfo.userId);
-          }
-          
-          // Log the sub attribute for debugging
-          if (data.userInfo.sub) {
-            console.log(`LoginCard (${portalType}): User sub attribute:`, data.userInfo.sub);
-          } else {
-            console.warn(`LoginCard (${portalType}): No sub attribute found in userInfo`);
+          console.log(
+            `LoginCard (${portalType}): Received userInfo from server`
+          );
+
+          // Import security utilities
+          const { secureStoreUserData } = await import(
+            "../../utils/authSecurity"
+          );
+
+          try {
+            // Securely store with validation
+            secureStoreUserData(data.userInfo);
+            console.log(
+              `✅ LoginCard (${portalType}): User data stored securely`
+            );
+          } catch (error) {
+            console.error(
+              `🚨 LoginCard (${portalType}): Failed to store user data:`,
+              error
+            );
+            setError(
+              "Security validation failed. Please try logging in again."
+            );
+            return;
           }
         } else {
-          console.warn(`LoginCard (${portalType}): No userInfo found in login response`);
+          console.error(
+            `🚨 LoginCard (${portalType}): No userInfo in login response`
+          );
+          setError("Invalid login response. Please try again.");
+          return;
         }
-        // Special routing for internal portal: always go to /internal/clients
-        if (portalType === 'internal') {
-          window.location.href = '/internal/clients';
+        // Use the redirect URL from the server response
+        if (data.redirectUrl) {
+          // Use window.location.replace for proper session handling
+          window.location.replace(data.redirectUrl);
         } else {
-          window.location.href = data.redirectUrl || defaultRedirectUrl;
+          // Fallback to default redirect URL
+          window.location.replace(defaultRedirectUrl);
         }
       } else if (
         response.ok &&
@@ -80,14 +111,36 @@ function LoginCard({
         setShowNewPasswordForm(true);
       } else {
         setError(
-          data.message || "Login failed. Please check your credentials."
+          data.message ||
+            "Échec de l'authentification. Veuillez vérifier vos identifiants."
         );
       }
     } catch (err) {
       setIsLoading(false);
       console.error(`Login request failed for ${portalType}:`, err);
       setError("An unexpected error occurred. Please try again later.");
+
+      // Reset CAPTCHA on error
+      if (captchaRef.current) {
+        captchaRef.current.reset();
+        setCaptchaToken("");
+      }
     }
+  };
+
+  const handleCaptchaVerify = (token) => {
+    setCaptchaToken(token);
+    setError(""); // Clear any previous CAPTCHA errors
+  };
+
+  const handleCaptchaExpired = () => {
+    setCaptchaToken("");
+    setError("La vérification CAPTCHA a expiré. Veuillez la recommencer.");
+  };
+
+  const handleCaptchaError = () => {
+    setCaptchaToken("");
+    setError("Erreur lors de la vérification CAPTCHA. Veuillez réessayer.");
   };
 
   const handlePasswordSet = (redirectUrl) => {
@@ -169,6 +222,17 @@ function LoginCard({
             </div>
           </div>
 
+          {/* reCAPTCHA */}
+          <div>
+            <ReCaptcha
+              ref={captchaRef}
+              onVerify={handleCaptchaVerify}
+              onExpired={handleCaptchaExpired}
+              onError={handleCaptchaError}
+              className="mb-4"
+            />
+          </div>
+
           {error && (
             <div
               className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
@@ -181,10 +245,22 @@ function LoginCard({
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !captchaToken}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sna-primary hover:bg-sna-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sna-primary disabled:opacity-50"
             >
               {isLoading ? "Connexion..." : "Se connecter"}
+            </button>
+          </div>
+
+          {/* Forgot Password Link */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => setShowForgotPasswordModal(true)}
+              className="text-sm text-sna-primary hover:text-sna-primary/90 underline"
+              disabled={isLoading}
+            >
+              Mot de passe oublié ?
             </button>
           </div>
         </form>
@@ -199,6 +275,13 @@ function LoginCard({
           </div>
         )}
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+        portalType={portalType}
+      />
     </div>
   );
 }
