@@ -66,6 +66,7 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
     read_themes: false,
     write_content: false,
     read_content: false,
+    write_theme_code: false,
   });
 
   // Determine vendeur/mandataire and Mondial Relay once per render
@@ -123,6 +124,7 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
         read_themes: false,
         write_content: false,
         read_content: false,
+        write_theme_code: false,
       });
     }
   }, [isOpen]);
@@ -311,7 +313,7 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
       setFinalizeError(null);
 
       const response = await fetch(
-        `/api/internal/shops/${encodeURIComponent(shop._id)}/configure-theme`,
+        `/api/internal/shops/${encodeURIComponent(shop._id)}/push-dawn-theme`,
         {
           method: "POST",
           headers: {
@@ -337,26 +339,34 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
         throw new Error(errMsg || "Échec de la configuration du thème.");
       }
 
-      // Show success message
-      // Show success message with theme details
-      const themeInfo = data.themeName
-        ? `\n\nThème utilisé : ${data.themeName} (${data.themeRole || "N/A"})`
+      // Show success message with Dawn theme details
+      const themeInfo = data.data?.themeName
+        ? `\n\nThème Dawn créé : ${data.data.themeName}`
         : "";
+      const assetsInfo =
+        data.data?.customAssets?.length > 0
+          ? `\n\nAssets personnalisés uploadés : ${data.data.customAssets.join(", ")}`
+          : "";
+      const filesInfo = data.data?.uploadedFiles
+        ? `\n\nFichiers du thème uploadés : ${data.data.uploadedFiles}`
+        : "";
+
       setModal({
         open: true,
         type: "success",
-        title: "✅ Configuration réussie",
-        message: `Configuration du thème appliquée avec succès !${themeInfo}\n\nVous pouvez maintenant cliquer sur "Finaliser" pour terminer le paramétrage.`,
+        title: "✅ Thème Dawn configuré avec succès",
+        message: `Le thème Dawn a été créé et configuré avec vos assets personnalisés !${themeInfo}${assetsInfo}${filesInfo}\n\nVous pouvez maintenant cliquer sur "Finaliser" pour terminer le paramétrage.`,
         onClose: () => setModal({ open: false }),
         confirmText: "Fermer",
       });
     } catch (error) {
-      console.error("Error configuring theme:", error);
+      console.error("Error configuring Dawn theme:", error);
       setModal({
         open: true,
         type: "error",
-        title: "❌ Erreur de configuration",
-        message: "Erreur lors de la configuration du thème: " + error.message,
+        title: "❌ Erreur de configuration du thème Dawn",
+        message:
+          "Erreur lors de la configuration du thème Dawn: " + error.message,
         onClose: () => setModal({ open: false }),
         confirmText: "Fermer",
       });
@@ -767,8 +777,8 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
               {
                 type: "checkbox_group",
                 items: [
-                  "Cette personne est un(e) dirigeant(e) de l’entreprise.",
-                  "Cette personne siège au conseil d’administration de l’entreprise.",
+                  "Cette personne est un(e) dirigeant(e) de l'entreprise.",
+                  "Cette personne siège au conseil d'administration de l'entreprise.",
                 ],
               },
               {
@@ -1027,6 +1037,12 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
                   label: "write_themes",
                   description:
                     "Modifier les fichiers du thème (logos, bannières, textes...).",
+                },
+                {
+                  id: "write_theme_code",
+                  label: "write_theme_code",
+                  description:
+                    "Modifier le code source du thème (fichiers Liquid, CSS, JS...).",
                 },
                 {
                   id: "read_themes",
@@ -2048,10 +2064,11 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
                                           peut donc pas les générer.
                                         </p>
                                         <p className="text-sm text-gray-600 mb-4">
-                                          Cependant, le bouton ci-dessous
-                                          appliquera tous les éléments
-                                          graphiques nécessaires comme les
-                                          bannières et les logos au thème.
+                                          Cependant, le bouton ci-dessous créera
+                                          et poussera le thème Dawn avec tous
+                                          les éléments graphiques nécessaires
+                                          comme les bannières et les logos
+                                          personnalisés.
                                         </p>
                                       </div>
                                     )}
@@ -2065,8 +2082,8 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
                                           <FaSpinner className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
                                         )}
                                         {isFinalizing
-                                          ? "Configuration en cours..."
-                                          : "Générer et Appliquer la Configuration"}
+                                          ? "Création du thème Dawn en cours..."
+                                          : "Créer et Pousser le Thème Dawn"}
                                       </button>
                                     </div>
                                   </div>

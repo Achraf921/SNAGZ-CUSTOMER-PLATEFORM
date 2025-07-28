@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0047AB" />
+    <meta name="description" content="SNA GZ - Plateforme de création et gestion de boutiques en ligne. Créez votre boutique Shopify, gérez vos produits et suivez vos projets avec notre équipe d'experts." />
+    <meta name="keywords" content="boutique en ligne, Shopify, e-commerce, création boutique, gestion produits, SNA GZ" />
+    <meta name="author" content="SNA GZ" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="/" />
+    <meta property="og:title" content="SNA GZ - Création de Boutiques en Ligne" />
+    <meta property="og:description" content="Plateforme de création et gestion de boutiques en ligne. Créez votre boutique Shopify, gérez vos produits et suivez vos projets." />
+    <meta property="og:image" content="/logo.png" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="/" />
+    <meta property="twitter:title" content="SNA GZ - Création de Boutiques en Ligne" />
+    <meta property="twitter:description" content="Plateforme de création et gestion de boutiques en ligne. Créez votre boutique Shopify, gérez vos produits et suivez vos projets." />
+    <meta property="twitter:image" content="/logo.png" />
+    
+    <!-- Content Security Policy for reCAPTCHA and security -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com; frame-src 'self' https://www.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://snagz.s3.eu-north-1.amazonaws.com; connect-src 'self' https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self';"
+    />
+    
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.google.com" />
+    <link rel="preconnect" href="https://www.gstatic.com" />
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/logo192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo192.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/logo192.png" />
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="/" />
+    
+    <!-- DNS Prefetch for performance -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="//www.google.com" />
+    <link rel="dns-prefetch" href="//www.gstatic.com" />
+    
+    <title>SNA GZ - Création de Boutiques en Ligne | Plateforme E-commerce</title>
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "SNA GZ",
+      "url": "/",
+      "logo": "/logo.png",
+      "description": "Plateforme de création et gestion de boutiques en ligne",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer service"
+      },
+      "sameAs": []
+    }
+    </script>
+    
+    <!-- Performance optimization -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+  </head>
+  <body>
+    <noscript>
+      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h1>JavaScript requis</h1>
+        <p>Vous devez activer JavaScript pour utiliser cette application.</p>
+        <p>Please enable JavaScript to run this app.</p>
+      </div>
+    </noscript>
+    <div id="root"></div>
+    
+    <!-- Loading indicator -->
+    <style>
+      #root:empty {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #0047AB 0%, #0066CC 100%);
+      }
+      
+      #root:empty::after {
+        content: '';
+        width: 50px;
+        height: 50px;
+        border: 3px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
+</html> 
