@@ -35,12 +35,20 @@ const AdminLayout = ({ children }) => {
       name: "Comptes Admins",
       href: "/admin/admin-accounts",
       icon: placeholderUsersIcon,
-    }, // Could use a shield or settings icon too
-    { name: "Profil Admin", href: "/admin/profile", icon: placeholderUserIcon },
+    },
+    { name: "Mon Compte", href: "/admin/profile", icon: placeholderUserIcon },
   ];
 
   const handleLogout = async () => {
+    console.log("🔒 SECURITY: Starting secure admin logout process...");
+
     try {
+      // Import security utilities
+      const { clearAllAuthData } = await import("../../utils/authSecurity");
+
+      // Clear ALL frontend data immediately for security
+      clearAllAuthData();
+
       // Call the API logout endpoint
       const response = await fetch("/api/logout-admin", {
         method: "POST",
@@ -51,17 +59,28 @@ const AdminLayout = ({ children }) => {
       });
 
       if (response.ok) {
-        console.log("Admin logout successful");
+        console.log("✅ SECURITY: Admin logout successful");
       } else {
-        console.error("Admin logout API call failed");
+        console.error("⚠️ SECURITY: Admin logout API call failed");
       }
     } catch (error) {
-      console.error("Error during admin logout:", error);
+      console.error("🚨 SECURITY: Error during admin logout:", error);
     }
 
-    // Clear local storage and redirect regardless of API result
-    localStorage.removeItem("token");
+    // CRITICAL: Clear ALL browser storage and session data
+    localStorage.clear();
     sessionStorage.clear();
+
+    // Clear any cookies that might exist
+    document.cookie.split(";").forEach(function (c) {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
+    console.log("🧹 SECURITY: All admin user data cleared");
+
+    // Force redirect to logout endpoint
     window.location.href = "/logout-admin";
   };
 
@@ -74,7 +93,7 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="flex flex-1">
-      <div className="hidden md:flex md:flex-col md:w-64 bg-white shadow-sm md:sticky md:top-20 h-auto md:h-[calc(100vh-5rem)] overflow-y-auto z-30">
+      <div className="w-64 bg-white shadow-sm sticky top-0 h-screen overflow-y-auto z-30 flex-shrink-0">
         <div className="flex flex-col flex-grow pt-5">
           <nav className="flex-1 px-4 pb-4 space-y-2">
             {navigation.map((item) => (
@@ -90,7 +109,7 @@ const AdminLayout = ({ children }) => {
                 `}
               >
                 <svg
-                  className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-gray-500"
+                  className="mr-3 h-5 w-5 flex-shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -102,13 +121,13 @@ const AdminLayout = ({ children }) => {
               </a>
             ))}
           </nav>
-          <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+          <div className="border-t border-gray-200 p-4 flex-shrink-0">
             <button
               onClick={handleLogout}
-              className="flex w-full items-center px-4 py-3 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 transition-colors group"
+              className="flex w-full items-center px-4 py-3 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 transition-colors"
             >
               <svg
-                className="mr-3 h-5 w-5 flex-shrink-0 text-red-400 group-hover:text-red-500"
+                className="mr-3 h-5 w-5 flex-shrink-0 text-red-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -127,9 +146,9 @@ const AdminLayout = ({ children }) => {
         </div>
       </div>
 
-      <div className="md:pl-64 flex flex-col flex-1">
+      <div className="flex flex-col flex-1">
         <main className="flex-1 py-8 px-6 overflow-y-auto">
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-5xl mx-auto w-full">{children}</div>
         </main>
       </div>
     </div>

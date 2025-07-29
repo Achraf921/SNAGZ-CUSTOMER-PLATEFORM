@@ -143,8 +143,8 @@ app.use(helmet({
 // Configure CORS - Simple configuration that was working before
 app.use(cors());
 app.use(morgan('dev')); // Request logging
-app.use(express.json()); // Parse JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+
+// Session middleware MUST come before upload routes for authentication
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your strong secret here for production', // Use env var
     resave: false,
@@ -158,10 +158,19 @@ app.use(session({
     name: 'sna-gz-session' // Custom session name for better identification
 }));
 
+// MOUNT UPLOAD ROUTES BEFORE BODY PARSERS TO AVOID STREAM CONFLICTS
+console.log('🔧 [MIDDLEWARE] Mounting upload routes before body parsers...');
+const customerUploadRoutes = require('./routes/customerUpload');
+app.use('/api/customer', customerUploadRoutes);
+console.log('🔧 [MIDDLEWARE] Upload routes mounted successfully');
+
+app.use(express.json({ limit: '10mb' })); // Parse JSON bodies with increased limit
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+
 // Rate limiting for API routes to prevent abuse
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 200 : 1000, // More lenient in development
+  max: process.env.NODE_ENV === 'production' ? 500 : 5000, // Increased production limit for safety
   message: {
     success: false,
     message: 'Too many API requests, please try again later.',
@@ -171,6 +180,8 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   handler: (req, res) => {
     console.log(`[RATE LIMIT] API rate limit exceeded for ${req.ip} on ${req.originalUrl}`);
+    console.log(`[RATE LIMIT] Current environment: ${process.env.NODE_ENV || 'undefined'}`);
+    console.log(`[RATE LIMIT] Request count limit: ${process.env.NODE_ENV === 'production' ? 500 : 5000}`);
     res.status(429).json({
       success: false,
       message: 'Too many API requests, please try again later.',
@@ -182,7 +193,7 @@ const apiLimiter = rateLimit({
 // Stricter rate limiting for sensitive operations
 const strictApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 50 : 200, // More lenient in development
+  max: process.env.NODE_ENV === 'production' ? 150 : 1000, // Increased production limit for safety
   message: {
     success: false,
     message: 'Too many requests to sensitive endpoint, please try again later.',
@@ -192,6 +203,8 @@ const strictApiLimiter = rateLimit({
   legacyHeaders: false,
   handler: (req, res) => {
     console.log(`[RATE LIMIT] Sensitive endpoint rate limit exceeded for ${req.ip} on ${req.originalUrl}`);
+    console.log(`[RATE LIMIT] Current environment: ${process.env.NODE_ENV || 'undefined'}`);
+    console.log(`[RATE LIMIT] Sensitive request count limit: ${process.env.NODE_ENV === 'production' ? 150 : 1000}`);
     res.status(429).json({
       success: false,
       message: 'Too many requests to sensitive endpoint, please try again later.',
@@ -209,8 +222,8 @@ app.get('/api/rate-limit-status', (req, res) => {
   const rateLimitInfo = {
     clientIP,
     environment: process.env.NODE_ENV || 'development',
-    generalLimit: process.env.NODE_ENV === 'production' ? 200 : 1000,
-    sensitiveLimit: process.env.NODE_ENV === 'production' ? 50 : 200,
+    generalLimit: process.env.NODE_ENV === 'production' ? 500 : 5000,
+    sensitiveLimit: process.env.NODE_ENV === 'production' ? 150 : 1000,
     windowMs: '15 minutes',
     rateLimitDisabled: process.env.NODE_ENV !== 'production' && process.env.DISABLE_RATE_LIMIT === 'true'
   };
@@ -226,7 +239,7 @@ app.get('/api/rate-limit-status', (req, res) => {
 if (process.env.NODE_ENV !== 'production' && process.env.DISABLE_RATE_LIMIT === 'true') {
   console.log('[DEV] Rate limiting disabled for development');
 } else {
-  console.log(`[RATE LIMIT] API rate limiting enabled - General: ${process.env.NODE_ENV === 'production' ? 200 : 1000} req/15min, Sensitive: ${process.env.NODE_ENV === 'production' ? 50 : 200} req/15min`);
+  console.log(`[RATE LIMIT] API rate limiting enabled - General: ${process.env.NODE_ENV === 'production' ? 500 : 5000} req/15min, Sensitive: ${process.env.NODE_ENV === 'production' ? 150 : 1000} req/15min`);
 }
 
 // Apply stricter rate limiting to sensitive endpoints
@@ -256,6 +269,16 @@ app.use('/api/', (req, res, next) => {
   
   next();
 });
+
+// File upload middleware for image uploads
+const fileUpload = require('express-fileupload');
+app.use(fileUpload({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  abortOnLimit: true,
+  useTempFiles: true,
+  tempFileDir: '/tmp/',
+  debug: process.env.NODE_ENV === 'development'
+}));
 
 // Setup view engine (EJS)
 // app.set('view engine', 'ejs');
@@ -461,9 +484,11 @@ const authRoutes = require('./routes/auth');
 const passwordResetRoutes = require('./routes/passwordReset');
 
 // Auth routes - change-password needs session auth, others are public
-app.post('/api/auth/change-password', (req, res, next) => {
+app.use('/api/auth', (req, res, next) => {
+  console.log(`🔍 [AUTH ROUTES] Request to: ${req.method} ${req.path}`);
   // This endpoint requires authentication (any user type)
-  if (!req.session.userInfo && !req.session.internalUserInfo && !req.session.adminUserInfo) {
+  if (req.path === '/change-password' && !req.session.userInfo && !req.session.internalUserInfo && !req.session.adminUserInfo) {
+    console.log(`🔍 [AUTH ROUTES] Unauthorized access attempt to change-password`);
     return res.status(401).json({
       success: false,
       message: 'Authentication required',
@@ -670,16 +695,29 @@ app.post('/login-client', async (req, res) => {
         }
     } catch (error) {
         console.error('[/login-client] Error during client authentication for:', email, error);
+        console.log('[/login-client] Error details:', {
+            code: error.code,
+            name: error.name,
+            message: error.message,
+            __type: error.__type
+        });
+        
         let message = 'Échec de l\'authentification. Veuillez vérifier vos identifiants.';
-        if (error.code === 'NotAuthorizedException') {
+        if (error.code === 'NotAuthorizedException' || error.__type === 'NotAuthorizedException') {
             message = 'Nom d\'utilisateur ou mot de passe incorrect.';
-        } else if (error.code === 'UserNotFoundException') {
+            console.log('[/login-client] Setting NotAuthorizedException message');
+        } else if (error.code === 'UserNotFoundException' || error.__type === 'UserNotFoundException') {
             message = 'Utilisateur inexistant.';
-        } else if (error.code === 'UserNotConfirmedException') {
+            console.log('[/login-client] Setting UserNotFoundException message');
+        } else if (error.code === 'UserNotConfirmedException' || error.__type === 'UserNotConfirmedException') {
             message = 'Compte utilisateur non confirmé. Veuillez vérifier votre email pour confirmer votre compte.';
+            console.log('[/login-client] Setting UserNotConfirmedException message');
         } else if (error.code === 'InvalidParameterException' && error.message.includes('USER_PASSWORD_AUTH flow not enabled')) {
             message = 'Flux d\'authentification non activé pour ce client. Veuillez contacter le support.';
+            console.log('[/login-client] Setting InvalidParameterException message');
         }
+        
+        console.log('[/login-client] Final error message:', message);
         // Do not specifically mention NEW_PASSWORD_REQUIRED here as an error, it's handled above.
         return res.status(401).json({ success: false, message });
     }
@@ -801,16 +839,29 @@ app.post('/login-internal', async (req, res) => {
         }
     } catch (error) {
         console.error('[/login-internal] Error during internal authentication for:', email, error);
+        console.log('[/login-internal] Error details:', {
+            code: error.code,
+            name: error.name,
+            message: error.message,
+            __type: error.__type
+        });
+        
         let message = 'Échec de l\'authentification. Veuillez vérifier vos identifiants.';
-        if (error.code === 'NotAuthorizedException') {
+        if (error.code === 'NotAuthorizedException' || error.__type === 'NotAuthorizedException') {
             message = 'Nom d\'utilisateur ou mot de passe incorrect.';
-        } else if (error.code === 'UserNotFoundException') {
+            console.log('[/login-internal] Setting NotAuthorizedException message');
+        } else if (error.code === 'UserNotFoundException' || error.__type === 'UserNotFoundException') {
             message = 'Utilisateur inexistant.';
-        } else if (error.code === 'UserNotConfirmedException') {
+            console.log('[/login-internal] Setting UserNotFoundException message');
+        } else if (error.code === 'UserNotConfirmedException' || error.__type === 'UserNotConfirmedException') {
             message = 'Compte utilisateur non confirmé.';
+            console.log('[/login-internal] Setting UserNotConfirmedException message');
         } else if (error.code === 'InvalidParameterException' && error.message.includes('USER_PASSWORD_AUTH flow not enabled')) {
             message = 'Flux d\'authentification non activé pour ce client. Veuillez contacter le support.';
+            console.log('[/login-internal] Setting InvalidParameterException message');
         }
+        
+        console.log('[/login-internal] Final error message:', message);
         return res.status(401).json({ success: false, message });
     }
 });
@@ -915,23 +966,36 @@ app.post('/login-admin-portal', async (req, res) => {
             req.session.isAdminAuthenticated = true;
 
             console.log('[/login-admin-portal] Admin login successful for:', email);
-            return res.json({ success: true, redirectUrl: '/admin/dashboard', userInfo: adminUserInfo });
+            return res.json({ success: true, redirectUrl: '/admin/client-accounts', userInfo: adminUserInfo });
           } else {
             console.error('[/login-admin-portal] Cognito initiateAuth unexpected result for:', email, authResult);
             return res.status(401).json({ success: false, message: 'Authentication failed. Please check credentials or server logs.' });
         }
     } catch (error) {
         console.error('[/login-admin-portal] Error during admin authentication for:', email, error);
+        console.log('[/login-admin-portal] Error details:', {
+            code: error.code,
+            name: error.name,
+            message: error.message,
+            __type: error.__type
+        });
+        
         let message = 'Échec de l\'authentification. Veuillez vérifier vos identifiants.';
-        if (error.code === 'NotAuthorizedException') {
+        if (error.code === 'NotAuthorizedException' || error.__type === 'NotAuthorizedException') {
             message = 'Nom d\'utilisateur ou mot de passe incorrect.';
-        } else if (error.code === 'UserNotFoundException') {
+            console.log('[/login-admin-portal] Setting NotAuthorizedException message');
+        } else if (error.code === 'UserNotFoundException' || error.__type === 'UserNotFoundException') {
             message = 'Utilisateur inexistant.';
-        } else if (error.code === 'UserNotConfirmedException') {
+            console.log('[/login-admin-portal] Setting UserNotFoundException message');
+        } else if (error.code === 'UserNotConfirmedException' || error.__type === 'UserNotConfirmedException') {
             message = 'Compte utilisateur non confirmé.';
+            console.log('[/login-admin-portal] Setting UserNotConfirmedException message');
         } else if (error.code === 'InvalidParameterException' && error.message.includes('USER_PASSWORD_AUTH flow not enabled')) {
             message = 'Flux d\'authentification non activé pour ce client. Veuillez contacter le support.';
+            console.log('[/login-admin-portal] Setting InvalidParameterException message');
         }
+        
+        console.log('[/login-admin-portal] Final error message:', message);
         return res.status(401).json({ success: false, message });
     }
 });
@@ -1247,7 +1311,7 @@ app.post('/complete-new-password-admin', async (req, res) => {
             req.session.isAdminAuthenticated = true;
 
             console.log('[/complete-new-password-admin] New password set and admin login successful for:', username);
-            return res.json({ success: true, redirectUrl: '/admin/dashboard', userInfo: adminUserInfo });
+            return res.json({ success: true, redirectUrl: '/admin/client-accounts', userInfo: adminUserInfo });
         } else {
             console.error('[/complete-new-password-admin] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
             return res.status(401).json({ success: false, message: 'Failed to set new password. Please try logging in again.' });

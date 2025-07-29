@@ -15,6 +15,7 @@ function WelcomeForm({ onSubmit, onClose }) {
     capitalSocial: "",
     codeAPE: "",
     tvaIntracom: "",
+    iban: "", // New mandatory field
 
     // Section 2: Contacts
     contact1Nom: "",
@@ -41,29 +42,82 @@ function WelcomeForm({ onSubmit, onClose }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const validateForm = () => {
+    const requiredFields = {
+      // Mandatory company information
+      raisonSociale: "Raison Sociale",
+      adresseSociete: "Adresse",
+      codePostalSociete: "Code Postal",
+      villeSociete: "Ville",
+      paysSociete: "Pays",
+      iban: "IBAN",
+
+      // Mandatory contact information
+      contact1Nom: "Nom et Prénom du contact principal",
+      contact1Telephone: "Téléphone du contact principal",
+      contact1Email: "Email du contact principal",
+
+      // Mandatory submission information
+      dateSoumission: "Date de soumission",
+      nomSoumission: "Nom du déclarant",
+      fonctionSoumission: "Fonction du déclarant",
+    };
+
+    const missingFields = [];
+
+    for (const [field, label] of Object.entries(requiredFields)) {
+      if (!formData[field] || formData[field].trim() === "") {
+        missingFields.push(label);
+      }
+    }
+
+    if (missingFields.length > 0) {
+      setError(
+        `Veuillez remplir tous les champs obligatoires : ${missingFields.join(", ")}`
+      );
+      return false;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.contact1Email)) {
+      setError(
+        "Veuillez saisir une adresse email valide pour le contact principal"
+      );
+      return false;
+    }
+
+    // Validate IBAN format (basic validation)
+    const ibanRegex = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/;
+    if (!ibanRegex.test(formData.iban.replace(/\s/g, ""))) {
+      setError("Veuillez saisir un IBAN valide");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-    // Basic validation example (can be expanded)
-    if (!formData.raisonSociale || !formData.contact1Email) {
-      setError(
-        "Veuillez remplir tous les champs obligatoires (ex: Raison Sociale, Email Contact 1)."
-      );
+
+    if (!validateForm()) {
       setIsLoading(false);
       return;
     }
+
     try {
       // Call the onSubmit callback provided by the parent component
       if (onSubmit) {
         await onSubmit(formData);
       }
-      
+
       console.log("Données du formulaire de bienvenue:", formData);
-      
+
       // No alert to interrupt the flow
       setIsLoading(false);
-      
+
       // No need for onClose as we want the parent to handle this
     } catch (err) {
       setError("Erreur lors de la soumission du formulaire.");
@@ -144,6 +198,10 @@ function WelcomeForm({ onSubmit, onClose }) {
         <p className="text-gray-600 mb-6">
           Pour activer complètement votre compte et accéder à toutes nos
           fonctionnalités, veuillez compléter les informations ci-dessous.
+          <br />
+          <span className="text-red-500 font-medium">
+            * Champs obligatoires
+          </span>
         </p>
 
         {error && (
@@ -159,32 +217,46 @@ function WelcomeForm({ onSubmit, onClose }) {
           onSubmit={handleSubmit}
           className="space-y-6 max-h-[70vh] overflow-y-auto pr-2"
         >
-          {/* Section Information société */}
+          {/* Section Information Société */}
           <fieldset className="border border-gray-300 p-4 rounded-md">
             <legend className="text-lg font-semibold text-sna-primary px-2">
-              {renderSectionTitle("Information société")}
+              {renderSectionTitle("Information Société")}
             </legend>
+            <p className="text-sm text-gray-500 mb-3">
+              Informations légales de votre entreprise.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
               {renderInput("raisonSociale", "Raison Sociale", "text", true)}
-              {renderInput("formeJuridique", "Forme juridique")}
+              {renderInput("formeJuridique", "Forme Juridique")}
             </div>
-            {renderInput("adresseSociete", "Adresse", "text", true)}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+              {renderInput("adresseSociete", "Adresse", "text", true)}
               {renderInput("codePostalSociete", "Code Postal", "text", true)}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
               {renderInput("villeSociete", "Ville", "text", true)}
               {renderCountrySelect("paysSociete", "Pays", true)}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
               {renderInput("siret", "SIRET")}
-              {renderInput("numTVA", "N° TVA Intracommunautaire")}
+              {renderInput("numTVA", "Numéro de TVA")}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-              {renderInput("numEORI", "N° EORI")}
-              {renderInput("capitalSocial", "Capital social", "number")}
+              {renderInput("numEORI", "Numéro EORI")}
+              {renderInput("capitalSocial", "Capital Social")}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-              {renderInput("codeAPE", "Code APE (NAF)")}
-              {renderInput("tvaIntracom", "TVA intracom. (si applicable)")}
+              {renderInput("codeAPE", "Code APE")}
+              {renderInput("tvaIntracom", "TVA Intracommunautaire")}
+            </div>
+            <div className="grid grid-cols-1 gap-x-6">
+              {renderInput(
+                "iban",
+                "IBAN",
+                "text",
+                true,
+                "FR76 XXXX XXXX XXXX XXXX XXXX XXX"
+              )}
             </div>
           </fieldset>
 
@@ -203,7 +275,7 @@ function WelcomeForm({ onSubmit, onClose }) {
               </h4>
               {renderInput("contact1Nom", "Nom et Prénom", "text", true)}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-                {renderInput("contact1Telephone", "Téléphone", "tel")}
+                {renderInput("contact1Telephone", "Téléphone", "tel", true)}
                 {renderInput("contact1Email", "Email", "email", true)}
               </div>
             </div>
@@ -223,27 +295,16 @@ function WelcomeForm({ onSubmit, onClose }) {
               <h4 className="font-medium text-gray-800 mb-2">
                 Contact Facturation
               </h4>
-              {renderInput(
-                "contactFacturationNom",
-                "Nom et Prénom",
-                "text",
-                true
-              )}
+              {renderInput("contactFacturationNom", "Nom et Prénom", "text")}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-                {renderInput(
-                  "contactFacturationTelephone",
-                  "Téléphone",
-                  "tel",
-                  true
-                )}
-                {renderInput("contactFacturationEmail", "Email", "email", true)}
+                {renderInput("contactFacturationTelephone", "Téléphone", "tel")}
+                {renderInput("contactFacturationEmail", "Email", "email")}
               </div>
             </div>
             {renderInput(
               "emailRetourColis",
               "Email pour recevoir l'information de retour de colis",
-              "email",
-              true
+              "email"
             )}
           </fieldset>
 
@@ -289,7 +350,9 @@ function WelcomeForm({ onSubmit, onClose }) {
               disabled={isLoading}
               className="w-full sm:w-auto px-8 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-sna-primary hover:bg-sna-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sna-primary transition-all duration-200 transform hover:scale-105"
             >
-              {isLoading ? "Soumission en cours..." : "Enregistrer et continuer"}
+              {isLoading
+                ? "Soumission en cours..."
+                : "Enregistrer et continuer"}
             </button>
           </div>
         </form>

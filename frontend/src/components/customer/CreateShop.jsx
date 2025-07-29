@@ -28,7 +28,6 @@ const initialFormState = {
   nomChefProjet: "",
   prenomChefProjet: "",
   estBoutiqueEnLigne: false,
-  nomClient: "",
   contactsClient: "",
 
   // Page 2: Planning et Lancement
@@ -226,11 +225,23 @@ const CreateShop = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (currentStep === 4) {
-      // Step 4: Create the shop first
+    if (currentStep === 5) {
+      // Step 5: Create the shop and upload images
       if (!userId) {
         setError(
           "Identifiant utilisateur non trouvé. Veuillez vous reconnecter."
+        );
+        return;
+      }
+
+      // Validate mandatory date fields
+      if (
+        !formData.dateMiseEnLigne ||
+        !formData.dateCommercialisation ||
+        !formData.dateSortieOfficielle
+      ) {
+        setError(
+          "Veuillez remplir tous les champs obligatoires : Date de Mise en Ligne Prévue, Date de Commercialisation, et Date de Sortie Officielle."
         );
         return;
       }
@@ -242,10 +253,7 @@ const CreateShop = () => {
 
       try {
         // Determine API URL based on environment
-        const apiUrl =
-          process.env.NODE_ENV === "production"
-            ? `/api/customer/shops/${userId}`
-            : `http://localhost:5000/api/customer/shops/${userId}`;
+        const apiUrl = `/api/customer/shops/${userId}`;
 
         const response = await fetch(apiUrl, {
           method: "POST",
@@ -267,7 +275,12 @@ const CreateShop = () => {
 
         console.log("Boutique créée avec succès:", data);
         setCreatedShopId(data.shopId);
-        setCurrentStep(5); // Move to image upload step
+
+        // Upload images if any were selected
+        const uploadSuccess = await uploadImages(data.shopId);
+        if (uploadSuccess) {
+          window.location.href = "/client/boutiques"; // Redirect to boutiques page
+        }
       } catch (error) {
         console.error("Erreur soumission formulaire:", error);
         setError(
@@ -276,12 +289,6 @@ const CreateShop = () => {
         );
       } finally {
         setIsSubmitting(false);
-      }
-    } else if (currentStep === 5) {
-      // Step 5: Upload images and complete
-      const uploadSuccess = await uploadImages(createdShopId);
-      if (uploadSuccess) {
-        window.location.href = "/client/boutiques"; // Redirect to boutiques page
       }
     }
   };
@@ -405,7 +412,7 @@ const CreateShop = () => {
                   <img
                     src={imagePreviewUrls.favicon}
                     alt="Favicon preview"
-                    className="h-8 w-8 object-cover rounded border"
+                    className="h-20 w-20 object-cover rounded-lg border"
                   />
                 </div>
               )}
@@ -491,7 +498,7 @@ const CreateShop = () => {
             )}
 
             <div className="flex justify-between">
-              {currentStep > 1 && currentStep !== 5 && (
+              {currentStep > 1 && (
                 <button
                   type="button"
                   onClick={prevStep}
@@ -503,14 +510,8 @@ const CreateShop = () => {
               )}
               <div className="flex-1" />
               <button
-                type={
-                  currentStep === 4 || currentStep === 5 ? "submit" : "button"
-                }
-                onClick={
-                  currentStep === 4 || currentStep === 5
-                    ? handleSubmit
-                    : nextStep
-                }
+                type={currentStep === 5 ? "submit" : "button"}
+                onClick={currentStep === 5 ? handleSubmit : nextStep}
                 disabled={isSubmitting || uploadingImages}
                 className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
                   isSubmitting || uploadingImages
@@ -518,7 +519,7 @@ const CreateShop = () => {
                     : "bg-sna-primary hover:bg-sna-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sna-primary"
                 }`}
               >
-                {isSubmitting && currentStep === 4 ? (
+                {isSubmitting && currentStep === 5 ? (
                   <>
                     <svg
                       className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
@@ -542,34 +543,8 @@ const CreateShop = () => {
                     </svg>
                     Création de la boutique...
                   </>
-                ) : uploadingImages && currentStep === 5 ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Upload des images...
-                  </>
-                ) : currentStep === 4 ? (
-                  "Créer la boutique"
                 ) : currentStep === 5 ? (
-                  "Finaliser et terminer"
+                  "Créer la boutique"
                 ) : (
                   "Suivant"
                 )}

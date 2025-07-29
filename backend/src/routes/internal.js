@@ -407,6 +407,365 @@ router.get('/all-shops', async (req, res) => {
   }
 });
 
+// Route to get all customers data (for internal portal)
+router.get('/all', async (req, res) => {
+  try {
+    const { details } = req.query;
+    const customersCollection = await getCustomersCollection();
+    let customers;
+
+    console.log(`[INTERNAL] Internal user accessing all customers`);
+
+    if (details === 'true') {
+      customers = await customersCollection.find({}).toArray();
+    } else {
+      customers = await customersCollection.find({}, {
+        projection: { 
+          raisonSociale: 1, 
+          status: 1, 
+          'shops.nomProjet': 1, 
+          'shops.status': 1 
+        }
+      }).toArray();
+    }
+
+    customers.forEach(customer => {
+      if (customer.shops && Array.isArray(customer.shops)) {
+        customer.shops.forEach(shop => {
+          shop.Payement = customer.Payement;
+          shop.payment = customer.payment;
+        });
+      }
+      if (customer._id) customer.id = customer._id.toString();
+      delete customer._id;
+    });
+
+    console.log(`[INTERNAL] Returned ${customers.length} customers to internal user`);
+
+    res.status(200).json({
+      success: true,
+      customers
+    });
+  } catch (error) {
+    console.error("[INTERNAL] Error in /all:", error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving customers',
+      error: error.message
+    });
+  }
+});
+
+// Route to get all shops from all customers (for internal portal)
+router.get('/all-shops', async (req, res) => {
+  try {
+    const customersCollection = await getCustomersCollection();
+    const customers = await customersCollection.find({}).toArray();
+    const allShops = [];
+    
+    console.log(`[INTERNAL] Internal user accessing all shops`);
+    
+    for (const customer of customers) {
+      const clientName = customer.raisonSociale || customer.name || 'Unknown Client';
+
+      if (Array.isArray(customer.shops)) {
+        for (const shop of customer.shops) {
+          
+          let logoUrl = null;
+          if (shop.logoUrl) {
+            try {
+              const key = new URL(shop.logoUrl).pathname.substring(1);
+              logoUrl = await getSignedUrl(decodeURIComponent(key));
+            } catch (e) {
+              console.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
+            }
+          }
+          
+          const constructedShopObject = {
+            ...shop,
+            _id: shop._id || shop.shopId,
+            shopId: shop.shopId || shop.id,
+            name: shop.nomProjet || shop.name || '-',
+            clientName,
+            clientId: customer._id?.toString() || customer.id || '-',
+            Payement: customer.Payement,
+            payment: customer.payment,
+            hasShopify: shop.hasShopify === true || shop.shopifyConfigured === true,
+            logoUrl: logoUrl,
+          };
+          allShops.push(constructedShopObject);
+        }
+      }
+    }
+    
+    console.log(`[INTERNAL] Returned ${allShops.length} shops to internal user`);
+    
+    res.status(200).json({ success: true, shops: allShops });
+  } catch (error) {
+    console.error("[INTERNAL] Error in /all-shops:", error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving all shops',
+      error: error.message
+    });
+  }
+});
+
+// Route to get specific customer by MongoDB ID (for internal portal)
+router.get('/customer/:customerId', async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    console.log(`[INTERNAL] Getting customer details for ID: ${customerId}`);
+    
+    const customersCollection = await getCustomersCollection();
+    let customer;
+    
+    try {
+      customer = await customersCollection.findOne({ _id: new ObjectId(customerId) });
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid customer ID format',
+        error: e.message
+      });
+    }
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found'
+      });
+    }
+    
+    console.log(`[INTERNAL] Found customer: ${customer.raisonSociale || customer.name}`);
+    
+    res.status(200).json({
+      success: true,
+      customer
+    });
+  } catch (error) {
+    console.error('[INTERNAL] Error fetching customer data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching customer data',
+      error: error.message
+    });
+  }
+});
+
+// Route to get specific client by ID (for internal portal)
+router.get('/clients/:clientId', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    console.log(`[INTERNAL] Getting client details for ID: ${clientId}`);
+    
+    const customersCollection = await getCustomersCollection();
+    let customer;
+    
+    try {
+      customer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid client ID format',
+        error: e.message
+      });
+    }
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
+    }
+    
+    console.log(`[INTERNAL] Found client: ${customer.raisonSociale || customer.name}`);
+    
+    res.status(200).json({
+      success: true,
+      customer
+    });
+  } catch (error) {
+    console.error('[INTERNAL] Error fetching client data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching client data',
+      error: error.message
+    });
+  }
+});
+
+// Route to update specific client by ID (for internal portal)
+router.put('/clients/:clientId', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const updateData = req.body;
+    
+    console.log(`[INTERNAL] Updating client ${clientId}:`, updateData);
+    
+    // Remove any fields that should not be updated
+    delete updateData._id; // Cannot update MongoDB _id
+    
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document first
+    let existingCustomer;
+    try {
+      existingCustomer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid client ID format',
+        error: e.message
+      });
+    }
+    
+    if (!existingCustomer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
+    }
+    
+    // Update the document
+    const result = await customersCollection.updateOne(
+      { _id: new ObjectId(clientId) },
+      { $set: updateData }
+    );
+    
+    if (result.modifiedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No changes were made to the client profile'
+      });
+    }
+    
+    // Get the updated customer data
+    const updatedCustomer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
+    
+    console.log(`[INTERNAL] Successfully updated client: ${updatedCustomer.raisonSociale || updatedCustomer.name}`);
+    
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: 'Client profile updated successfully',
+      customer: updatedCustomer
+    });
+  } catch (error) {
+    console.error('[INTERNAL] Error updating client data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while updating the client profile',
+      error: error.message
+    });
+  }
+});
+
+// Route to get shop products for internal portal
+router.get('/shop/:shopId/products', async (req, res) => {
+  try {
+    const { shopId } = req.params;
+    console.log(`[INTERNAL] Getting products for shop: ${shopId}`);
+    
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer with this shop
+    const customer = await customersCollection.findOne({
+      'shops.shopId': shopId
+    });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Find the specific shop
+    const shop = customer.shops.find(s => s.shopId === shopId);
+    
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found in customer data'
+      });
+    }
+    
+    const products = shop.products || [];
+    
+    console.log(`[INTERNAL] Found ${products.length} products for shop ${shopId}`);
+    
+    res.status(200).json({
+      success: true,
+      products
+    });
+  } catch (error) {
+    console.error('[INTERNAL] Error fetching shop products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching shop products',
+      error: error.message
+    });
+  }
+});
+
+// Route to get shop documentation (for internal portal)
+router.get('/shop/:shopId/documentation', (req, res) => {
+  const { shopId } = req.params;
+  console.log(`[INTERNAL] Getting documentation for shop: ${shopId}`);
+  
+  // Redirect to the existing customer route (it handles file serving)
+  res.redirect(`/api/customer/shop/${shopId}/documentation`);
+});
+
+// Route to get product documentation (for internal portal)
+router.get('/shop/:shopId/product/:productId/documentation', async (req, res) => {
+  const { shopId, productId } = req.params;
+  console.log(`[INTERNAL] Getting product documentation for shop: ${shopId}, product: ${productId}`);
+  
+  // Redirect to the existing customer route (it handles file serving and generation)
+  res.redirect(`/api/customer/shop/${shopId}/product/${productId}/documentation`);
+});
+
+// Route to post shop documentation (for internal portal)
+router.post('/shop/:shopId/documentation', async (req, res) => {
+  const { shopId } = req.params;
+  console.log(`[INTERNAL] Creating shop documentation for: ${shopId}`);
+  
+  // Forward the request to the customer route with all headers and body
+  try {
+    const customerRoutes = require('./customer');
+    // This requires some refactoring to properly forward the request
+    // For now, just redirect with a 307 (temporary redirect with method preservation)
+    res.redirect(307, `/api/customer/shop/${shopId}/documentation`);
+  } catch (error) {
+    console.error('[INTERNAL] Error forwarding documentation request:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing documentation request',
+      error: error.message
+    });
+  }
+});
+
+// Route to post product documentation (for internal portal)
+router.post('/shop/:shopId/product/:productId/documentation', async (req, res) => {
+  const { shopId, productId } = req.params;
+  console.log(`[INTERNAL] Creating product documentation for shop: ${shopId}, product: ${productId}`);
+  
+  // Forward the request to the customer route
+  try {
+    res.redirect(307, `/api/customer/shop/${shopId}/product/${productId}/documentation`);
+  } catch (error) {
+    console.error('[INTERNAL] Error forwarding product documentation request:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing product documentation request',
+      error: error.message
+    });
+  }
+});
+
 // Route to get all products from all customers (for internal portal)
 router.get('/all-products', async (req, res) => {
   try {
@@ -3560,11 +3919,12 @@ router.post('/shops/:shopId/push-dawn-theme', async (req, res) => {
       
       // Add banner section with proper CDN integration and all required settings
       if (cdnUrls.desktopBanner || cdnUrls.mobileBanner) {
-        simpleSettings['sections_image_banner'] = {
+        // Use Shopify section handle "image_banner" to match Dawn's index.json default
+        simpleSettings.image_banner = {
           type: 'image-banner',
           settings: {
             heading: shop.nomProjet || 'Welcome',
-            use_cdn: true,
+            use_cdn: Boolean(cdnUrls.desktopBanner || cdnUrls.mobileBanner),
             cdn_alt: shop.nomProjet || 'Banner',
             color_scheme: 'scheme-1', // Required for color schemes to work
             image_height: 'large',
@@ -3604,11 +3964,11 @@ router.post('/shops/:shopId/push-dawn-theme', async (req, res) => {
         };
 
         if (cdnUrls.desktopBanner) {
-          simpleSettings['sections_image_banner'].settings.desktop_cdn = cdnUrls.desktopBanner;
+          simpleSettings.image_banner.settings.desktop_cdn = cdnUrls.desktopBanner;
         }
 
         if (cdnUrls.mobileBanner) {
-          simpleSettings['sections_image_banner'].settings.mobile_cdn = cdnUrls.mobileBanner;
+          simpleSettings.image_banner.settings.mobile_cdn = cdnUrls.mobileBanner;
         }
       }
       
@@ -3638,11 +3998,23 @@ router.post('/shops/:shopId/push-dawn-theme', async (req, res) => {
       const indexTemplatePath = path.join(dawnThemePath, 'templates/index.json');
       let indexTemplate = JSON.parse(fs.readFileSync(indexTemplatePath, 'utf8'));
       
-      // Update the image_banner section with our CDN settings
+      // Ensure image_banner section exists before updating settings
+        if (!indexTemplate.sections.image_banner) {
+          indexTemplate.sections.image_banner = {
+            type: 'image-banner',
+            blocks: {},
+            settings: {}
+          };
+          // Prepend to order if not already present
+          if (!indexTemplate.order.includes('image_banner')) {
+            indexTemplate.order.unshift('image_banner');
+          }
+        }
+        // Update the image_banner section with our CDN settings
       if (cdnUrls.desktopBanner || cdnUrls.mobileBanner) {
         indexTemplate.sections.image_banner.settings = {
           ...indexTemplate.sections.image_banner.settings,
-          use_cdn: true,
+          use_cdn: Boolean(cdnUrls.desktopBanner || cdnUrls.mobileBanner),
           cdn_alt: shop.nomProjet || 'Banner',
           color_scheme: 'scheme-1',
           image_height: 'large',
@@ -3781,5 +4153,4 @@ router.post('/shops/:shopId/push-dawn-theme', async (req, res) => {
   }
 });
 
-module.exports = router; 
 module.exports = router; 

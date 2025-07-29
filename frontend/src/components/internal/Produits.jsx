@@ -753,7 +753,7 @@ const Produits = () => {
   if (error) return <p>Erreur: {error}</p>;
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="w-full p-4">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">Tous les Produits</h1>
         <input

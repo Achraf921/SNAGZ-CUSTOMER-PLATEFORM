@@ -142,26 +142,6 @@ const Page1_InfosGeneralesProjet = ({ formData, handleChange }) => {
 
         <div className="sm:col-span-3">
           <label
-            htmlFor="nomClient"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Nom du Client <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <input
-              type="text"
-              name="nomClient"
-              id="nomClient"
-              value={formData.nomClient}
-              onChange={handleChange}
-              required
-              className="shadow-sm focus:ring-sna-primary focus:border-sna-primary block w-full sm:text-sm border-gray-300 rounded-md"
-            />
-          </div>
-        </div>
-
-        <div className="sm:col-span-3">
-          <label
             htmlFor="contactsClient"
             className="block text-sm font-medium text-gray-700"
           >

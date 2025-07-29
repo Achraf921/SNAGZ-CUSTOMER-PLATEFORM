@@ -1,6 +1,8 @@
 const { S3Client } = require('@aws-sdk/client-s3');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
+const path = require('path');
+const fs = require('fs');
 
 // Configure AWS S3 Client (v3)
 const s3 = new S3Client({
@@ -70,32 +72,18 @@ const createShopUpload = (folder) => {
   });
 };
 
-// Multer configuration for product images
+// Multer configuration for product images - using local storage first for debugging
 const createProductUpload = () => {
   return multer({
-    storage: multerS3({
-      s3: s3,
-      bucket: bucketName,
-      metadata: function (req, file, cb) {
-        cb(null, {
-          fieldName: file.fieldname,
-          shopId: req.params.shopId || req.body.shopId,
-          productId: req.params.productId || req.body.productId,
-          uploadedAt: new Date().toISOString()
-        });
-      },
-      key: function (req, file, cb) {
-        const shopId = req.params.shopId || req.body.shopId;
-        const productId = req.params.productId || req.body.productId;
-        const fileName = generateFileName(file.originalname, 'products', shopId, productId);
-        cb(null, fileName);
-      }
-    }),
+    dest: path.join(__dirname, '..', 'uploads', 'temp'),
     fileFilter: (req, file, cb) => {
+      console.log('🔍 [MULTER DEBUG] Processing file:', file.originalname, file.mimetype);
       // Only allow image files
       if (file.mimetype.startsWith('image/')) {
+        console.log('🔍 [MULTER DEBUG] File accepted:', file.originalname);
         cb(null, true);
       } else {
+        console.log('🔍 [MULTER DEBUG] File rejected (not an image):', file.originalname);
         cb(new Error('Only image files are allowed!'), false);
       }
     },
@@ -104,6 +92,25 @@ const createProductUpload = () => {
     }
   });
 };
+
+// Create a multer instance specifically for product image uploads
+const productImagesUpload = multer({
+  dest: path.join(__dirname, '..', 'uploads', 'temp'),
+  fileFilter: (req, file, cb) => {
+    console.log('🔍 [MULTER DEBUG] Processing file:', file.originalname, file.mimetype);
+    // Only allow image files
+    if (file.mimetype.startsWith('image/')) {
+      console.log('🔍 [MULTER DEBUG] File accepted:', file.originalname);
+      cb(null, true);
+    } else {
+      console.log('🔍 [MULTER DEBUG] File rejected (not an image):', file.originalname);
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+}).array('productImages', 5);
 
 // Function to delete image from S3 (using SDK v3)
 const deleteImage = async (imageUrl) => {
@@ -143,13 +150,60 @@ const getSignedUrl = async (key) => {
   }
 };
 
+// Function to upload file to S3 (using SDK v3)
+const uploadFile = async (fileData, key, contentType) => {
+  try {
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
+    
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      Body: fileData,
+      ContentType: contentType,
+      Metadata: {
+        uploadedAt: new Date().toISOString()
+      },
+      // Add CORS headers
+      CacheControl: 'public, max-age=31536000',
+      ContentDisposition: 'inline'
+    });
+    
+    await s3.send(command);
+    return { success: true };
+  } catch (error) {
+    console.error('Error uploading file to S3:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Function to generate presigned URL for uploads
+const generatePresignedUrl = async (key) => {
+  try {
+    const { GetObjectCommand } = require('@aws-sdk/client-s3');
+    const { getSignedUrl: awsGetSignedUrl } = require('@aws-sdk/s3-request-presigner');
+    
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    });
+    
+    return await awsGetSignedUrl(s3, command, { expiresIn: 3600 }); // 1 hour
+  } catch (error) {
+    console.error('Error generating presigned URL:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   logoUpload: createShopUpload('logos'),
   bannerUpload: createShopUpload('banners'),
   faviconUpload: createShopUpload('favicons'),
   productUpload: createProductUpload(),
+  productImagesUpload: productImagesUpload,
   deleteImage,
   getSignedUrl,
+  uploadFile,
+  generatePresignedUrl,
   s3,
   bucketName
 }; 

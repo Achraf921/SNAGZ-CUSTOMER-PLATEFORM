@@ -10,7 +10,7 @@ const ShopifyShopsManager = () => {
   const fetchShops = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/customer/all-shops");
+      const res = await fetch("/api/internal/all-shops");
       if (!res.ok) throw new Error("Erreur réseau");
       const data = await res.json();
       setShops(data.shops || []);

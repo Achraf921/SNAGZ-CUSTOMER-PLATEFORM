@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import WelcomeForm from "./WelcomeForm";
+import {
+  validateUserIdentity,
+  clearAllAuthData,
+} from "../../utils/authSecurity";
 import { FaLock, FaEye, FaEyeSlash, FaCheckCircle } from "react-icons/fa";
 
 const ManageAccount = () => {
@@ -28,6 +32,23 @@ const ManageAccount = () => {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
+    console.log("🔒 SECURITY: Starting manage account security check...");
+
+    // CRITICAL: Validate user identity first before any processing
+    const identityCheck = validateUserIdentity();
+
+    if (!identityCheck.valid) {
+      console.error(
+        "🚨 SECURITY: User identity validation failed in ManageAccount:",
+        identityCheck.reason
+      );
+      clearAllAuthData();
+      window.location.href = "/client/login";
+      return;
+    }
+
+    console.log("✅ SECURITY: User identity validated for account management");
+
     // Check if this is a first-time login (after password change)
     const isFirstLogin = sessionStorage.getItem("isFirstLogin") === "true";
 
@@ -116,11 +137,8 @@ const ManageAccount = () => {
       console.log("Current timestamp:", new Date().toISOString());
       console.log("==== END DEBUG INFO ====");
 
-      // Determine API URL based on environment
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? `/api/customer/by-user-id/${userId}`
-          : `http://localhost:5000/api/customer/by-user-id/${userId}`;
+      // Use relative path to leverage Vite proxy for development
+      const apiUrl = `/api/customer/by-user-id/${userId}`;
 
       console.log("API URL:", apiUrl);
 
@@ -231,10 +249,7 @@ const ManageAccount = () => {
       console.log("==== END SAVE CHANGES DEBUG INFO ====");
 
       // Determine API URL based on environment
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? `/api/customer/update/${effectiveUserId}`
-          : `http://localhost:5000/api/customer/update/${effectiveUserId}`;
+      const apiUrl = `/api/customer/update/${effectiveUserId}`;
 
       const response = await fetch(apiUrl, {
         method: "PUT",
@@ -343,11 +358,8 @@ const ManageAccount = () => {
         userId: effectiveUserId,
       };
 
-      // Determine API URL based on environment
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? "/api/customer/welcome-form"
-          : "http://localhost:5000/api/customer/welcome-form";
+      // Use relative path to leverage Vite proxy for development
+      const apiUrl = "/api/customer/welcome-form";
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -546,6 +558,10 @@ const ManageAccount = () => {
                 "shops",
                 "shopsCount",
                 "updatedAt",
+                "CompteClientNumber", // Hidden from user view and editing
+                "documented", // Hidden from user view and editing
+                "Payement", // Hidden from user view and editing
+                "payment", // Hidden from user view and editing
               ].includes(key)
             )
               return null;
@@ -740,6 +756,10 @@ const ManageAccount = () => {
         "shops",
         "shopsCount",
         "updatedAt",
+        "CompteClientNumber", // Hidden from user view and editing
+        "documented", // Hidden from user view and editing
+        "Payement", // Hidden from user view and editing
+        "payment", // Hidden from user view and editing
       ].includes(key)
     ) {
       societyInfo[key] = value;
@@ -842,7 +862,6 @@ const ManageAccount = () => {
       {/* Render each section */}
       {renderSectionData(societyInfo, "Informations société")}
       {renderSectionData(contactInfo, "Contacts")}
-      {renderSectionData(signatureInfo, "Signature")}
 
       {/* Security section - Password Change */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">

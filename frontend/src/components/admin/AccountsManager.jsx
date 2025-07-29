@@ -6,7 +6,6 @@ const AccountsManager = ({ type, title }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
   const [credentials, setCredentials] = useState(null);
   const [showCredentials, setShowCredentials] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ show: false, user: null });
@@ -21,10 +20,7 @@ const AccountsManager = ({ type, title }) => {
       setLoading(true);
       setError(null);
 
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? `/api/accounts/${type}`
-          : `http://localhost:5000/api/accounts/${type}`;
+      const apiUrl = `/api/accounts/${type}`;
 
       const response = await fetch(apiUrl, {
         method: "GET",
@@ -72,10 +68,7 @@ const AccountsManager = ({ type, title }) => {
       const user = users.find((u) => u.username === username);
       const newStatus = user.status === "active" ? false : true;
 
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? `/api/accounts/${type}/${username}/status`
-          : `http://localhost:5000/api/accounts/${type}/${username}/status`;
+      const apiUrl = `/api/accounts/${type}/${username}/status`;
 
       const response = await fetch(apiUrl, {
         method: "PATCH",
@@ -114,10 +107,7 @@ const AccountsManager = ({ type, title }) => {
     if (!user) return;
 
     try {
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? `/api/accounts/${type}/${user.username}`
-          : `http://localhost:5000/api/accounts/${type}/${user.username}`;
+      const apiUrl = `/api/accounts/${type}/${user.username}`;
 
       const response = await fetch(apiUrl, {
         method: "DELETE",
@@ -176,7 +166,6 @@ const AccountsManager = ({ type, title }) => {
     }
 
     setShowCreateForm(false);
-    setEditingUser(null);
   };
 
   if (loading) {
@@ -275,9 +264,15 @@ const AccountsManager = ({ type, title }) => {
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Actions
+                  Status
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Supprimer
                 </th>
               </tr>
             </thead>
@@ -285,7 +280,7 @@ const AccountsManager = ({ type, title }) => {
               {users.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={type === "client" ? 6 : 5}
+                    colSpan={type === "client" ? 7 : 6}
                     className="px-6 py-8 text-center text-gray-500"
                   >
                     Aucun compte trouvé
@@ -341,22 +336,22 @@ const AccountsManager = ({ type, title }) => {
                         ? new Date(user.createdAt).toLocaleDateString("fr-FR")
                         : "N/A"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <button
-                        onClick={() => setEditingUser(user)}
-                        className="text-sna-primary hover:text-sna-primary/80 mr-3"
-                      >
-                        Modifier
-                      </button>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
                       <button
                         onClick={() => handleStatusToggle(user.username)}
-                        className="text-orange-600 hover:text-orange-800 mr-3"
+                        className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                          user.status === "active"
+                            ? "bg-red-100 text-red-700 hover:bg-red-200"
+                            : "bg-green-100 text-green-700 hover:bg-green-200"
+                        }`}
                       >
                         {user.status === "active" ? "Désactiver" : "Activer"}
                       </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
                       <button
                         onClick={() => handleDeleteClick(user)}
-                        className="text-red-600 hover:text-red-800"
+                        className="px-3 py-1 rounded-md text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                       >
                         Supprimer
                       </button>
@@ -369,15 +364,13 @@ const AccountsManager = ({ type, title }) => {
         </div>
       </div>
 
-      {(showCreateForm || editingUser) && (
+      {showCreateForm && (
         <CreateUser
           userType={type}
           onClose={() => {
             setShowCreateForm(false);
-            setEditingUser(null);
           }}
           onSuccess={handleUserCreated}
-          initialData={editingUser}
         />
       )}
 

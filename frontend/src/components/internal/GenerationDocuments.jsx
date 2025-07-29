@@ -36,7 +36,7 @@ const GenerationDocuments = () => {
 
     try {
       const response = await fetch(
-        `/api/customer/shop/${shopId}/documentation`,
+        `/api/internal/shop/${shopId}/documentation`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -100,7 +100,7 @@ const GenerationDocuments = () => {
   if (error) return <p className="text-red-600">{error}</p>;
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="w-full p-4 space-y-6">
       <h1 className="text-2xl font-bold text-gray-800">
         Génération de documents
       </h1>

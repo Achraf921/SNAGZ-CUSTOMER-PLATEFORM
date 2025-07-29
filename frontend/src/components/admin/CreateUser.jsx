@@ -124,10 +124,7 @@ const CreateUser = ({ userType, onClose, onSuccess }) => {
     setErrors({});
 
     try {
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? `/api/accounts/${userType}`
-          : `http://localhost:5000/api/accounts/${userType}`;
+      const apiUrl = `/api/accounts/${userType}`;
 
       const response = await fetch(apiUrl, {
         method: "POST",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   FaStore,
   FaShoppingBag,
@@ -6,6 +6,11 @@ import {
   FaPlus,
   FaExclamationTriangle,
   FaCheckCircle,
+  FaChevronDown,
+  FaChevronRight,
+  FaTrash,
+  FaUpload,
+  FaGripVertical,
 } from "react-icons/fa";
 
 const MesProduits = () => {
@@ -18,6 +23,16 @@ const MesProduits = () => {
   const [editForm, setEditForm] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [expandedProducts, setExpandedProducts] = useState(new Set());
+  const [draggedImageIndex, setDraggedImageIndex] = useState(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [deletingImage, setDeletingImage] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingField, setEditingField] = useState({}); // { productId: { field: value } }
+  const [editingFieldName, setEditingFieldName] = useState({}); // { productId: fieldName }
+  const [showEANValidationModal, setShowEANValidationModal] = useState(false);
+  const [invalidEANs, setInvalidEANs] = useState([]);
+  const [isEditingBasicFields, setIsEditingBasicFields] = useState({});
 
   const availableSizes = ["XS", "S", "M", "L", "XL"];
   const availableColors = [
@@ -73,10 +88,7 @@ const MesProduits = () => {
 
       try {
         setLoading(true);
-        const apiUrl =
-          process.env.NODE_ENV === "production"
-            ? `/api/customer/shops/${userId}`
-            : `http://localhost:5000/api/customer/shops/${userId}`;
+        const apiUrl = `/api/customer/shops/${userId}`;
 
         const response = await fetch(apiUrl, {
           method: "GET",
@@ -112,10 +124,7 @@ const MesProduits = () => {
 
     try {
       setLoading(true);
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? `/api/customer/shops/${userId}/${shopId}/products`
-          : `http://localhost:5000/api/customer/shops/${userId}/${shopId}/products`;
+      const apiUrl = `/api/customer/shops/${userId}/${shopId}/products`;
 
       const response = await fetch(apiUrl, {
         method: "GET",
@@ -139,7 +148,571 @@ const MesProduits = () => {
   const handleShopSelect = (shop) => {
     setSelectedShop(shop);
     setEditingProduct(null);
+    setExpandedProducts(new Set()); // Reset expanded products when changing shop
     fetchProducts(shop.shopId);
+  };
+
+  const toggleProductExpansion = (productId) => {
+    setExpandedProducts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  // Image management functions
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const handleDeleteImage = async (productId, imageIndex) => {
+    if (!selectedShop) return;
+
+    setDeleteTarget({ productId, imageIndex });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteImageConfirm = async () => {
+    if (!deleteTarget) return;
+
+    const { productId, imageIndex } = deleteTarget;
+    setDeletingImage(`${productId}-${imageIndex}`);
+
+    try {
+      const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/images/${imageIndex}`;
+
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Erreur lors de la suppression de l'image"
+        );
+      }
+
+      // Update the local state instead of refreshing the entire product list
+      setProducts((prevProducts) =>
+        prevProducts.map((p) => {
+          if (p.productId === productId) {
+            // Ensure imageUrls is always an array
+            const currentImageUrls = p.imageUrls || [];
+            const updatedImageUrls = currentImageUrls.filter(
+              (_, idx) => idx !== imageIndex
+            );
+            return {
+              ...p,
+              imageUrls: updatedImageUrls,
+            };
+          }
+          return p;
+        })
+      );
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      setError("Erreur lors de la suppression de l'image: " + error.message);
+    } finally {
+      setDeletingImage(null);
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleDeleteImageCancel = () => {
+    setShowDeleteModal(false);
+    setDeleteTarget(null);
+  };
+
+  // Individual field editing functions
+  const handleEditField = (productId, fieldName, currentValue) => {
+    setEditingFieldName((prev) => ({ ...prev, [productId]: fieldName }));
+    setEditingField((prev) => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        [fieldName]: currentValue,
+      },
+    }));
+  };
+
+  const handleFieldChange = (productId, fieldName, value) => {
+    setEditingField((prev) => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        [fieldName]: value,
+      },
+    }));
+  };
+
+  const handleSaveField = async (productId, fieldName) => {
+    if (!selectedShop) return;
+
+    const newValue = editingField[productId]?.[fieldName];
+    if (newValue === undefined) return;
+
+    // Validate EANs if saving stock
+    if (fieldName === "stock" && editingField[productId]?.eans) {
+      const invalidEANs = validateAllEANs(productId);
+      if (invalidEANs.length > 0) {
+        setInvalidEANs(invalidEANs);
+        setShowEANValidationModal(true);
+        return;
+      }
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}`;
+
+      // If saving stock, also include EAN changes
+      let updateData = { [fieldName]: newValue };
+      if (fieldName === "stock" && editingField[productId]?.eans) {
+        // Clean EANs before saving
+        const cleanedEANs = {};
+        Object.entries(editingField[productId].eans).forEach(([key, ean]) => {
+          cleanedEANs[key] = cleanEAN(ean);
+        });
+        updateData.eans = cleanedEANs;
+      }
+
+      const response = await fetch(apiUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Erreur lors de la mise à jour du champ"
+        );
+      }
+
+      // Update local state
+      setProducts((prevProducts) =>
+        prevProducts.map((p) => {
+          if (p.productId === productId) {
+            let updatedProduct = { ...p, [fieldName]: newValue };
+            // If saving stock and EAN was also updated, include EAN changes
+            if (fieldName === "stock" && editingField[productId]?.eans) {
+              const cleanedEANs = {};
+              Object.entries(editingField[productId].eans).forEach(
+                ([key, ean]) => {
+                  cleanedEANs[key] = cleanEAN(ean);
+                }
+              );
+              updatedProduct = {
+                ...updatedProduct,
+                eans: cleanedEANs,
+              };
+            }
+            return updatedProduct;
+          }
+          return p;
+        })
+      );
+
+      // Clear editing state
+      setEditingFieldName((prev) => {
+        const newState = { ...prev };
+        delete newState[productId];
+        return newState;
+      });
+      setEditingField((prev) => {
+        const newState = { ...prev };
+        delete newState[productId];
+        return newState;
+      });
+    } catch (error) {
+      console.error("Error updating field:", error);
+      setError("Erreur lors de la mise à jour: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelEdit = (productId) => {
+    setEditingFieldName((prev) => {
+      const newState = { ...prev };
+      delete newState[productId];
+      return newState;
+    });
+    setEditingField((prev) => {
+      const newState = { ...prev };
+      delete newState[productId];
+      return newState;
+    });
+  };
+
+  // EAN validation functions
+  const validateEAN = (ean) => {
+    if (!ean || ean.trim() === "") return true; // Allow empty EANs
+    const digitsOnly = ean.replace(/\D/g, "");
+    return digitsOnly.length === 13;
+  };
+
+  const cleanEAN = (ean) => {
+    if (!ean || ean.trim() === "") return "";
+    return ean.replace(/\D/g, "");
+  };
+
+  const cleanPrice = (price) => {
+    if (!price || price.toString().trim() === "") return 0;
+    const cleaned = price.toString().replace(/[^\d.]/g, "");
+    return parseFloat(cleaned) || 0;
+  };
+
+  const cleanWeight = (weight) => {
+    if (!weight || weight.toString().trim() === "") return 0;
+    const cleaned = weight.toString().replace(/[^\d.]/g, "");
+    return parseFloat(cleaned) || 0;
+  };
+
+  const validateAllEANs = (productId) => {
+    const eans = editingField[productId]?.eans;
+    if (!eans) return [];
+
+    const invalidEANs = [];
+
+    // Check each EAN
+    Object.entries(eans).forEach(([key, ean]) => {
+      const cleanedEAN = cleanEAN(ean);
+      if (!validateEAN(cleanedEAN)) {
+        invalidEANs.push({
+          key,
+          ean,
+          message: `EAN "${ean}" doit contenir exactement 13 chiffres`,
+        });
+      }
+    });
+
+    return invalidEANs;
+  };
+
+  const handleEANChange = (productId, combination, value) => {
+    // Allow any input, only filter on blur or save to ensure normal textbox behavior
+    const newEans = {
+      ...editingField[productId]?.eans,
+      [combination]: value,
+    };
+    handleFieldChange(productId, "eans", newEans);
+  };
+
+  const handlePriceChange = (productId, value) => {
+    // Allow any input for normal textbox behavior
+    handleFieldChange(productId, "price", value);
+  };
+
+  const handleWeightChange = (productId, value) => {
+    // Allow any input for normal textbox behavior
+    handleFieldChange(productId, "weight", value);
+  };
+
+  const handleEditBasicFields = (productId, product) => {
+    setIsEditingBasicFields((prev) => ({
+      ...prev,
+      [productId]: !prev[productId],
+    }));
+
+    if (!isEditingBasicFields[productId]) {
+      // Enable editing for title, price, and weight simultaneously
+      setEditingField((prev) => ({
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          titre: product.titre || "",
+          price: product.price || product.prix || 0,
+          weight: product.weight || product.poids || "",
+        },
+      }));
+      setEditingFieldName((prev) => ({
+        ...prev,
+        [productId]: "basicFields",
+      }));
+    } else {
+      // Cancel editing
+      setEditingField((prev) => {
+        const newState = { ...prev };
+        delete newState[productId];
+        return newState;
+      });
+      setEditingFieldName((prev) => {
+        const newState = { ...prev };
+        delete newState[productId];
+        return newState;
+      });
+      setIsEditingBasicFields((prev) => ({
+        ...prev,
+        [productId]: false,
+      }));
+    }
+  };
+
+  const handleSaveBasicFields = async (productId) => {
+    if (!selectedShop) return;
+
+    const editedData = editingField[productId];
+    if (!editedData) return;
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}`;
+
+      const updateData = {
+        titre: editedData.titre,
+        price: cleanPrice(editedData.price),
+        weight: cleanWeight(editedData.weight),
+      };
+
+      const response = await fetch(apiUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update product");
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        // Update local state
+        setProducts((prevProducts) =>
+          prevProducts.map((p) => {
+            if (p.productId === productId) {
+              return {
+                ...p,
+                titre: editedData.titre,
+                price: cleanPrice(editedData.price),
+                weight: cleanWeight(editedData.weight),
+              };
+            }
+            return p;
+          })
+        );
+
+        // Clear editing state
+        setEditingField((prev) => {
+          const newState = { ...prev };
+          delete newState[productId];
+          return newState;
+        });
+        setEditingFieldName((prev) => {
+          const newState = { ...prev };
+          delete newState[productId];
+          return newState;
+        });
+        setIsEditingBasicFields((prev) => ({
+          ...prev,
+          [productId]: false,
+        }));
+      } else {
+        throw new Error(result.message || "Failed to update product");
+      }
+    } catch (error) {
+      console.error("Error updating product:", error);
+      setError("Erreur lors de la mise à jour du produit");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleImageUpload = async (productId, files, replaceIndex = null) => {
+    if (!selectedShop) return;
+
+    setUploadingImages(true);
+
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append("productImages", file);
+      });
+
+      // If replacing a specific image, add the index
+      if (replaceIndex !== null) {
+        formData.append("replaceIndex", replaceIndex.toString());
+      }
+
+      const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/upload-images`;
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Erreur lors de l'upload des images"
+        );
+      }
+
+      // Get the response data to update local state
+      const responseData = await response.json();
+
+      // Update the local state instead of refreshing the entire product list
+      if (responseData.success && responseData.imageUrls) {
+        // The backend returns full S3 URLs, but we need to extract the S3 keys and generate signed URLs
+        const signedImageUrls = await Promise.all(
+          responseData.imageUrls.map(async (fullS3Url) => {
+            try {
+              // Extract S3 key from the full URL
+              const url = new URL(fullS3Url);
+              const s3Key = url.pathname.substring(1); // Remove leading slash
+
+              // Generate signed URL using the existing signed URL generation from the products fetch
+              // We'll use the same approach as in the products fetch - just return the signed URL directly
+              const signedUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/image-proxy?imageKey=${encodeURIComponent(s3Key)}`;
+
+              return signedUrl;
+            } catch (error) {
+              console.error("Error processing S3 URL:", error);
+              return fullS3Url; // Fallback to original URL if processing fails
+            }
+          })
+        );
+
+        setProducts((prevProducts) =>
+          prevProducts.map((p) => {
+            if (p.productId === productId) {
+              // Ensure imageUrls is always an array
+              const currentImageUrls = p.imageUrls || [];
+
+              if (replaceIndex !== null) {
+                // Replace specific image
+                const updatedImageUrls = [...currentImageUrls];
+                updatedImageUrls[replaceIndex] = signedImageUrls[0];
+                return {
+                  ...p,
+                  imageUrls: updatedImageUrls,
+                };
+              } else {
+                // Append new images
+                return {
+                  ...p,
+                  imageUrls: [...currentImageUrls, ...signedImageUrls],
+                };
+              }
+            }
+            return p;
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      setError("Erreur lors de l'upload des images: " + error.message);
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const handleDragStart = (e, imageIndex) => {
+    setDraggedImageIndex(imageIndex);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = async (e, dropIndex, productId) => {
+    e.preventDefault();
+
+    if (draggedImageIndex === null || draggedImageIndex === dropIndex) {
+      setDraggedImageIndex(null);
+      return;
+    }
+
+    const product = products.find((p) => p.productId === productId);
+    if (!product) return;
+
+    // Ensure imageUrls is always an array
+    const currentImageUrls = product.imageUrls || [];
+    if (currentImageUrls.length === 0) return;
+
+    // Create new order array
+    const newOrder = [...currentImageUrls];
+    const draggedImage = newOrder[draggedImageIndex];
+
+    // Remove dragged item
+    newOrder.splice(draggedImageIndex, 1);
+
+    // Insert at new position
+    newOrder.splice(dropIndex, 0, draggedImage);
+
+    // Convert signed URLs back to S3 keys for the backend
+    const convertToS3Keys = (urls) => {
+      return urls.map((url) => {
+        if (url.startsWith("https://")) {
+          // Extract S3 key from signed URL
+          try {
+            const urlObj = new URL(url);
+            return decodeURIComponent(urlObj.pathname.substring(1));
+          } catch (e) {
+            return url; // Return as-is if parsing fails
+          }
+        } else {
+          // Already an S3 key
+          return url;
+        }
+      });
+    };
+
+    const newOrderWithS3Keys = convertToS3Keys(newOrder);
+
+    try {
+      const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/images/reorder`;
+
+      const response = await fetch(apiUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newOrder: newOrderWithS3Keys }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Erreur lors du réordonnancement des images"
+        );
+      }
+
+      // Update the local state instead of refreshing the entire product list
+      setProducts((prevProducts) =>
+        prevProducts.map((p) => {
+          if (p.productId === productId) {
+            return {
+              ...p,
+              imageUrls: newOrder,
+            };
+          }
+          return p;
+        })
+      );
+    } catch (error) {
+      console.error("Error reordering images:", error);
+      setError("Erreur lors du réordonnancement des images: " + error.message);
+    } finally {
+      setDraggedImageIndex(null);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedImageIndex(null);
   };
 
   const handleEditProduct = (product) => {
@@ -258,10 +831,7 @@ const MesProduits = () => {
         weight: editForm.weight ? parseFloat(editForm.weight) : null,
       };
 
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${editingProduct}`
-          : `http://localhost:5000/api/customer/shops/${userId}/${selectedShop.shopId}/products/${editingProduct}`;
+      const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${editingProduct}`;
 
       const response = await fetch(apiUrl, {
         method: "PUT",
@@ -291,6 +861,76 @@ const MesProduits = () => {
   const getShopProductCount = (shop) => {
     return shop.products?.length || 0;
   };
+
+  // Search function to filter products
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm.trim() || !products) {
+      return products;
+    }
+
+    const searchLower = searchTerm.toLowerCase().trim();
+
+    return products.filter((product) => {
+      // Search in title
+      if (product.titre && product.titre.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+
+      // Search in description
+      if (
+        product.description &&
+        product.description.toLowerCase().includes(searchLower)
+      ) {
+        return true;
+      }
+
+      // Search in product type
+      if (
+        product.typeProduit &&
+        product.typeProduit.toLowerCase().includes(searchLower)
+      ) {
+        return true;
+      }
+
+      // Search in EAN
+      if (
+        product.ean &&
+        String(product.ean).toLowerCase().includes(searchLower)
+      ) {
+        return true;
+      }
+
+      // Search in sizes
+      if (
+        product.sizes &&
+        product.sizes.some((size) => size.toLowerCase().includes(searchLower))
+      ) {
+        return true;
+      }
+
+      // Search in colors
+      if (
+        product.colors &&
+        product.colors.some((color) =>
+          color.toLowerCase().includes(searchLower)
+        )
+      ) {
+        return true;
+      }
+
+      // Search in price (exact match for numbers)
+      if (product.price && String(product.price).includes(searchLower)) {
+        return true;
+      }
+
+      // Search in weight
+      if (product.weight && String(product.weight).includes(searchLower)) {
+        return true;
+      }
+
+      return false;
+    });
+  }, [products, searchTerm]);
 
   if (loading) {
     return (
@@ -424,7 +1064,8 @@ const MesProduits = () => {
                         {selectedShop.nomProjet || selectedShop.name}
                       </h2>
                       <span className="text-sm text-gray-600">
-                        {products.length} produit(s)
+                        {filteredProducts.length} produit(s){" "}
+                        {searchTerm && `sur ${products.length} total`}
                       </span>
                     </div>
                   </div>
@@ -436,36 +1077,101 @@ const MesProduits = () => {
                     Ajouter un produit
                   </a>
                 </div>
+
+                {/* Search Bar */}
+                <div className="mt-4 relative">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Rechercher un produit par titre, description, type, EAN, taille, couleur..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full px-4 py-2 pl-10 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sna-primary focus:border-sna-primary"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm("")}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {searchTerm && (
+                    <div className="mt-2 text-sm text-gray-500">
+                      {filteredProducts.length === 0 ? (
+                        <span>Aucun produit trouvé pour "{searchTerm}"</span>
+                      ) : (
+                        <span>
+                          {filteredProducts.length} produit(s) trouvé(s) pour "
+                          {searchTerm}"
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="p-6">
-                {products.length === 0 ? (
+                {filteredProducts.length === 0 ? (
                   <div className="text-center py-8">
                     <FaShoppingBag className="mx-auto text-gray-400 text-4xl mb-4" />
                     <h3 className="text-xl font-semibold text-gray-700 mb-3">
-                      Aucun produit dans cette boutique
+                      {searchTerm
+                        ? "Aucun produit trouvé"
+                        : "Aucun produit dans cette boutique"}
                     </h3>
                     <p className="text-gray-600 mb-6">
-                      Commencez par ajouter votre premier produit à cette
-                      boutique.
+                      {searchTerm
+                        ? `Aucun produit ne correspond à votre recherche "${searchTerm}". Essayez avec d'autres termes.`
+                        : "Commencez par ajouter votre premier produit à cette boutique."}
                     </p>
-                    <a
-                      href={`/client/produits/create?shopId=${selectedShop.shopId}`}
-                      className="bg-sna-primary text-white px-6 py-3 rounded-md hover:bg-sna-primary-dark transition duration-300"
-                    >
-                      Créer un produit
-                    </a>
+                    {!searchTerm && (
+                      <a
+                        href={`/client/produits/create?shopId=${selectedShop.shopId}`}
+                        className="bg-sna-primary text-white px-6 py-3 rounded-md hover:bg-sna-primary-dark transition duration-300"
+                      >
+                        Créer un produit
+                      </a>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {products.map((product) => (
+                    {filteredProducts.map((product) => (
                       <div
                         key={product.productId}
-                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200"
+                        className="border border-gray-200 rounded-lg hover:shadow-md transition-shadow duration-200"
                       >
                         {editingProduct === product.productId ? (
                           /* Edit Form */
-                          <div className="space-y-4">
+                          <div className="p-4 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -902,226 +1608,1098 @@ const MesProduits = () => {
                             </div>
                           </div>
                         ) : (
-                          /* Product Display */
+                          /* Product Display with Dropdown */
                           <div>
-                            <div className="flex items-start justify-between mb-3">
-                              <div>
-                                <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                                  {product.titre}
-                                </h3>
-                                <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                  <span>Prix: {product.price}€</span>
-                                  <span>Type: {product.typeProduit}</span>
-                                  {product.weight && (
-                                    <span>Poids: {product.weight}g</span>
+                            {/* Product Header - Always Visible */}
+                            <div
+                              className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                              onClick={() =>
+                                toggleProductExpansion(product.productId)
+                              }
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div className="text-sna-primary">
+                                  {expandedProducts.has(product.productId) ? (
+                                    <FaChevronDown className="w-4 h-4" />
+                                  ) : (
+                                    <FaChevronRight className="w-4 h-4" />
                                   )}
+                                </div>
+                                {/* Product Image Preview */}
+                                <div className="flex-shrink-0">
+                                  {product.imageUrls &&
+                                  product.imageUrls.length > 0 ? (
+                                    <img
+                                      src={product.imageUrls[0]}
+                                      alt={`${product.titre} - Preview`}
+                                      className="w-12 h-12 object-cover rounded-lg border"
+                                      onError={(e) => {
+                                        console.error(
+                                          "Failed to load product preview image:",
+                                          product.imageUrls[0]
+                                        );
+                                        // Show a placeholder instead of hiding the image
+                                        e.target.src =
+                                          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%23f3f4f6'/%3E%3Ctext x='24' y='24' font-family='Arial' font-size='10' fill='%236b7280' text-anchor='middle' dy='.3em'%3EImage%3C/text%3E%3C/svg%3E";
+                                        e.target.className =
+                                          "w-12 h-12 object-cover rounded-lg border bg-gray-100";
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 bg-gray-100 rounded-lg border flex items-center justify-center">
+                                      <FaShoppingBag className="w-5 h-5 text-gray-400" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  {editingFieldName[product.productId] ===
+                                  "basicFields" ? (
+                                    <input
+                                      type="text"
+                                      value={
+                                        editingField[product.productId]
+                                          ?.titre !== undefined
+                                          ? editingField[product.productId]
+                                              .titre
+                                          : product.titre || ""
+                                      }
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          product.productId,
+                                          "titre",
+                                          e.target.value
+                                        )
+                                      }
+                                      className="text-sm font-semibold px-2 py-1 mb-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-sna-primary w-48"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <h3 className="text-lg font-semibold text-gray-800 group-hover:text-sna-primary transition-colors cursor-pointer">
+                                      {product.titre || "Sans titre"}
+                                    </h3>
+                                  )}
+                                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                    <span className="flex items-center">
+                                      Prix:{" "}
+                                      {editingFieldName[product.productId] ===
+                                      "basicFields" ? (
+                                        <div className="flex items-center ml-1">
+                                          <input
+                                            type="text"
+                                            value={
+                                              editingField[product.productId]
+                                                ?.price !== undefined
+                                                ? editingField[
+                                                    product.productId
+                                                  ].price
+                                                : product.price ||
+                                                  product.prix ||
+                                                  0
+                                            }
+                                            onChange={(e) =>
+                                              handlePriceChange(
+                                                product.productId,
+                                                e.target.value
+                                              )
+                                            }
+                                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-sna-primary"
+                                          />
+                                          <span className="ml-1">€</span>
+                                        </div>
+                                      ) : (
+                                        <span className="ml-1">
+                                          {(
+                                            parseFloat(product.price) ||
+                                            parseFloat(product.prix) ||
+                                            0
+                                          ).toFixed(2)}
+                                          €
+                                        </span>
+                                      )}
+                                    </span>
+                                    <span className="flex items-center">
+                                      Type:{" "}
+                                      {editingFieldName[product.productId] ===
+                                      "typeProduit" ? (
+                                        <div className="flex items-center ml-1">
+                                          <input
+                                            type="text"
+                                            value={
+                                              editingField[product.productId]
+                                                ?.typeProduit ||
+                                              product.typeProduit ||
+                                              ""
+                                            }
+                                            onChange={(e) =>
+                                              handleFieldChange(
+                                                product.productId,
+                                                "typeProduit",
+                                                e.target.value
+                                              )
+                                            }
+                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-sna-primary"
+                                            autoFocus
+                                          />
+                                          <button
+                                            onClick={() =>
+                                              handleSaveField(
+                                                product.productId,
+                                                "typeProduit"
+                                              )
+                                            }
+                                            className="ml-1 text-green-600 hover:text-green-800"
+                                            disabled={isSubmitting}
+                                          >
+                                            ✓
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              handleCancelEdit(
+                                                product.productId
+                                              )
+                                            }
+                                            className="ml-1 text-red-600 hover:text-red-800"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span className="ml-1">
+                                          {product.typeProduit}
+                                        </span>
+                                      )}
+                                    </span>
+                                    {(product.weight ||
+                                      product.poids ||
+                                      editingFieldName[product.productId] ===
+                                        "basicFields") && (
+                                      <span className="flex items-center">
+                                        Poids:{" "}
+                                        {editingFieldName[product.productId] ===
+                                        "basicFields" ? (
+                                          <div className="flex items-center ml-1">
+                                            <input
+                                              type="text"
+                                              value={
+                                                editingField[product.productId]
+                                                  ?.weight !== undefined
+                                                  ? editingField[
+                                                      product.productId
+                                                    ].weight
+                                                  : product.weight ||
+                                                    product.poids ||
+                                                    ""
+                                              }
+                                              onChange={(e) =>
+                                                handleWeightChange(
+                                                  product.productId,
+                                                  e.target.value
+                                                )
+                                              }
+                                              className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-sna-primary"
+                                            />
+                                            <span className="ml-1">g</span>
+                                          </div>
+                                        ) : (
+                                          <span className="ml-1">
+                                            {product.weight || product.poids}g
+                                          </span>
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => handleEditProduct(product)}
-                                  className="text-blue-600 hover:text-blue-800 p-2"
-                                  title="Modifier"
-                                >
-                                  <FaEdit />
-                                </button>
+                                {editingFieldName[product.productId] ===
+                                "basicFields" ? (
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSaveBasicFields(
+                                          product.productId
+                                        );
+                                      }}
+                                      className="text-green-600 hover:text-green-800 p-2 rounded-full hover:bg-green-50 transition-colors"
+                                      disabled={isSubmitting}
+                                    >
+                                      ✓
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditBasicFields(
+                                          product.productId,
+                                          product
+                                        );
+                                      }}
+                                      className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : expandedProducts.has(product.productId) ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditBasicFields(
+                                        product.productId,
+                                        product
+                                      );
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                                  >
+                                    <FaEdit className="w-4 h-4" />
+                                  </button>
+                                ) : null}
                               </div>
                             </div>
 
-                            {product.description && (
-                              <p className="text-gray-600 mb-3">
-                                {product.description}
-                              </p>
-                            )}
-
-                            <div className="space-y-4">
-                              <div>
-                                <span className="font-medium text-gray-700">
-                                  Status:
-                                </span>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  <span
-                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                      product.active
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}
-                                  >
-                                    {product.active ? "Actif" : "Inactif"}
-                                  </span>
-                                  <span
-                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                      product.documented
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}
-                                  >
-                                    {product.documented
-                                      ? "Documenté"
-                                      : "Non documenté"}
-                                  </span>
-                                  <span
-                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                      product.hasShopify
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}
-                                  >
-                                    {product.hasShopify
-                                      ? "Shopify"
-                                      : "Pas sur Shopify"}
-                                  </span>
-                                  <span
-                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                      product.hasEC
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}
-                                  >
-                                    {product.hasEC ? "EC" : "Pas d'EC"}
-                                  </span>
+                            {/* Product Details - Expandable */}
+                            {expandedProducts.has(product.productId) && (
+                              <div className="px-4 pb-4 border-t border-gray-100">
+                                <div className="mb-3 mt-3">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-gray-700">
+                                      Description:
+                                    </span>
+                                    {editingFieldName[product.productId] ===
+                                    "description" ? (
+                                      <div className="flex items-center space-x-1">
+                                        <button
+                                          onClick={() =>
+                                            handleSaveField(
+                                              product.productId,
+                                              "description"
+                                            )
+                                          }
+                                          className="text-green-600 hover:text-green-800 text-sm"
+                                          disabled={isSubmitting}
+                                        >
+                                          Sauvegarder
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleCancelEdit(product.productId)
+                                          }
+                                          className="text-red-600 hover:text-red-800 text-sm"
+                                        >
+                                          Annuler
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() =>
+                                          handleEditField(
+                                            product.productId,
+                                            "description",
+                                            product.description || ""
+                                          )
+                                        }
+                                        className="text-blue-600 hover:text-blue-800 text-sm"
+                                      >
+                                        <FaEdit className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                  {editingFieldName[product.productId] ===
+                                  "description" ? (
+                                    <textarea
+                                      value={
+                                        editingField[product.productId]
+                                          ?.description !== undefined
+                                          ? editingField[product.productId]
+                                              .description
+                                          : product.description || ""
+                                      }
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          product.productId,
+                                          "description",
+                                          e.target.value
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary text-sm"
+                                      rows="3"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <p className="text-gray-600">
+                                      {product.description ||
+                                        "Aucune description"}
+                                    </p>
+                                  )}
                                 </div>
-                              </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                {product.sizes && product.sizes.length > 0 && (
+                                <div className="space-y-4">
                                   <div>
                                     <span className="font-medium text-gray-700">
-                                      Tailles:
+                                      Status:
                                     </span>
                                     <div className="flex flex-wrap gap-1 mt-1">
-                                      {product.sizes.map((size) => (
-                                        <span
-                                          key={size}
-                                          className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs"
-                                        >
-                                          {size}
-                                        </span>
-                                      ))}
+                                      <span
+                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                          product.active
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-yellow-100 text-yellow-800"
+                                        }`}
+                                      >
+                                        {product.active ? "Actif" : "Inactif"}
+                                      </span>
+                                      <span
+                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                          product.documented
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-yellow-100 text-yellow-800"
+                                        }`}
+                                      >
+                                        {product.documented
+                                          ? "Documenté"
+                                          : "Non documenté"}
+                                      </span>
+                                      <span
+                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                          product.hasShopify
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-yellow-100 text-yellow-800"
+                                        }`}
+                                      >
+                                        {product.hasShopify
+                                          ? "Shopify"
+                                          : "Pas sur Shopify"}
+                                      </span>
+                                      <span
+                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                          product.hasEC
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-yellow-100 text-yellow-800"
+                                        }`}
+                                      >
+                                        {product.hasEC ? "EC" : "Pas d'EC"}
+                                      </span>
                                     </div>
                                   </div>
-                                )}
 
-                                {product.colors &&
-                                  product.colors.length > 0 && (
-                                    <div>
-                                      <span className="font-medium text-gray-700">
-                                        Couleurs:
-                                      </span>
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        {product.colors.map((color) => (
-                                          <span
-                                            key={color}
-                                            className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs"
-                                          >
-                                            {color}
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    {product.sizes &&
+                                      product.sizes.length > 0 && (
+                                        <div>
+                                          <span className="font-medium text-gray-700">
+                                            Tailles:
                                           </span>
-                                        ))}
+                                          <div className="flex flex-wrap gap-1 mt-1">
+                                            {product.sizes.map((size) => (
+                                              <span
+                                                key={size}
+                                                className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs"
+                                              >
+                                                {size}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                    {product.colors &&
+                                      product.colors.length > 0 && (
+                                        <div>
+                                          <span className="font-medium text-gray-700">
+                                            Couleurs:
+                                          </span>
+                                          <div className="flex flex-wrap gap-1 mt-1">
+                                            {product.colors.map((color) => (
+                                              <span
+                                                key={color}
+                                                className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs"
+                                              >
+                                                {color}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                    {product.ean && (
+                                      <div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-medium text-gray-700">
+                                            EAN:
+                                          </span>
+                                          {editingFieldName[
+                                            product.productId
+                                          ] === "ean" ? (
+                                            <div className="flex items-center space-x-1">
+                                              <button
+                                                onClick={() =>
+                                                  handleSaveField(
+                                                    product.productId,
+                                                    "ean"
+                                                  )
+                                                }
+                                                className="text-green-600 hover:text-green-800 text-sm"
+                                                disabled={isSubmitting}
+                                              >
+                                                Sauvegarder
+                                              </button>
+                                              <button
+                                                onClick={() =>
+                                                  handleCancelEdit(
+                                                    product.productId
+                                                  )
+                                                }
+                                                className="text-red-600 hover:text-red-800 text-sm"
+                                              >
+                                                Annuler
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <button
+                                              onClick={() =>
+                                                handleEditField(
+                                                  product.productId,
+                                                  "ean",
+                                                  product.ean
+                                                )
+                                              }
+                                              className="text-blue-600 hover:text-blue-800 text-sm"
+                                            >
+                                              <FaEdit className="w-3 h-3" />
+                                            </button>
+                                          )}
+                                        </div>
+                                        {editingFieldName[product.productId] ===
+                                        "ean" ? (
+                                          <input
+                                            type="text"
+                                            value={
+                                              editingField[product.productId]
+                                                ?.ean || product.ean
+                                            }
+                                            onChange={(e) =>
+                                              handleFieldChange(
+                                                product.productId,
+                                                "ean",
+                                                e.target.value
+                                              )
+                                            }
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary text-sm mt-1"
+                                            autoFocus
+                                          />
+                                        ) : (
+                                          <div className="text-gray-600 mt-1">
+                                            {typeof product.ean === "object"
+                                              ? JSON.stringify(product.ean)
+                                              : product.ean}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Stock Information */}
+                                  {product.stock &&
+                                    Object.keys(product.stock).length > 0 && (
+                                      <div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-medium text-gray-700">
+                                            Stock:
+                                          </span>
+                                          {editingFieldName[
+                                            product.productId
+                                          ] === "stock" ? (
+                                            <div className="flex items-center space-x-1">
+                                              <button
+                                                onClick={() =>
+                                                  handleSaveField(
+                                                    product.productId,
+                                                    "stock"
+                                                  )
+                                                }
+                                                className="text-green-600 hover:text-green-800 text-sm"
+                                                disabled={isSubmitting}
+                                              >
+                                                Sauvegarder
+                                              </button>
+                                              <button
+                                                onClick={() =>
+                                                  handleCancelEdit(
+                                                    product.productId
+                                                  )
+                                                }
+                                                className="text-red-600 hover:text-red-800 text-sm"
+                                              >
+                                                Annuler
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <button
+                                              onClick={() =>
+                                                handleEditField(
+                                                  product.productId,
+                                                  "stock",
+                                                  product.stock
+                                                )
+                                              }
+                                              className="text-blue-600 hover:text-blue-800 text-sm"
+                                            >
+                                              <FaEdit className="w-3 h-3" />
+                                            </button>
+                                          )}
+                                        </div>
+                                        <div className="mt-2">
+                                          {Object.keys(product.stock).length ===
+                                            1 &&
+                                          product.stock.default !==
+                                            undefined ? (
+                                            // Simple stock
+                                            <div className="text-gray-600">
+                                              {editingFieldName[
+                                                product.productId
+                                              ] === "stock" ? (
+                                                <div className="flex items-center space-x-2">
+                                                  <input
+                                                    type="text"
+                                                    value={
+                                                      editingField[
+                                                        product.productId
+                                                      ]?.stock?.default !==
+                                                      undefined
+                                                        ? editingField[
+                                                            product.productId
+                                                          ].stock.default
+                                                        : product.stock.default
+                                                    }
+                                                    onChange={(e) =>
+                                                      handleFieldChange(
+                                                        product.productId,
+                                                        "stock",
+                                                        {
+                                                          default:
+                                                            e.target.value,
+                                                        }
+                                                      )
+                                                    }
+                                                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-sna-primary"
+                                                    autoFocus
+                                                  />
+                                                  <span>unités</span>
+                                                </div>
+                                              ) : (
+                                                <div>
+                                                  <span className="font-semibold text-sna-primary">
+                                                    {product.stock.default}
+                                                  </span>{" "}
+                                                  unités
+                                                </div>
+                                              )}
+                                              {/* EAN for simple stock */}
+                                              {editingFieldName[
+                                                product.productId
+                                              ] === "stock" && (
+                                                <div className="mt-2 text-xs text-gray-500">
+                                                  <div className="flex items-center">
+                                                    <span className="mr-1">
+                                                      EAN:
+                                                    </span>
+                                                    <input
+                                                      type="text"
+                                                      value={
+                                                        editingField[
+                                                          product.productId
+                                                        ]?.eans?.default !==
+                                                        undefined
+                                                          ? editingField[
+                                                              product.productId
+                                                            ].eans.default
+                                                          : product.ean
+                                                              ?.default ||
+                                                            product.eans
+                                                              ?.default ||
+                                                            product.ean ||
+                                                            ""
+                                                      }
+                                                      onChange={(e) =>
+                                                        handleEANChange(
+                                                          product.productId,
+                                                          "default",
+                                                          e.target.value
+                                                        )
+                                                      }
+                                                      className="w-20 px-1 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-sna-primary text-gray-900"
+                                                      placeholder="EAN"
+                                                    />
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            // Stock by combinations
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                              {Object.entries(
+                                                product.stock
+                                              ).map(
+                                                ([combination, quantity]) => (
+                                                  <div
+                                                    key={combination}
+                                                    className="bg-gray-100 px-3 py-2 rounded"
+                                                  >
+                                                    <div className="flex justify-between items-center mb-1">
+                                                      <span className="text-sm text-gray-700 font-medium">
+                                                        {combination}
+                                                      </span>
+                                                      {editingFieldName[
+                                                        product.productId
+                                                      ] === "stock" ? (
+                                                        <input
+                                                          type="text"
+                                                          value={
+                                                            editingField[
+                                                              product.productId
+                                                            ]?.stock?.[
+                                                              combination
+                                                            ] !== undefined
+                                                              ? editingField[
+                                                                  product
+                                                                    .productId
+                                                                ].stock[
+                                                                  combination
+                                                                ]
+                                                              : quantity
+                                                          }
+                                                          onChange={(e) => {
+                                                            const newStock = {
+                                                              ...editingField[
+                                                                product
+                                                                  .productId
+                                                              ]?.stock,
+                                                              [combination]:
+                                                                e.target.value,
+                                                            };
+                                                            handleFieldChange(
+                                                              product.productId,
+                                                              "stock",
+                                                              newStock
+                                                            );
+                                                          }}
+                                                          className="w-16 px-1 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-sna-primary"
+                                                        />
+                                                      ) : (
+                                                        <span className="font-semibold text-sna-primary">
+                                                          {quantity}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    {/* EAN and SKU for each variant */}
+                                                    <div className="text-xs text-gray-500 space-y-1">
+                                                      {/* Check multiple possible data structures for EAN and SKU */}
+                                                      {(() => {
+                                                        // Try different possible data structures
+                                                        const variantData =
+                                                          product.variants?.[
+                                                            combination
+                                                          ] ||
+                                                          product.skus?.[
+                                                            combination
+                                                          ] ||
+                                                          product.eans?.[
+                                                            combination
+                                                          ];
+
+                                                        const ean =
+                                                          variantData?.ean ||
+                                                          product.eans?.[
+                                                            combination
+                                                          ] ||
+                                                          product.ean?.[
+                                                            combination
+                                                          ];
+
+                                                        const sku =
+                                                          variantData?.sku ||
+                                                          product.skus?.[
+                                                            combination
+                                                          ] ||
+                                                          product.sku?.[
+                                                            combination
+                                                          ];
+
+                                                        return (
+                                                          <>
+                                                            <div className="flex items-center">
+                                                              <span className="mr-1">
+                                                                EAN:
+                                                              </span>
+                                                              {editingFieldName[
+                                                                product
+                                                                  .productId
+                                                              ] === "stock" ? (
+                                                                <input
+                                                                  type="text"
+                                                                  value={
+                                                                    editingField[
+                                                                      product
+                                                                        .productId
+                                                                    ]?.eans?.[
+                                                                      combination
+                                                                    ] !==
+                                                                    undefined
+                                                                      ? editingField[
+                                                                          product
+                                                                            .productId
+                                                                        ].eans[
+                                                                          combination
+                                                                        ]
+                                                                      : ean ||
+                                                                        ""
+                                                                  }
+                                                                  onChange={(
+                                                                    e
+                                                                  ) =>
+                                                                    handleEANChange(
+                                                                      product.productId,
+                                                                      combination,
+                                                                      e.target
+                                                                        .value
+                                                                    )
+                                                                  }
+                                                                  className="w-20 px-1 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-sna-primary text-gray-900"
+                                                                  placeholder="EAN"
+                                                                />
+                                                              ) : (
+                                                                <span>
+                                                                  {ean ||
+                                                                    "Non défini"}
+                                                                </span>
+                                                              )}
+                                                            </div>
+                                                            {sku && (
+                                                              <div className="flex items-center">
+                                                                <span
+                                                                  className="mr-1"
+                                                                  style={{
+                                                                    fontSize:
+                                                                      "10px",
+                                                                  }}
+                                                                >
+                                                                  SKU:
+                                                                </span>
+                                                                <span
+                                                                  style={{
+                                                                    fontSize:
+                                                                      "10px",
+                                                                  }}
+                                                                >
+                                                                  {sku}
+                                                                </span>
+                                                              </div>
+                                                            )}
+                                                          </>
+                                                        );
+                                                      })()}
+                                                    </div>
+                                                  </div>
+                                                )
+                                              )}
+                                            </div>
+                                          )}
+                                          <div className="mt-2 text-sm text-gray-500">
+                                            Total:{" "}
+                                            <span className="font-semibold text-sna-primary">
+                                              {Object.values(
+                                                editingFieldName[
+                                                  product.productId
+                                                ] === "stock"
+                                                  ? editingField[
+                                                      product.productId
+                                                    ]?.stock || product.stock
+                                                  : product.stock
+                                              ).reduce(
+                                                (total, qty) =>
+                                                  total + (parseInt(qty) || 0),
+                                                0
+                                              )}
+                                            </span>{" "}
+                                            unités
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                </div>
+
+                                {product.typeProduit === "Phono" &&
+                                  product.hasOwnProperty("occ") && (
+                                    <div className="mt-3 pt-3 border-t border-gray-200">
+                                      <span className="text-sm font-medium text-gray-700 mr-2">
+                                        OCC:
+                                      </span>
+                                      <span
+                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                          product.occ
+                                            ? "bg-blue-100 text-blue-800"
+                                            : "bg-gray-100 text-gray-800"
+                                        }`}
+                                      >
+                                        {product.occ ? "Oui" : "Non"}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                {/* Product Images - Moved to bottom */}
+                                <div className="mt-6 pt-6 border-t border-gray-200">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-sm font-medium text-gray-700">
+                                      Images du produit (
+                                      {(product.imageUrls &&
+                                        product.imageUrls.length) ||
+                                        0}
+                                      )
+                                    </h4>
+                                    <div className="flex items-center space-x-2">
+                                      <label
+                                        className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                                          (product.imageUrls &&
+                                            product.imageUrls.length >= 5) ||
+                                          uploadingImages
+                                            ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                                            : "bg-sna-primary text-white hover:bg-sna-primary-dark cursor-pointer"
+                                        }`}
+                                      >
+                                        <FaUpload className="inline mr-1" />
+                                        Ajouter des images
+                                        <input
+                                          type="file"
+                                          multiple
+                                          accept="image/*"
+                                          className="hidden"
+                                          onChange={(e) => {
+                                            if (e.target.files.length > 0) {
+                                              handleImageUpload(
+                                                product.productId,
+                                                e.target.files
+                                              );
+                                            }
+                                          }}
+                                          disabled={
+                                            uploadingImages ||
+                                            (product.imageUrls &&
+                                              product.imageUrls.length >= 5)
+                                          }
+                                        />
+                                      </label>
+                                    </div>
+                                  </div>
+
+                                  {uploadingImages && (
+                                    <div className="mb-3 p-2 bg-blue-50 rounded-lg text-sm text-blue-700">
+                                      <div className="flex items-center">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
+                                        Upload des images en cours...
                                       </div>
                                     </div>
                                   )}
 
-                                {product.ean && (
-                                  <div>
-                                    <span className="font-medium text-gray-700">
-                                      EAN:
-                                    </span>
-                                    <div className="text-gray-600 mt-1">
-                                      {typeof product.ean === "object"
-                                        ? JSON.stringify(product.ean)
-                                        : product.ean}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                                  {product.imageUrls &&
+                                  product.imageUrls.length > 0 ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                      {product.imageUrls.map(
+                                        (imageUrl, index) => (
+                                          <div
+                                            key={index}
+                                            className={`relative group ${
+                                              draggedImageIndex === index
+                                                ? "opacity-50"
+                                                : ""
+                                            }`}
+                                            draggable
+                                            onDragStart={(e) =>
+                                              handleDragStart(e, index)
+                                            }
+                                            onDragOver={handleDragOver}
+                                            onDrop={(e) =>
+                                              handleDrop(
+                                                e,
+                                                index,
+                                                product.productId
+                                              )
+                                            }
+                                            onDragEnd={handleDragEnd}
+                                          >
+                                            <div className="absolute top-1 left-1 bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold z-10">
+                                              {index + 1}
+                                            </div>
+                                            <img
+                                              src={imageUrl}
+                                              alt={`${product.titre} - Image ${index + 1}`}
+                                              className="w-full h-24 object-cover rounded-lg border cursor-move transition-transform hover:scale-105"
+                                              onError={(e) => {
+                                                console.error(
+                                                  `Failed to load product image ${index + 1}:`,
+                                                  imageUrl
+                                                );
+                                                // Show a placeholder instead of hiding the image
+                                                e.target.src =
+                                                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='12' fill='%236b7280' text-anchor='middle' dy='.3em'%3EImage%3C/text%3E%3C/svg%3E";
+                                                e.target.className =
+                                                  "w-full h-24 object-cover rounded-lg border bg-gray-100";
+                                              }}
+                                            />
+                                            <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center space-x-2">
+                                              <button
+                                                className="bg-white text-gray-800 p-1 rounded hover:bg-gray-100"
+                                                title="Télécharger"
+                                                onClick={async (e) => {
+                                                  e.stopPropagation();
+                                                  try {
+                                                    // Extract S3 key from the signed URL
+                                                    const urlParts =
+                                                      imageUrl.split("/");
+                                                    const s3Key = urlParts
+                                                      .slice(3)
+                                                      .join("/")
+                                                      .split("?")[0];
 
-                              {/* Stock Information */}
-                              {product.stock &&
-                                Object.keys(product.stock).length > 0 && (
-                                  <div>
-                                    <span className="font-medium text-gray-700">
-                                      Stock:
-                                    </span>
-                                    <div className="mt-2">
-                                      {Object.keys(product.stock).length ===
-                                        1 &&
-                                      product.stock.default !== undefined ? (
-                                        // Simple stock
-                                        <div className="text-gray-600">
-                                          <span className="font-semibold text-sna-primary">
-                                            {product.stock.default}
-                                          </span>{" "}
-                                          unités
-                                        </div>
-                                      ) : (
-                                        // Stock by combinations
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                          {Object.entries(product.stock).map(
-                                            ([combination, quantity]) => (
-                                              <div
-                                                key={combination}
-                                                className="flex justify-between items-center bg-gray-100 px-3 py-2 rounded"
+                                                    // Use the existing image proxy endpoint
+                                                    const proxyUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${product.productId}/image-proxy?imageKey=${encodeURIComponent(s3Key)}`;
+
+                                                    const response =
+                                                      await fetch(proxyUrl, {
+                                                        credentials: "include",
+                                                      });
+
+                                                    if (!response.ok) {
+                                                      throw new Error(
+                                                        `Failed to download image: ${response.status}`
+                                                      );
+                                                    }
+
+                                                    const blob =
+                                                      await response.blob();
+                                                    const url =
+                                                      window.URL.createObjectURL(
+                                                        blob
+                                                      );
+                                                    const link =
+                                                      document.createElement(
+                                                        "a"
+                                                      );
+                                                    link.href = url;
+                                                    link.download = `${product.titre}-image-${index + 1}.jpg`;
+                                                    document.body.appendChild(
+                                                      link
+                                                    );
+                                                    link.click();
+                                                    document.body.removeChild(
+                                                      link
+                                                    );
+                                                    window.URL.revokeObjectURL(
+                                                      url
+                                                    );
+                                                  } catch (error) {
+                                                    console.error(
+                                                      "Error downloading image:",
+                                                      error
+                                                    );
+                                                  }
+                                                }}
                                               >
-                                                <span className="text-sm text-gray-700">
-                                                  {combination}
-                                                </span>
-                                                <span className="font-semibold text-sna-primary">
-                                                  {quantity}
-                                                </span>
-                                              </div>
-                                            )
-                                          )}
-                                        </div>
+                                                <svg
+                                                  className="w-4 h-4"
+                                                  fill="none"
+                                                  stroke="currentColor"
+                                                  viewBox="0 0 24 24"
+                                                >
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                  />
+                                                </svg>
+                                              </button>
+                                              <label
+                                                className="bg-blue-600 text-white p-1 rounded hover:bg-blue-700 cursor-pointer"
+                                                title="Remplacer"
+                                              >
+                                                <FaUpload className="w-4 h-4" />
+                                                <input
+                                                  type="file"
+                                                  accept="image/*"
+                                                  className="hidden"
+                                                  onChange={(e) => {
+                                                    if (
+                                                      e.target.files.length > 0
+                                                    ) {
+                                                      handleImageUpload(
+                                                        product.productId,
+                                                        e.target.files,
+                                                        index
+                                                      );
+                                                    }
+                                                  }}
+                                                  disabled={uploadingImages}
+                                                />
+                                              </label>
+                                              <button
+                                                className="bg-red-600 text-white p-1 rounded hover:bg-red-700"
+                                                title="Supprimer"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDeleteImage(
+                                                    product.productId,
+                                                    index
+                                                  );
+                                                }}
+                                                disabled={
+                                                  deletingImage ===
+                                                  `${product.productId}-${index}`
+                                                }
+                                              >
+                                                {deletingImage ===
+                                                `${product.productId}-${index}` ? (
+                                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                ) : (
+                                                  <FaTrash className="w-4 h-4" />
+                                                )}
+                                              </button>
+                                            </div>
+                                            <div className="absolute bottom-1 left-1 right-1 bg-black bg-opacity-70 text-white text-xs text-center rounded">
+                                              <FaGripVertical className="inline mr-1" />
+                                              Glisser pour réorganiser
+                                            </div>
+                                          </div>
+                                        )
                                       )}
-                                      <div className="mt-2 text-sm text-gray-500">
-                                        Total:{" "}
-                                        <span className="font-semibold text-sna-primary">
-                                          {Object.values(product.stock).reduce(
-                                            (total, qty) =>
-                                              total + (parseInt(qty) || 0),
-                                            0
-                                          )}
-                                        </span>{" "}
-                                        unités
-                                      </div>
                                     </div>
-                                  </div>
-                                )}
-                            </div>
-
-                            {product.typeProduit === "Phono" &&
-                              product.hasOwnProperty("occ") && (
-                                <div className="mt-3 pt-3 border-t border-gray-200">
-                                  <span className="text-sm font-medium text-gray-700 mr-2">
-                                    OCC:
-                                  </span>
-                                  <span
-                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                      product.occ
-                                        ? "bg-blue-100 text-blue-800"
-                                        : "bg-gray-100 text-gray-800"
-                                    }`}
-                                  >
-                                    {product.occ ? "Oui" : "Non"}
-                                  </span>
+                                  ) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                      <FaUpload className="mx-auto text-4xl mb-2" />
+                                      <p>Aucune image pour ce produit</p>
+                                      <p className="text-sm">
+                                        Cliquez sur "Ajouter des images" pour
+                                        commencer
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
 
-                            <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
-                              Créé le:{" "}
-                              {new Date(product.createdAt).toLocaleDateString(
-                                "fr-FR"
-                              )}
-                              {product.updatedAt !== product.createdAt && (
-                                <span>
-                                  {" "}
-                                  • Modifié le:{" "}
+                                <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
+                                  Créé le:{" "}
                                   {new Date(
-                                    product.updatedAt
+                                    product.createdAt
                                   ).toLocaleDateString("fr-FR")}
-                                </span>
-                              )}
-                            </div>
+                                  {product.updatedAt !== product.createdAt && (
+                                    <span>
+                                      {" "}
+                                      • Modifié le:{" "}
+                                      {new Date(
+                                        product.updatedAt
+                                      ).toLocaleDateString("fr-FR")}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1133,6 +2711,68 @@ const MesProduits = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Confirmer la suppression
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer cette image ? Cette action est
+              irréversible.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleDeleteImageCancel}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDeleteImageConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EAN Validation Modal */}
+      {showEANValidationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-red-600 mb-4">
+              Validation EAN requise
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Les codes EAN doivent contenir exactement 13 chiffres. Veuillez
+              corriger les erreurs suivantes :
+            </p>
+            <div className="mb-6 max-h-40 overflow-y-auto">
+              {invalidEANs.map((invalidEAN, index) => (
+                <div
+                  key={index}
+                  className="text-sm text-red-600 mb-2 p-2 bg-red-50 rounded"
+                >
+                  <strong>EAN "{invalidEAN.ean}":</strong> {invalidEAN.message}
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowEANValidationModal(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+              >
+                Compris
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

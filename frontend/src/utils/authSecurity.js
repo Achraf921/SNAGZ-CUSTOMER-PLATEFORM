@@ -7,7 +7,8 @@ export const clearAllAuthData = () => {
   // Clear localStorage
   const localStorageKeys = [
     'userInfo', 'userId', 'token', 'userRole', 'userEmail',
-    'hasCompletedWelcomeForm', 'isFirstLogin'
+    'hasCompletedWelcomeForm', 'isFirstLogin', 'customerId',
+    'shops', 'products', 'lastSelectedShop', 'userPreferences'
   ];
   
   localStorageKeys.forEach(key => {
@@ -20,7 +21,8 @@ export const clearAllAuthData = () => {
   // Clear sessionStorage
   const sessionStorageKeys = [
     'userInfo', 'userId', 'token', 'userRole', 'userEmail',
-    'hasCompletedWelcomeForm', 'isFirstLogin'
+    'hasCompletedWelcomeForm', 'isFirstLogin', 'customerId',
+    'shops', 'products', 'lastSelectedShop', 'userPreferences'
   ];
   
   sessionStorageKeys.forEach(key => {
@@ -30,7 +32,82 @@ export const clearAllAuthData = () => {
     }
   });
   
+  // CRITICAL: Clear ALL localStorage/sessionStorage to prevent any data leakage
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+    console.log('🧹 SECURITY: Complete storage cleared');
+  } catch (error) {
+    console.error('🚨 SECURITY: Error clearing storage:', error);
+  }
+  
   console.log('✅ SECURITY: All authentication data cleared');
+};
+
+// Enhanced user identity validation
+export const validateUserIdentity = () => {
+  console.log('🔍 SECURITY: Validating user identity...');
+  
+  try {
+    const userInfoStr = sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo');
+    
+    if (!userInfoStr) {
+      console.log('ℹ️ SECURITY: No user info found - user not logged in');
+      return { valid: false, reason: 'NO_USER_INFO' };
+    }
+    
+    const userInfo = JSON.parse(userInfoStr);
+    
+    // Critical validation checks
+    if (!userInfo.sub) {
+      console.error('🚨 SECURITY: Missing user sub identifier');
+      clearAllAuthData();
+      return { valid: false, reason: 'MISSING_SUB' };
+    }
+    
+    if (!userInfo.email) {
+      console.error('🚨 SECURITY: Missing user email');
+      clearAllAuthData();
+      return { valid: false, reason: 'MISSING_EMAIL' };
+    }
+    
+    // Check data consistency between localStorage and sessionStorage
+    const sessionUserId = sessionStorage.getItem('userId');
+    const localUserId = localStorage.getItem('userId');
+    
+    if (sessionUserId && localUserId && sessionUserId !== localUserId) {
+      console.error('🚨 SECURITY: UserId mismatch between storage methods');
+      console.error('Session userId:', sessionUserId);
+      console.error('Local userId:', localUserId);
+      clearAllAuthData();
+      return { valid: false, reason: 'USERID_MISMATCH' };
+    }
+    
+    // Ensure userId matches sub
+    const expectedUserId = userInfo.sub;
+    if ((sessionUserId && sessionUserId !== expectedUserId) || 
+        (localUserId && localUserId !== expectedUserId)) {
+      console.error('🚨 SECURITY: UserId does not match user sub');
+      clearAllAuthData();
+      return { valid: false, reason: 'USERID_SUB_MISMATCH' };
+    }
+    
+    console.log('✅ SECURITY: User identity validation passed');
+    return { 
+      valid: true, 
+      user: {
+        sub: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+        userId: userInfo.sub
+      }
+    };
+    
+  } catch (error) {
+    console.error('🚨 SECURITY: Error validating user identity:', error);
+    clearAllAuthData();
+    return { valid: false, reason: 'VALIDATION_ERROR' };
+  }
 };
 
 // Validate stored user data integrity

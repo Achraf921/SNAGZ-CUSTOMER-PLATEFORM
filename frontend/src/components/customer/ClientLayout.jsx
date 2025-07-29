@@ -5,6 +5,18 @@ import { FaSignOutAlt } from "react-icons/fa"; // Import the sign-out icon
 const ClientLayout = ({ children }) => {
   const navigation = [
     {
+      name: "Dashboard",
+      href: "/client/dashboard",
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+        />
+      ),
+    },
+    {
       name: "Créer une boutique",
       href: "/client/boutiques/create",
       icon: (
@@ -13,6 +25,18 @@ const ClientLayout = ({ children }) => {
           strokeLinejoin="round"
           strokeWidth={2}
           d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+        />
+      ),
+    },
+    {
+      name: "Créer un produit",
+      href: "/client/produits/create",
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
         />
       ),
     },
@@ -41,18 +65,6 @@ const ClientLayout = ({ children }) => {
       ),
     },
     {
-      name: "Créer un produit",
-      href: "/client/produits/create",
-      icon: (
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-        />
-      ),
-    },
-    {
       name: "Mon compte",
       href: "/client/compte",
       icon: (
@@ -67,9 +79,15 @@ const ClientLayout = ({ children }) => {
   ];
 
   const handleLogout = async () => {
-    console.log("Logging out...");
+    console.log("🔒 SECURITY: Starting secure logout process...");
 
     try {
+      // Import security utilities
+      const { clearAllAuthData } = await import("../../utils/authSecurity");
+
+      // Clear ALL frontend data immediately for security
+      clearAllAuthData();
+
       // Call the API logout endpoint
       const response = await fetch("/api/logout", {
         method: "POST",
@@ -80,17 +98,28 @@ const ClientLayout = ({ children }) => {
       });
 
       if (response.ok) {
-        console.log("Logout successful");
+        console.log("✅ SECURITY: Logout successful");
       } else {
-        console.error("Logout API call failed");
+        console.error("⚠️ SECURITY: Logout API call failed");
       }
     } catch (error) {
-      console.error("Error during logout:", error);
+      console.error("🚨 SECURITY: Error during logout:", error);
     }
 
-    // Clear local storage and redirect regardless of API result
-    localStorage.removeItem("token");
+    // CRITICAL: Clear ALL browser storage and session data
+    localStorage.clear();
     sessionStorage.clear();
+
+    // Clear any cookies that might exist
+    document.cookie.split(";").forEach(function (c) {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
+    console.log("🧹 SECURITY: All user data cleared");
+
+    // Force redirect to logout endpoint
     window.location.href = "/logout";
   };
 
@@ -130,7 +159,10 @@ const ClientLayout = ({ children }) => {
                 onClick={handleLogout}
                 className="flex w-full items-center px-4 py-3 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 transition-colors"
               >
-                <FaSignOutAlt className="mr-3 h-5 w-5 flex-shrink-0" />
+                <FaSignOutAlt
+                  className="mr-3 h-5 w-5 flex-shrink-0"
+                  style={{ fontWeight: "normal" }}
+                />
                 Se déconnecter
               </button>
             </div>

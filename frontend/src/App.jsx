@@ -23,6 +23,8 @@ import InternalProfile from "./components/internal/InternalProfile.jsx"; // Impo
 
 // Auth components
 import ResetPasswordPage from "./components/auth/ResetPasswordPage.jsx"; // Import ResetPasswordPage component
+import ConditionsGenerales from "./components/pages/ConditionsGenerales.jsx"; // Import ConditionsGenerales component
+import QuiNousSommes from "./components/pages/QuiNousSommes.jsx"; // Import QuiNousSommes component
 
 // Internal components
 import InternalLayout from "./components/internal/InternalLayout.jsx";
@@ -46,8 +48,7 @@ import AdminLayout from "./components/admin/AdminLayout.jsx";
 import AdminClientAccounts from "./components/admin/AdminClientAccounts.jsx";
 import AdminInternalAccounts from "./components/admin/AdminInternalAccounts.jsx";
 import AdminAccounts from "./components/admin/AdminAccounts.jsx";
-
-const AdminProfile = () => <div className="p-4">Admin: Profil</div>;
+import AdminProfile from "./components/admin/AdminProfile.jsx";
 
 const App = () => {
   const { pathname } = window.location;
@@ -76,6 +77,12 @@ const App = () => {
   // Auth Routes
   else if (pathname === "/reset-password") {
     ComponentToRender = ResetPasswordPage;
+  }
+  // Public Pages
+  else if (pathname === "/conditions-generales") {
+    ComponentToRender = ConditionsGenerales;
+  } else if (pathname === "/qui-nous-sommes") {
+    ComponentToRender = QuiNousSommes;
   }
   // Customer Routes
   else if (pathname === "/client/dashboard") {

@@ -307,74 +307,6 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
     });
   };
 
-  const handleThemeConfiguration = async () => {
-    try {
-      setIsFinalizing(true);
-      setFinalizeError(null);
-
-      const response = await fetch(
-        `/api/internal/shops/${encodeURIComponent(shop._id)}/push-dawn-theme`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const isJson = response.headers
-        .get("content-type")
-        ?.includes("application/json");
-      const data = isJson ? await response.json() : await response.text();
-
-      if (!response.ok) {
-        // Check if it's a missing credentials error
-        if (isJson && data.errorType === "MISSING_CREDENTIALS") {
-          // Show modal to collect missing credentials
-          showCredentialsModal(data.missingFields, data.shopId);
-          return;
-        }
-
-        const errMsg = isJson ? data.message : data;
-        throw new Error(errMsg || "Échec de la configuration du thème.");
-      }
-
-      // Show success message with Dawn theme details
-      const themeInfo = data.data?.themeName
-        ? `\n\nThème Dawn créé : ${data.data.themeName}`
-        : "";
-      const assetsInfo =
-        data.data?.customAssets?.length > 0
-          ? `\n\nAssets personnalisés uploadés : ${data.data.customAssets.join(", ")}`
-          : "";
-      const filesInfo = data.data?.uploadedFiles
-        ? `\n\nFichiers du thème uploadés : ${data.data.uploadedFiles}`
-        : "";
-
-      setModal({
-        open: true,
-        type: "success",
-        title: "✅ Thème Dawn configuré avec succès",
-        message: `Le thème Dawn a été créé et configuré avec vos assets personnalisés !${themeInfo}${assetsInfo}${filesInfo}\n\nVous pouvez maintenant cliquer sur "Finaliser" pour terminer le paramétrage.`,
-        onClose: () => setModal({ open: false }),
-        confirmText: "Fermer",
-      });
-    } catch (error) {
-      console.error("Error configuring Dawn theme:", error);
-      setModal({
-        open: true,
-        type: "error",
-        title: "❌ Erreur de configuration du thème Dawn",
-        message:
-          "Erreur lors de la configuration du thème Dawn: " + error.message,
-        onClose: () => setModal({ open: false }),
-        confirmText: "Fermer",
-      });
-    } finally {
-      setIsFinalizing(false);
-    }
-  };
-
   const showCredentialsModal = (missingFields, shopId) => {
     const modal = {
       open: true,
@@ -1039,12 +971,6 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
                     "Modifier les fichiers du thème (logos, bannières, textes...).",
                 },
                 {
-                  id: "write_theme_code",
-                  label: "write_theme_code",
-                  description:
-                    "Modifier le code source du thème (fichiers Liquid, CSS, JS...).",
-                },
-                {
                   id: "read_themes",
                   label: "read_themes",
                   description: "Consulter les fichiers du thème.",
@@ -1059,6 +985,12 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
                   id: "read_content",
                   label: "read_content",
                   description: "Consulter le contenu de la boutique en ligne.",
+                },
+                {
+                  id: "write_theme_code",
+                  label: "write_theme_code",
+                  description:
+                    "Modifier le code source du thème (fichiers Liquid, CSS, JS...).",
                 },
               ],
             },
@@ -1103,11 +1035,11 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
       ],
     });
 
-    // FINAL STEP – CGV & Thème
+    // FINAL STEP – Configuration Terminée
     list.push({
       id: list.length + 1,
-      title: "Configuration Finale (CGV & Thème)",
-      description: "Finalisation de la configuration de la boutique.",
+      title: "Configuration Terminée",
+      description: "Finalisation du paramétrage de base de la boutique.",
       instructions: [
         {
           title: "Résumé et génération",
@@ -2035,56 +1967,29 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
                                     key={`final-step-${stepIndex}`}
                                     className="mt-4 p-4 bg-white border rounded-lg space-y-4"
                                   >
-                                    {step.isVendeur ? (
-                                      <div>
-                                        <h6 className="font-medium text-gray-800 mb-2">
-                                          Pour les Vendeurs (Génération
-                                          Automatisée)
-                                        </h6>
-                                        <p className="text-sm text-gray-600 mb-4">
-                                          En cliquant sur le bouton ci-dessous,
-                                          le système générera automatiquement
-                                          les documents légaux (CGV, Mentions
-                                          Légales, Politiques) et appliquera les
-                                          éléments graphiques (bannières, logos)
-                                          au thème de la boutique.
+                                    <div>
+                                      <h6 className="font-medium text-gray-800 mb-2">
+                                        Configuration Terminée
+                                      </h6>
+                                      <p className="text-sm text-gray-600 mb-4">
+                                        Le paramétrage de base de votre boutique
+                                        Shopify est maintenant terminé. Les
+                                        étapes suivantes incluent la
+                                        configuration des documents légaux (CGV,
+                                        Mentions Légales, Politiques) et
+                                        l'application des éléments graphiques
+                                        (bannières, logos) au thème de la
+                                        boutique.
+                                      </p>
+                                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                                        <p className="text-sm text-blue-800">
+                                          <strong>Note :</strong> La
+                                          configuration du thème Dawn et
+                                          l'upload des assets personnalisés
+                                          peuvent être effectués ultérieurement
+                                          via l'interface d'administration.
                                         </p>
                                       </div>
-                                    ) : (
-                                      <div>
-                                        <h6 className="font-medium text-gray-800 mb-2">
-                                          Pour les Mandataires (Action Manuelle
-                                          Requise)
-                                        </h6>
-                                        <p className="text-sm text-gray-600 mb-2">
-                                          Les documents tels que les CGV,
-                                          Mentions Légales et Politiques de
-                                          confidentialité doivent être fournis
-                                          par le client. Notre automatisation ne
-                                          peut donc pas les générer.
-                                        </p>
-                                        <p className="text-sm text-gray-600 mb-4">
-                                          Cependant, le bouton ci-dessous créera
-                                          et poussera le thème Dawn avec tous
-                                          les éléments graphiques nécessaires
-                                          comme les bannières et les logos
-                                          personnalisés.
-                                        </p>
-                                      </div>
-                                    )}
-                                    <div className="pt-2">
-                                      <button
-                                        onClick={handleThemeConfiguration}
-                                        disabled={isFinalizing}
-                                        className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isFinalizing ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-                                      >
-                                        {isFinalizing && (
-                                          <FaSpinner className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                                        )}
-                                        {isFinalizing
-                                          ? "Création du thème Dawn en cours..."
-                                          : "Créer et Pousser le Thème Dawn"}
-                                      </button>
                                     </div>
                                   </div>
                                 );

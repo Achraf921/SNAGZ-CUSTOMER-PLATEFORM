@@ -4,53 +4,54 @@ import logo from "../assets/logo.png";
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
+  // Get support email from environment variable with fallback
+  const supportEmail =
+    process.env.REACT_APP_SUPPORT_EMAIL || "achraf.bayi@sna-gz.com";
+
+  const handleSupportEmailClick = () => {
+    if (supportEmail) {
+      window.location.href = `mailto:${supportEmail}`;
+    }
+  };
+
   const footerSections = {
     company: {
       title: "Entreprise",
       links: [
-        { name: "À propos", href: "#about-us" },
-        { name: "Carrières", href: "#careers" },
-        { name: "Actualités", href: "#news" },
-        { name: "Contact", href: "#contact" },
+        { name: "À propos", href: "https://sna-gz.com/" },
+        { name: "Carrières", href: "https://sna-gz.com/carrieres-2/" },
+        { name: "Actualités", href: "https://sna-gz.com/" },
+        { name: "Contact", href: "https://sna-gz.com/contact/" },
       ],
     },
     legal: {
       title: "Mentions légales",
       links: [
-        { name: "Conditions générales", href: "#terms" },
-        { name: "Politique de confidentialité", href: "#privacy" },
-        { name: "Mentions légales", href: "#legal-notice" },
-        { name: "Cookies", href: "#cookies" },
+        { name: "Conditions générales", href: "/conditions-generales" },
+        { name: "Qui nous sommes", href: "/qui-nous-sommes" },
       ],
     },
     support: {
       title: "Support",
       links: [
-        { name: "Centre d'aide", href: "#help-center" },
-        { name: "FAQ", href: "#faq" },
-        { name: "Support technique", href: "#tech-support" },
-        { name: "Status des services", href: "#status" },
+        {
+          name: "Centre d'aide",
+          href: "#help-center",
+          isEmail: true,
+        },
+        {
+          name: "Support technique",
+          href: "#tech-support",
+          isEmail: true,
+        },
       ],
     },
   };
 
   const socialLinks = [
     {
-      name: "Facebook",
-      href: "#facebook",
-      icon: (
-        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-          <path
-            fillRule="evenodd"
-            d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
-            clipRule="evenodd"
-          />
-        </svg>
-      ),
-    },
-    {
       name: "Instagram",
-      href: "#",
+      href: "https://www.instagram.com/sna_gz.fr",
       icon: (
         <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path
@@ -62,17 +63,8 @@ const Footer = () => {
       ),
     },
     {
-      name: "Twitter",
-      href: "#",
-      icon: (
-        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-        </svg>
-      ),
-    },
-    {
       name: "LinkedIn",
-      href: "#",
+      href: "https://www.linkedin.com/company/sna-gz/posts/?feedView=all",
       icon: (
         <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path
@@ -80,6 +72,35 @@ const Footer = () => {
             d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"
             clipRule="evenodd"
           />
+        </svg>
+      ),
+    },
+    {
+      name: "Facebook",
+      href: "https://www.facebook.com/gzmediaofficial",
+      icon: (
+        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+          <path
+            fillRule="evenodd"
+            d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
+            clipRule="evenodd"
+          />
+        </svg>
+      ),
+    },
+    {
+      name: "Website",
+      href: "https://sna-gz.com/",
+      icon: (
+        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+          <path
+            fillRule="evenodd"
+            d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM6.5 9.5a5.5 5.5 0 1011 0h-1.75a3.75 3.75 0 00-7.5 0H6.5zm5.5 8a6 6 0 01-6-6h1.5A4.5 4.5 0 1016.5 12H18a6 6 0 01-6 5.5z"
+            clipRule="evenodd"
+          />
+          <path d="M9 12a3 3 0 106 0h-1.5a1.5 1.5 0 01-3 0H9z" />
+          <path d="M12 1a11 11 0 00-8.485 4h1.89A9.004 9.004 0 0112 3a9.004 9.004 0 016.595 2H20.485A11 11 0 0012 1zM3.515 19a11 11 0 008.485 4 11 11 0 008.485-4h-1.89A9.004 9.004 0 0112 21a9.004 9.004 0 01-6.595-2H3.515z" />
+          <path d="M8.5 12a3.5 3.5 0 107 0 3.5 3.5 0 00-7 0z" opacity="0.6" />
         </svg>
       ),
     },
@@ -113,12 +134,29 @@ const Footer = () => {
               <ul className="space-y-3">
                 {section.links.map((link) => (
                   <li key={link.name}>
-                    <a
-                      href={link.href}
-                      className="text-base text-gray-500 hover:text-gray-900"
-                    >
-                      {link.name}
-                    </a>
+                    {link.isEmail ? (
+                      <button
+                        onClick={handleSupportEmailClick}
+                        className="text-base text-gray-500 hover:text-gray-900 cursor-pointer text-left"
+                      >
+                        {link.name}
+                      </button>
+                    ) : (
+                      <a
+                        href={link.href}
+                        className="text-base text-gray-500 hover:text-gray-900"
+                        target={
+                          link.href.startsWith("http") ? "_blank" : "_self"
+                        }
+                        rel={
+                          link.href.startsWith("http")
+                            ? "noopener noreferrer"
+                            : undefined
+                        }
+                      >
+                        {link.name}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

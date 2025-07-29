@@ -4,6 +4,7 @@ const cognitoService = require('../services/cognitoService');
 
 // Change password endpoint
 router.post('/change-password', async (req, res) => {
+  console.log(`🔐 [AUTH ROUTES] Change password request received`);
   try {
     const { currentPassword, newPassword } = req.body;
     

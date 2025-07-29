@@ -140,9 +140,9 @@ const CreateProduct = () => {
       if (sizePart) parts.push(sizePart);
       sku = parts.filter(Boolean).join("-");
     } else if (typeProduit === "POD") {
-      // PRINT-x 38 chars max
+      // POD-x 38 chars max
       const produitSegment = sanitizeForSku(produit);
-      const parts = ["PRINT", produitSegment, albumPart];
+      const parts = ["POD", produitSegment, albumPart];
       if (colorPart) parts.push(colorPart);
       if (sizePart) parts.push(sizePart);
       sku = parts.filter(Boolean).join("-");
@@ -216,10 +216,7 @@ const CreateProduct = () => {
 
       try {
         setLoading(true);
-        const apiUrl =
-          process.env.NODE_ENV === "production"
-            ? `/api/customer/shops/${userId}`
-            : `http://localhost:5000/api/customer/shops/${userId}`;
+        const apiUrl = `/api/customer/shops/${userId}`;
 
         const response = await fetch(apiUrl, {
           method: "GET",
@@ -277,6 +274,9 @@ const CreateProduct = () => {
         ...prev,
         typeProduit: value,
         produit: "", // reset sub-type when main type changes
+        // For Phono products, automatically disable sizes
+        hasSizes: value === "Phono" ? false : prev.hasSizes,
+        sizes: value === "Phono" ? [] : prev.sizes,
       }));
     } else {
       setProductForm((prev) => ({ ...prev, [field]: value }));
@@ -498,13 +498,40 @@ const CreateProduct = () => {
     setUploadingImages(true);
     const formData = new FormData();
 
-    images.forEach((image) => {
-      formData.append("productImages", image);
+    console.log("🔍 [FRONTEND UPLOAD DEBUG] Starting image upload");
+    console.log("🔍 [FRONTEND UPLOAD DEBUG] Shop ID:", shopId);
+    console.log("🔍 [FRONTEND UPLOAD DEBUG] Product ID:", productId);
+    console.log("🔍 [FRONTEND UPLOAD DEBUG] Number of images:", images.length);
+
+    images.forEach((image, index) => {
+      console.log(
+        `🔍 [FRONTEND UPLOAD DEBUG] Adding image ${index + 1}:`,
+        image.name,
+        image.type,
+        image.size
+      );
+      formData.append("productImages", image, image.name);
     });
 
+    // Debug FormData contents
+    console.log("🔍 [FRONTEND UPLOAD DEBUG] FormData entries:");
+    for (let [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(
+          `  ${key}: File(${value.name}, ${value.type}, ${value.size} bytes)`
+        );
+      } else {
+        console.log(`  ${key}: ${value}`);
+      }
+    }
+
     try {
+      console.log(
+        "🔍 [FRONTEND UPLOAD DEBUG] Sending request to:",
+        `/api/customer/shops/${userId}/${shopId}/products/${productId}/upload-images`
+      );
       const response = await fetch(
-        `/api/customer/shops/${shopId}/products/${productId}/upload`,
+        `/api/customer/shops/${userId}/${shopId}/products/${productId}/upload-images`,
         {
           method: "POST",
           body: formData,
@@ -512,12 +539,21 @@ const CreateProduct = () => {
         }
       );
 
+      console.log(
+        "🔍 [FRONTEND UPLOAD DEBUG] Response status:",
+        response.status
+      );
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("🔍 [FRONTEND UPLOAD DEBUG] Error response:", errorData);
         throw new Error(
           errorData.message || "Erreur lors de l'upload des images"
         );
       }
+
+      const responseData = await response.json();
+      console.log("🔍 [FRONTEND UPLOAD DEBUG] Success response:", responseData);
 
       return true;
     } catch (error) {
@@ -538,14 +574,15 @@ const CreateProduct = () => {
       !productForm.titre ||
       !productForm.price ||
       !productForm.typeProduit ||
-      !productForm.produit;
+      !productForm.produit ||
+      !productForm.description;
 
-    // Validate EANs: every combination must have exactly 13 digits
+    // Validate EANs: optional but if provided must have exactly 13 digits
     const combinations = generateStockCombinations();
     let invalidEAN = false;
     combinations.forEach((combo) => {
       const eanVal = productForm.eans[combo.key];
-      if (!eanVal || !/^\d{13}$/.test(eanVal)) {
+      if (eanVal && !/^\d{13}$/.test(eanVal)) {
         invalidEAN = true;
       }
     });
@@ -559,16 +596,28 @@ const CreateProduct = () => {
       }
     });
 
+    // Validate Stock: each combination must have a defined stock (>=0 and not empty)
+    // Exception: POD products don't require stock
+    let invalidStock = false;
+    if (productForm.typeProduit !== "POD") {
+      combinations.forEach((combo) => {
+        const stVal = productForm.stock[combo.key];
+        if (stVal === undefined || stVal === "" || isNaN(stVal)) {
+          invalidStock = true;
+        }
+      });
+    }
+
     if (baseInvalid) {
       setError(
-        "Veuillez remplir tous les champs obligatoires (Titre, Prix, Type de produit, Produit)"
+        "Veuillez remplir tous les champs obligatoires (Titre, Description, Prix, Type de produit, Produit)"
       );
       return;
     }
 
     if (invalidEAN) {
       setError(
-        "Chaque variante doit avoir un EAN composé de 13 chiffres sans espaces ni virgules"
+        "Si fourni, l'EAN doit être composé de 13 chiffres sans espaces ni virgules pour chaque variante."
       );
       return;
     }
@@ -576,6 +625,13 @@ const CreateProduct = () => {
     if (invalidSKU) {
       setError(
         "Un SKU est manquant ou invalide. Assurez-vous que les champs 'Type de produit' et 'Produit' sont bien remplis."
+      );
+      return;
+    }
+
+    if (invalidStock) {
+      setError(
+        "Veuillez renseigner le stock pour chaque variante (non requis pour les produits POD)"
       );
       return;
     }
@@ -593,17 +649,19 @@ const CreateProduct = () => {
         typeProduit: productForm.typeProduit,
         produit: productForm.produit,
         OCC: productForm.occ,
-        tailles: productForm.hasSizes ? productForm.sizes : [],
+        tailles:
+          productForm.typeProduit === "Phono"
+            ? []
+            : productForm.hasSizes
+              ? productForm.sizes
+              : [],
         couleurs: productForm.hasColors ? productForm.colors : [],
         stock: productForm.stock,
         shopId: selectedShop.shopId,
         skus: productForm.skus,
       };
 
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? `/api/customer/shops/${userId}/${selectedShop.shopId}/products`
-          : `http://localhost:5000/api/customer/shops/${userId}/${selectedShop.shopId}/products`;
+      const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products`;
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -862,7 +920,7 @@ const CreateProduct = () => {
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
+                Description <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={productForm.description}
@@ -871,6 +929,7 @@ const CreateProduct = () => {
                 }
                 rows="4"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
+                required
               />
             </div>
 
@@ -905,52 +964,54 @@ const CreateProduct = () => {
               {/* EAN per variante: handled below */}
             </div>
 
-            {/* Sizes Section */}
-            <div className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center mb-4">
-                <label className="block text-sm font-medium text-gray-700 mr-4">
-                  Tailles disponibles
-                </label>
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="hasSizes"
-                      checked={!productForm.hasSizes}
-                      onChange={() => handleInputChange("hasSizes", false)}
-                      className="form-radio h-4 w-4 text-sna-primary"
-                    />
-                    <span className="ml-2">Non</span>
+            {/* Sizes Section - Hidden for Phono products */}
+            {productForm.typeProduit !== "Phono" && (
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mr-4">
+                    Tailles disponibles
                   </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="hasSizes"
-                      checked={productForm.hasSizes}
-                      onChange={() => handleInputChange("hasSizes", true)}
-                      className="form-radio h-4 w-4 text-sna-primary"
-                    />
-                    <span className="ml-2">Oui</span>
-                  </label>
-                </div>
-              </div>
-
-              {productForm.hasSizes && (
-                <div className="grid grid-cols-5 gap-2">
-                  {availableSizes.map((size) => (
-                    <label key={size} className="flex items-center">
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center">
                       <input
-                        type="checkbox"
-                        checked={productForm.sizes.includes(size)}
-                        onChange={() => handleSizeToggle(size)}
-                        className="form-checkbox h-4 w-4 text-sna-primary"
+                        type="radio"
+                        name="hasSizes"
+                        checked={!productForm.hasSizes}
+                        onChange={() => handleInputChange("hasSizes", false)}
+                        className="form-radio h-4 w-4 text-sna-primary"
                       />
-                      <span className="ml-2">{size}</span>
+                      <span className="ml-2">Non</span>
                     </label>
-                  ))}
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="hasSizes"
+                        checked={productForm.hasSizes}
+                        onChange={() => handleInputChange("hasSizes", true)}
+                        className="form-radio h-4 w-4 text-sna-primary"
+                      />
+                      <span className="ml-2">Oui</span>
+                    </label>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {productForm.hasSizes && (
+                  <div className="grid grid-cols-5 gap-2">
+                    {availableSizes.map((size) => (
+                      <label key={size} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={productForm.sizes.includes(size)}
+                          onChange={() => handleSizeToggle(size)}
+                          className="form-checkbox h-4 w-4 text-sna-primary"
+                        />
+                        <span className="ml-2">{size}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Colors Section */}
             <div className="border border-gray-200 rounded-lg p-4">
@@ -1015,6 +1076,9 @@ const CreateProduct = () => {
             <div className="border border-gray-200 rounded-lg p-4">
               <h4 className="text-lg font-medium text-gray-900 mb-4">
                 Gestion des stocks
+                {productForm.typeProduit !== "POD" && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </h4>
 
               {(() => {
@@ -1042,6 +1106,9 @@ const CreateProduct = () => {
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-700">
                                 {combo.label}
+                                {productForm.typeProduit !== "POD" && (
+                                  <span className="text-red-500 ml-1">*</span>
+                                )}
                               </p>
                               <p className="text-xs text-gray-500 break-all">
                                 {productForm.skus[combo.key] ||
@@ -1055,8 +1122,13 @@ const CreateProduct = () => {
                               onChange={(e) =>
                                 handleStockChange(combo.key, e.target.value)
                               }
-                              className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary text-sm"
+                              className={`w-20 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary text-sm ${
+                                productForm.typeProduit !== "POD"
+                                  ? "border-gray-300"
+                                  : "border-gray-200 bg-gray-50"
+                              }`}
                               placeholder="0"
+                              disabled={productForm.typeProduit === "POD"}
                             />
                             <input
                               type="text"
@@ -1083,6 +1155,9 @@ const CreateProduct = () => {
                             <div>
                               <p className="text-sm font-medium text-gray-700">
                                 {combo.label}
+                                {productForm.typeProduit !== "POD" && (
+                                  <span className="text-red-500 ml-1">*</span>
+                                )}
                               </p>
                               <p className="text-xs text-gray-500 break-all">
                                 {productForm.skus[combo.key] ||
@@ -1097,8 +1172,13 @@ const CreateProduct = () => {
                                 onChange={(e) =>
                                   handleStockChange(combo.key, e.target.value)
                                 }
-                                className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
+                                className={`w-24 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary ${
+                                  productForm.typeProduit !== "POD"
+                                    ? "border-gray-300"
+                                    : "border-gray-200 bg-gray-50"
+                                }`}
                                 placeholder="0"
+                                disabled={productForm.typeProduit === "POD"}
                               />
                               <input
                                 type="text"

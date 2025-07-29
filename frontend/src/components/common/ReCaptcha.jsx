@@ -7,17 +7,23 @@ const ReCaptcha = forwardRef(
     const [captchaError, setCaptchaError] = useState(null);
     const [isDevelopmentMode, setIsDevelopmentMode] = useState(false);
 
-    // Debug the site key
-    console.log("reCAPTCHA Configuration:", {
-      siteKey: siteKey,
-      hasValidKey: !!(siteKey && siteKey.trim() && siteKey.length > 10),
-      isDevelopmentMode: isDevelopmentMode,
-      nodeEnv: process.env.NODE_ENV,
-    });
+    // Debug the site key (only in development)
+    if (process.env.NODE_ENV === "development") {
+      console.log("reCAPTCHA Configuration:", {
+        siteKey: siteKey,
+        hasValidKey: !!(siteKey && siteKey.trim() && siteKey.length > 10),
+        isDevelopmentMode: isDevelopmentMode,
+        nodeEnv: process.env.NODE_ENV,
+      });
+    }
 
-    // Only auto-verify if site key is truly missing or empty (not in development mode anymore)
+    // Only auto-verify if site key is truly missing or empty and we're in development
     useEffect(() => {
-      if ((!siteKey || siteKey.trim() === "") && onVerify) {
+      if (
+        (!siteKey || siteKey.trim() === "") &&
+        onVerify &&
+        process.env.NODE_ENV === "development"
+      ) {
         console.log(
           "🔧 reCAPTCHA not configured: Auto-completing CAPTCHA verification"
         );
@@ -53,25 +59,47 @@ const ReCaptcha = forwardRef(
 
     // Handle empty or invalid site key
     if (!siteKey || siteKey.trim() === "") {
-      console.warn("reCAPTCHA site key not configured or empty.");
-      return (
-        <div
-          className={`bg-blue-50 border border-blue-200 rounded-lg p-3 ${className}`}
-        >
-          <div className="flex items-center">
-            <div className="mr-2">🔧</div>
-            <div>
-              <p className="text-blue-700 text-sm font-medium">
-                Mode développement - CAPTCHA simulé
-              </p>
-              <p className="text-blue-600 text-xs mt-1">
-                Configurez REACT_APP_RECAPTCHA_SITE_KEY pour activer le CAPTCHA
-                réel
-              </p>
+      // Only show development message in development mode
+      if (process.env.NODE_ENV === "development") {
+        console.warn("reCAPTCHA site key not configured or empty.");
+        return (
+          <div
+            className={`bg-blue-50 border border-blue-200 rounded-lg p-3 ${className}`}
+          >
+            <div className="flex items-center">
+              <div className="mr-2">🔧</div>
+              <div>
+                <p className="text-blue-700 text-sm font-medium">
+                  Mode développement - CAPTCHA simulé
+                </p>
+                <p className="text-blue-600 text-xs mt-1">
+                  Configurez REACT_APP_RECAPTCHA_SITE_KEY pour activer le
+                  CAPTCHA réel
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      );
+        );
+      } else {
+        // In production, show error message
+        return (
+          <div
+            className={`bg-red-50 border border-red-200 rounded-lg p-3 ${className}`}
+          >
+            <div className="flex items-center">
+              <div className="mr-2">❌</div>
+              <div>
+                <p className="text-red-700 text-sm font-medium">
+                  Erreur de configuration CAPTCHA
+                </p>
+                <p className="text-red-600 text-xs mt-1">
+                  Le service de vérification n'est pas disponible.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      }
     }
 
     // Show development bypass if there was an error
@@ -118,11 +146,6 @@ const ReCaptcha = forwardRef(
             theme="light"
             size="normal"
           />
-          {process.env.NODE_ENV === "development" && (
-            <div className="mt-2 text-center">
-              <p className="text-xs text-gray-500">🔍 reCAPTCHA configuré</p>
-            </div>
-          )}
         </div>
       </div>
     );

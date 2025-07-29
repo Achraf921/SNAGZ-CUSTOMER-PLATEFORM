@@ -29,7 +29,8 @@ function LoginCard({
 
   const handleLoginSubmit = async (event) => {
     event.preventDefault();
-    setError("");
+    // Don't clear error state immediately - we'll handle it after processing the response
+    // setError("");
 
     // Validate CAPTCHA
     if (!captchaToken) {
@@ -52,16 +53,34 @@ function LoginCard({
         }),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        const responseText = await response.text();
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        setError("Erreur de réponse du serveur. Veuillez réessayer.");
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(false);
 
-      if (response.ok && data.success) {
+      // Handle error responses first
+      if (!response.ok) {
+        const errorMessage =
+          data.message ||
+          "Échec de l'authentification. Veuillez vérifier vos identifiants.";
+        setError(errorMessage);
+        // Reset CAPTCHA on error but don't clear the error state
+        if (captchaRef.current) {
+          captchaRef.current.reset();
+          setCaptchaToken("");
+        }
+        return;
+      }
+
+      if (data.success) {
         // SECURITY: Securely store user data with validation
         if (data.userInfo) {
-          console.log(
-            `LoginCard (${portalType}): Received userInfo from server`
-          );
-
           // Import security utilities
           const { secureStoreUserData } = await import(
             "../../utils/authSecurity"
@@ -70,23 +89,13 @@ function LoginCard({
           try {
             // Securely store with validation
             secureStoreUserData(data.userInfo);
-            console.log(
-              `✅ LoginCard (${portalType}): User data stored securely`
-            );
           } catch (error) {
-            console.error(
-              `🚨 LoginCard (${portalType}): Failed to store user data:`,
-              error
-            );
             setError(
               "Security validation failed. Please try logging in again."
             );
             return;
           }
         } else {
-          console.error(
-            `🚨 LoginCard (${portalType}): No userInfo in login response`
-          );
           setError("Invalid login response. Please try again.");
           return;
         }
@@ -102,9 +111,6 @@ function LoginCard({
         response.ok &&
         data.challengeName === "NEW_PASSWORD_REQUIRED"
       ) {
-        console.log(
-          `LoginCard (${portalType}): Received NEW_PASSWORD_REQUIRED challenge.`
-        );
         setChallengeUsername(data.username);
         setChallengeSession(data.session);
         setCognitoChallengeParameters(data.challengeParameters);
@@ -117,8 +123,19 @@ function LoginCard({
       }
     } catch (err) {
       setIsLoading(false);
-      console.error(`Login request failed for ${portalType}:`, err);
-      setError("An unexpected error occurred. Please try again later.");
+
+      // Provide more specific error messages based on the error type
+      if (err.name === "TypeError" && err.message.includes("fetch")) {
+        setError(
+          "Erreur de connexion au serveur. Veuillez vérifier votre connexion internet."
+        );
+      } else if (err.name === "SyntaxError") {
+        setError("Erreur de réponse du serveur. Veuillez réessayer.");
+      } else {
+        setError(
+          "Une erreur inattendue s'est produite. Veuillez réessayer plus tard."
+        );
+      }
 
       // Reset CAPTCHA on error
       if (captchaRef.current) {
@@ -130,7 +147,8 @@ function LoginCard({
 
   const handleCaptchaVerify = (token) => {
     setCaptchaToken(token);
-    setError(""); // Clear any previous CAPTCHA errors
+    // Only clear CAPTCHA-specific errors, not authentication errors
+    // setError(""); // Clear any previous CAPTCHA errors
   };
 
   const handleCaptchaExpired = () => {
@@ -144,15 +162,13 @@ function LoginCard({
   };
 
   const handlePasswordSet = (redirectUrl) => {
-    console.log(
-      `LoginCard (${portalType}): Password set successfully, redirecting...`
-    );
     window.location.href = redirectUrl || defaultRedirectUrl;
   };
 
   const handleCancelSetPassword = () => {
     setShowNewPasswordForm(false);
-    setError("");
+    // Don't clear error state when canceling password set
+    // setError("");
     // Optionally clear form fields or call showMainMenu directly
     // setEmail('');
     // setPassword('');

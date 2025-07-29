@@ -141,7 +141,7 @@ const ShopifyConfiguration = () => {
     try {
       setLoading(true);
 
-      const response = await fetch("/api/customer/all?details=true", {
+      const response = await fetch("/api/internal/all?details=true", {
         headers: {
           "Cache-Control": "no-cache",
         },
@@ -1515,16 +1515,16 @@ const ShopifyConfiguration = () => {
                                 Boolean(shop.isParametrized)
                                   ? "bg-green-100 text-green-800"
                                   : shop.parametrizationError
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-yellow-100 text-yellow-800"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
                               }`}
                               title={shop.parametrizationError || ""}
                             >
                               {Boolean(shop.isParametrized)
                                 ? "Paramétrée"
                                 : shop.parametrizationError
-                                ? "Erreur paramétrage"
-                                : "Paramétrage en attente"}
+                                  ? "Erreur paramétrage"
+                                  : "Paramétrage en attente"}
                             </span>
                           )}
                         </div>

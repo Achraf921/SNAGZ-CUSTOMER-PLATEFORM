@@ -34,10 +34,7 @@ const ForgotPasswordModal = ({ isOpen, onClose, portalType = "client" }) => {
     setIsLoading(true);
 
     try {
-      const apiUrl =
-        process.env.NODE_ENV === "production"
-          ? "/api/password-reset/request"
-          : "http://localhost:3001/api/password-reset/request";
+      const apiUrl = "/api/password-reset/request";
 
       const response = await fetch(apiUrl, {
         method: "POST",

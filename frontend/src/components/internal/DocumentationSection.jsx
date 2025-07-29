@@ -15,7 +15,7 @@ const DocumentationSection = () => {
   useEffect(() => {
     const fetchShops = async () => {
       try {
-        const response = await fetch("/api/customer/all?details=true");
+        const response = await fetch("/api/internal/all?details=true");
         if (!response.ok)
           throw new Error("Erreur lors du chargement des boutiques");
         const data = await response.json();
@@ -55,7 +55,7 @@ const DocumentationSection = () => {
 
     const fetchProductCount = async (shopId) => {
       try {
-        const response = await fetch(`/api/customer/shop/${shopId}/products`);
+        const response = await fetch(`/api/internal/shop/${shopId}/products`);
         if (!response.ok) return;
         const data = await response.json();
 
@@ -78,7 +78,7 @@ const DocumentationSection = () => {
 
   const fetchShopProducts = async (shopId) => {
     try {
-      const response = await fetch(`/api/customer/shop/${shopId}/products`);
+      const response = await fetch(`/api/internal/shop/${shopId}/products`);
       if (!response.ok)
         throw new Error("Erreur lors du chargement des produits");
       const data = await response.json();
@@ -116,7 +116,7 @@ const DocumentationSection = () => {
   const handleProductAction = async (shopId, productId, action) => {
     try {
       const response = await fetch(
-        `/api/customer/shop/${shopId}/product/${productId}/documentation`,
+        `/api/internal/shop/${shopId}/product/${productId}/documentation`,
         {
           method: "POST",
           headers: {
@@ -170,7 +170,7 @@ const DocumentationSection = () => {
 
     try {
       const response = await fetch(
-        `/api/customer/shop/${shopId}/documentation`,
+        `/api/internal/shop/${shopId}/documentation`,
         {
           method: "POST",
           headers: {

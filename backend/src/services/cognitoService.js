@@ -118,12 +118,8 @@ class CognitoService {
       if (!sendWelcomeEmail) {
         createUserParams.MessageAction = 'SUPPRESS';
       } else {
-        // For client users, we'll send our custom welcome email after creation
-        // For internal/admin users, let Cognito handle the default message
-        if (userType === 'client') {
-          createUserParams.MessageAction = 'SUPPRESS'; // We'll send custom email
-        }
-        // For non-client users, let Cognito send default message (no MessageAction)
+        // We'll send our custom branded email for all account types
+        createUserParams.MessageAction = 'SUPPRESS'; // Always suppress Cognito's default email
       }
 
       console.log(`Creating ${userType} user in Cognito:`, { email, name });
@@ -170,13 +166,13 @@ class CognitoService {
         const userDetails = await this.cognitoClient.send(getUserCommand);
         console.log('User details retrieved successfully');
         
-        // Send custom welcome email for client users
-        if (userType === 'client' && sendWelcomeEmail) {
+        // Send custom account creation email for all users when requested
+        if (sendWelcomeEmail) {
           try {
-            await this.sendCustomWelcomeEmail(email, name, password);
-            console.log('Custom welcome email sent successfully');
+            await this.sendCustomAccountCreationEmail(email, name, password, userType);
+            console.log(`Custom account creation email sent successfully for ${userType} user`);
           } catch (emailError) {
-            console.error('Failed to send custom welcome email:', emailError);
+            console.error('Failed to send custom account creation email:', emailError);
             // Don't fail user creation if email fails
           }
         }
@@ -442,33 +438,34 @@ class CognitoService {
     return userData;
   }
 
-    // Send custom welcome email for client users
-  async sendCustomWelcomeEmail(email, name, temporaryPassword) {
-    console.log('📧 Sending custom welcome email to:', email);
+    // Send custom account creation email for all account types
+  async sendCustomAccountCreationEmail(email, name, temporaryPassword, accountType) {
+    console.log(`📧 Sending custom account creation email to: ${email} (${accountType})`);
 
     // Import and use the email service
     const emailService = require('./emailService');
     
     try {
-      const result = await emailService.sendWelcomeEmail(email, name, temporaryPassword);
+      const result = await emailService.sendAccountCreationEmail(email, name, temporaryPassword, accountType);
       
       if (result.success) {
-        console.log('✅ Welcome email sent successfully:', {
+        console.log('✅ Account creation email sent successfully:', {
           recipient: result.recipient,
           messageId: result.messageId,
-          mode: result.mode || 'production'
+          accountType: result.accountType
         });
         return result;
       } else {
-        console.error('❌ Failed to send welcome email:', result.error);
+        console.error('❌ Failed to send account creation email:', result.error);
         return result;
       }
     } catch (error) {
-      console.error('❌ Error in sendCustomWelcomeEmail:', error);
+      console.error('❌ Error in sendCustomAccountCreationEmail:', error);
       return {
         success: false,
         error: error.message,
-        recipient: email
+        recipient: email,
+        accountType: accountType
       };
     }
   }

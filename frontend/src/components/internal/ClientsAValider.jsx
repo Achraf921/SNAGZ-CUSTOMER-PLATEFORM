@@ -38,8 +38,8 @@ function ValidateClientButton({
           !allFieldsValidated
             ? `Veuillez vérifier tous les champs (${totalFields} requis)`
             : loading
-            ? "Validation en cours..."
-            : "Cliquez pour valider le client"
+              ? "Validation en cours..."
+              : "Cliquez pour valider le client"
         }
         type="button"
       >
@@ -265,7 +265,7 @@ export default function ClientsAValider() {
       console.log("Update data being sent:", updateData);
 
       // Use the correct endpoint from the backend
-      const response = await fetch(`/api/customer/clients/${idString}`, {
+      const response = await fetch(`/api/internal/clients/${idString}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -332,7 +332,7 @@ export default function ClientsAValider() {
       console.log(`Unvalidating client ${idString}...`);
 
       // Use the correct endpoint from the backend
-      const response = await fetch(`/api/customer/clients/${idString}`, {
+      const response = await fetch(`/api/internal/clients/${idString}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -425,7 +425,7 @@ export default function ClientsAValider() {
       const idString = clientId.toString().trim();
       try {
         console.log(`Fetching details for client ID: ${idString}`);
-        const response = await fetch(`/api/customer/${idString}`, {
+        const response = await fetch(`/api/internal/customer/${idString}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
             "Content-Type": "application/json",
@@ -464,10 +464,10 @@ export default function ClientsAValider() {
     setIsLoading(true);
     setError(null);
     try {
-      console.log("Fetching clients from /api/customer/all...");
+      console.log("Fetching clients from /api/internal/all...");
 
       // First, get the list of clients
-      const response = await fetch("/api/customer/all", {
+      const response = await fetch("/api/internal/all", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json",
@@ -782,10 +782,10 @@ export default function ClientsAValider() {
                                                 isCompteClientNumInvalid
                                                   ? "border-red-500 bg-red-50"
                                                   : validatedFields[
-                                                      client._id
-                                                    ]?.[fieldInfo.key]
-                                                  ? "border-green-200 bg-green-50"
-                                                  : "border-gray-300"
+                                                        client._id
+                                                      ]?.[fieldInfo.key]
+                                                    ? "border-green-200 bg-green-50"
+                                                    : "border-gray-300"
                                               }`}
                                             />
                                           )}

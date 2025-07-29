@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { getCustomersCollection } = require('../config/db');
 const { ObjectId } = require('mongodb');
 const { generateDocumentation } = require('../services/sharepointService');
@@ -8,6 +9,89 @@ const fs = require('fs');
 const { connectToDatabase } = require('../config/db');
 const { logoUpload, bannerUpload, faviconUpload, getSignedUrl } = require('../services/s3Service');
 const { validateUserAccess, addRequestSecurity } = require('../middleware/authSecurity');
+
+// Rate limiting for image operations to prevent abuse
+const imageOperationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // Limit each user to 50 image operations per 15 minutes
+  message: {
+    success: false,
+    message: 'Too many image operations. Please try again later.',
+    securityAlert: 'IMAGE_OPERATION_RATE_LIMIT_EXCEEDED'
+  },
+  keyGenerator: (req) => {
+    // Use userId for rate limiting to prevent abuse per user
+    return req.params.userId || req.ip;
+  },
+  handler: (req, res) => {
+    console.log(`🔒 [SECURITY] Image operation rate limit exceeded for user: ${req.params.userId || req.ip}`);
+    res.status(429).json({
+      success: false,
+      message: 'Too many image operations. Please try again later.',
+      securityAlert: 'IMAGE_OPERATION_RATE_LIMIT_EXCEEDED'
+    });
+  }
+});
+
+// Input validation middleware for image operations
+const validateImageOperation = (req, res, next) => {
+  const { userId, shopId, productId, imageIndex } = req.params;
+  
+  // Validate required parameters
+  if (!userId || !shopId || !productId) {
+    console.error('🔒 [SECURITY] Missing required parameters in image operation');
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required parameters',
+      securityAlert: 'MISSING_REQUIRED_PARAMETERS'
+    });
+  }
+  
+  // Validate userId format (should be a valid sub/ID)
+  if (typeof userId !== 'string' || userId.length < 10) {
+    console.error('🔒 [SECURITY] Invalid userId format:', userId);
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid user ID format',
+      securityAlert: 'INVALID_USER_ID_FORMAT'
+    });
+  }
+  
+  // Validate shopId format
+  if (typeof shopId !== 'string' || shopId.length < 10) {
+    console.error('🔒 [SECURITY] Invalid shopId format:', shopId);
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid shop ID format',
+      securityAlert: 'INVALID_SHOP_ID_FORMAT'
+    });
+  }
+  
+  // Validate productId format
+  if (typeof productId !== 'string' || productId.length < 10) {
+    console.error('🔒 [SECURITY] Invalid productId format:', productId);
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid product ID format',
+      securityAlert: 'INVALID_PRODUCT_ID_FORMAT'
+    });
+  }
+  
+  // Validate imageIndex if present (for delete operations)
+  if (imageIndex !== undefined) {
+    const index = parseInt(imageIndex);
+    if (isNaN(index) || index < 0) {
+      console.error('🔒 [SECURITY] Invalid imageIndex:', imageIndex);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image index',
+        securityAlert: 'INVALID_IMAGE_INDEX'
+      });
+    }
+  }
+  
+  next();
+};
 
 // SECURITY: Removed dangerous /all-shops route that exposed all customers' shops
 // SECURITY: Removed dangerous /all route that exposed all customers' data  
@@ -182,14 +266,41 @@ router.get('/my-products', addRequestSecurity, validateUserAccess, async (req, r
   }
 });
 
-// Route to handle welcome form submissions
-router.post('/welcome-form', async (req, res) => {
+// Route to handle welcome form submissions - REQUIRES AUTHENTICATION
+router.post('/welcome-form', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const formData = req.body;
     
-    // Add timestamp to the submission
+    // SECURITY: Get authenticated user's ID from session
+    const authenticatedUserId = req.session.userInfo?.sub || req.session.userInfo?.userId;
+    
+    if (!authenticatedUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        securityAlert: 'NO_USER_SESSION'
+      });
+    }
+    
+    // SECURITY: Validate that formData.userId matches the authenticated user
+    if (formData.userId && formData.userId !== authenticatedUserId) {
+      console.error('🚨 SECURITY ALERT: User attempting to submit welcome form with different userId!');
+      console.error('Authenticated userId:', authenticatedUserId);
+      console.error('Form userId:', formData.userId);
+      console.error('User email:', req.session.userInfo?.email);
+      console.error('IP:', req.ip);
+      
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: User ID mismatch',
+        securityAlert: 'UNAUTHORIZED_WELCOME_FORM_SUBMISSION'
+      });
+    }
+    
+    // Add authenticated user's ID and timestamp to the submission
     const submission = {
       ...formData,
+      userId: authenticatedUserId, // Override with authenticated user's ID
       submittedAt: new Date(),
       status: 'inactive',
       documented: 'undocumented',
@@ -223,235 +334,28 @@ router.post('/welcome-form', async (req, res) => {
 // These routes are protected and only accessible by internal users
 // MUST be placed BEFORE parameterized routes to avoid conflicts
 
-// Route to get all customers - INTERNAL ONLY
-router.get('/all', async (req, res) => {
-  console.log('🚀 [DEBUG] /all route reached - Starting execution');
-  
-  try {
-    // DEBUG: Log session information
-    console.log('🔍 [DEBUG] /all route - Session info:', {
-      hasInternalUserInfo: !!req.session.internalUserInfo,
-      hasUserInfo: !!req.session.userInfo,
-      hasAdminUserInfo: !!req.session.adminUserInfo,
-      sessionKeys: Object.keys(req.session || {}),
-      internalUserEmail: req.session.internalUserInfo?.email,
-      userEmail: req.session.userInfo?.email
-    });
+// SECURITY: Removed dangerous /all route - moved to internal API where it belongs
 
-    // SECURITY: Only internal users can access all customer data
-    if (!req.session.internalUserInfo) {
-      console.log(`🚨 [SECURITY] Unauthorized attempt to access /all from IP: ${req.ip}`);
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied - Internal personnel only',
-        securityAlert: 'UNAUTHORIZED_ALL_CUSTOMERS_ACCESS'
-      });
-    }
+// SECURITY: Removed dangerous /all-shops route - moved to internal API where it belongs
 
-    const { details } = req.query;
-    const customersCollection = await getCustomersCollection();
-    let customers;
+// SECURITY: Removed dangerous /all-products route - moved to internal API where it belongs
 
-    console.log(`[INTERNAL] Internal user ${req.session.internalUserInfo.email} accessing all customers`);
-
-    if (details === 'true') {
-      customers = await customersCollection.find({}).toArray();
-    } else {
-      customers = await customersCollection.find({}, {
-        projection: { 
-          raisonSociale: 1, 
-          status: 1, 
-          'shops.nomProjet': 1, 
-          'shops.status': 1 
-        }
-      }).toArray();
-    }
-
-    customers.forEach(customer => {
-      if (customer.shops && Array.isArray(customer.shops)) {
-        customer.shops.forEach(shop => {
-          shop.Payement = customer.Payement;
-          shop.payment = customer.payment;
-        });
-      }
-    });
-
-    console.log(`[INTERNAL] Returned ${customers.length} customers to internal user`);
-
-    res.status(200).json({
-      success: true,
-      customers
-    });
-  } catch (error) {
-    console.error("[INTERNAL] Error in /all:", error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving customers',
-      error: error.message
-    });
-  }
-});
-
-// Route to get all shops - INTERNAL ONLY
-router.get('/all-shops', async (req, res) => {
-  console.log('🚀 [DEBUG] /all-shops route reached - Starting execution');
-  
-  try {
-    // DEBUG: Log session information
-    console.log('🔍 [DEBUG] /all-shops route - Session info:', {
-      hasInternalUserInfo: !!req.session.internalUserInfo,
-      hasUserInfo: !!req.session.userInfo,
-      hasAdminUserInfo: !!req.session.adminUserInfo,
-      sessionKeys: Object.keys(req.session || {}),
-      internalUserEmail: req.session.internalUserInfo?.email,
-      userEmail: req.session.userInfo?.email
-    });
-
-    // SECURITY: Only internal users can access all shops data
-    if (!req.session.internalUserInfo) {
-      console.log(`🚨 [SECURITY] Unauthorized attempt to access /all-shops from IP: ${req.ip}`);
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied - Internal personnel only',
-        securityAlert: 'UNAUTHORIZED_ALL_SHOPS_ACCESS'
-      });
-    }
-
-    const customersCollection = await getCustomersCollection();
-    const customers = await customersCollection.find({}).toArray();
-    const allShops = [];
-    
-    console.log(`[INTERNAL] Internal user ${req.session.internalUserInfo.email} accessing all shops`);
-    
-    for (const customer of customers) {
-      const clientName = customer.raisonSociale || customer.name || 'Unknown Client';
-
-      if (Array.isArray(customer.shops)) {
-        for (const shop of customer.shops) {
-          
-          let logoUrl = null;
-          if (shop.logoUrl) {
-            try {
-              const key = new URL(shop.logoUrl).pathname.substring(1);
-              logoUrl = await getSignedUrl(decodeURIComponent(key));
-            } catch (e) {
-              console.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
-            }
-          }
-          
-          const constructedShopObject = {
-            ...shop,
-            _id: shop._id || shop.shopId,
-            shopId: shop.shopId || shop.id,
-            name: shop.nomProjet || shop.name || '-',
-            clientName,
-            clientId: customer._id?.toString() || customer.id || '-',
-            Payement: customer.Payement,
-            payment: customer.payment,
-            hasShopify: shop.hasShopify === true || shop.shopifyConfigured === true,
-            logoUrl: logoUrl,
-          };
-          allShops.push(constructedShopObject);
-        }
-      }
-    }
-    
-    console.log(`[INTERNAL] Returned ${allShops.length} shops to internal user`);
-    
-    res.status(200).json({ success: true, shops: allShops });
-  } catch (error) {
-    console.error("[INTERNAL] Error in /all-shops:", error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving all shops',
-      error: error.message
-    });
-  }
-});
-
-// Route to get all products - INTERNAL ONLY
-router.get('/all-products', async (req, res) => {
-  try {
-    // SECURITY: Only internal users can access all products data
-    if (!req.session.internalUserInfo) {
-      console.log(`🚨 [SECURITY] Unauthorized attempt to access /all-products from IP: ${req.ip}`);
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied - Internal personnel only',
-        securityAlert: 'UNAUTHORIZED_ALL_PRODUCTS_ACCESS'
-      });
-    }
-
-    const { status } = req.query;
-    
-    console.log(`[INTERNAL] Internal user ${req.session.internalUserInfo.email} accessing all products`);
-    
-    const customersCollection = await getCustomersCollection();
-    
-    // Get all customers with their shops and products
-    const customers = await customersCollection.find({}).toArray();
-    
-    const allProducts = [];
-    
-    customers.forEach(customer => {
-      const clientName = customer.raisonSociale || customer.name || 'Client inconnu';
-      const clientId = customer._id?.toString() || customer.userId;
-      
-      if (Array.isArray(customer.shops)) {
-        customer.shops.forEach(shop => {
-          const shopName = shop.nomProjet || shop.name || 'Boutique inconnue';
-          const shopId = shop.shopId || shop.id;
-          
-          if (Array.isArray(shop.products)) {
-            shop.products.forEach(product => {
-              // Apply status filter if provided
-              if (status === 'validated') {
-                // Only include products that are active
-                if (product.active) {
-                  allProducts.push({
-                    ...product,
-                    clientName,
-                    clientId,
-                    shopName,
-                    shopId
-                  });
-                }
-              } else {
-                // Include all products
-                allProducts.push({
-                  ...product,
-                  clientName,
-                  clientId,
-                  shopName,
-                  shopId
-                });
-              }
-            });
-          }
-        });
-      }
-    });
-    
-    console.log(`[INTERNAL] Returned ${allProducts.length} products to internal user`);
-    
-    res.status(200).json({
-      success: true,
-      products: allProducts
-    });
-  } catch (error) {
-    console.error("[INTERNAL] Error in /all-products:", error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving all products',
-      error: error.message
-    });
-  }
-});
-
-// Route to get customer data by MongoDB ID
-router.get('/:customerId', async (req, res) => {
+// Route to get customer data by MongoDB ID - REQUIRES AUTHENTICATION
+router.get('/:customerId', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { customerId } = req.params;
+    
+    // SECURITY: Get authenticated user's ID from session
+    const authenticatedUserId = req.session.userInfo?.sub || req.session.userInfo?.userId;
+    
+    if (!authenticatedUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        securityAlert: 'NO_USER_SESSION'
+      });
+    }
+    
     const customersCollection = await getCustomersCollection();
     let customer;
     try {
@@ -463,10 +367,27 @@ router.get('/:customerId', async (req, res) => {
         error: e.message
       });
     }
+    
     if (!customer) {
       return res.status(404).json({
         success: false,
         message: 'Customer not found'
+      });
+    }
+    
+    // CRITICAL SECURITY: Verify the customer belongs to the authenticated user
+    if (customer.userId !== authenticatedUserId) {
+      console.error('🚨 SECURITY ALERT: User attempting to access wrong customer data via MongoDB ID!');
+      console.error('Authenticated userId:', authenticatedUserId);
+      console.error('Customer userId:', customer.userId);
+      console.error('Customer MongoDB ID:', customerId);
+      console.error('User email:', req.session.userInfo?.email);
+      console.error('IP:', req.ip);
+      
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Unauthorized customer data access',
+        securityAlert: 'UNAUTHORIZED_CUSTOMER_DATA_ACCESS'
       });
     }
     res.status(200).json({
@@ -615,7 +536,7 @@ router.get('/by-user-id/:userId', addRequestSecurity, validateUserAccess, async 
 });
 
 // Route to update customer data by userId
-router.put('/update/:userId', async (req, res) => {
+router.put('/update/:userId', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { userId } = req.params;
     const updateData = req.body;
@@ -672,7 +593,7 @@ router.put('/update/:userId', async (req, res) => {
 });
 
 // Route to get all shops for a specific customer
-router.get('/shops/:userId', async (req, res) => {
+router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -765,7 +686,7 @@ router.get('/shops/:userId', async (req, res) => {
 });
 
 // Route to add a new shop to a customer's document
-router.post('/shops/:userId', async (req, res) => {
+router.post('/shops/:userId', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { userId } = req.params;
     const shopData = req.body;
@@ -795,6 +716,7 @@ router.post('/shops/:userId', async (req, res) => {
     // Add timestamp and unique ID to the shop data
     const newShop = {
       ...shopData,
+      nomClient: customer.raisonSociale || customer.name || 'Client', // Automatically fill with customer's raisonSociale
       shopId: new ObjectId().toString(), // Generate a unique ID for the shop
       createdAt: new Date(),
       status: 'pending', // Initial status for new shops
@@ -844,7 +766,7 @@ router.post('/shops/:userId', async (req, res) => {
 });
 
 // Route to update an existing shop in a customer's document
-router.put('/shops/:userId/:shopId', async (req, res) => {
+router.put('/shops/:userId/:shopId', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { userId, shopId } = req.params;
     const updatedShopData = req.body;
@@ -852,7 +774,16 @@ router.put('/shops/:userId/:shopId', async (req, res) => {
     console.log('==== UPDATE SHOP DEBUG INFO ====');
     console.log('Updating shop for userId (sub):', userId);
     console.log('Shop ID:', shopId);
-    console.log('Updated shop data:', updatedShopData);
+    // Clean up the data for logging to avoid console spam
+    const logData = { ...updatedShopData };
+    const imageTypes = ['logo', 'desktopBanner', 'mobileBanner', 'favicon'];
+    imageTypes.forEach((imageType) => {
+      if (logData[`${imageType}Url`] && logData[`${imageType}Url`].startsWith('data:')) {
+        logData[`${imageType}Url`] = '[BASE64_DATA_URL]';
+      }
+    });
+    console.log('Updated shop data keys:', Object.keys(updatedShopData));
+    console.log('Updated shop data (cleaned):', logData);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -960,13 +891,566 @@ router.put('/shops/:userId/:shopId', async (req, res) => {
       success: true,
       message: 'Shop updated successfully',
       shop: shopResponse,
-      updatedClient: await customersCollection.findOne({ _id: new ObjectId(userId) }),
+      updatedClient: await customersCollection.findOne({ userId }),
     });
   } catch (error) {
     console.error('Error updating shop:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while updating the shop',
+      error: error.message
+    });
+  }
+});
+
+// Route to upload an image for a shop
+router.post('/shops/:userId/:shopId/upload-image', addRequestSecurity, validateUserAccess, async (req, res) => {
+  try {
+    const { userId, shopId } = req.params;
+    const { imageType } = req.body;
+    
+    console.log('==== UPLOAD IMAGE DEBUG INFO ====');
+    console.log('Uploading image for userId:', userId);
+    console.log('Shop ID:', shopId);
+    console.log('Image type:', imageType);
+    
+    if (!req.files || !req.files.image) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image file provided'
+      });
+    }
+
+    const imageFile = req.files.image;
+    
+    // Validate file type
+    // Accept any MIME type that starts with "image/" to be more flexible and avoid edge-cases
+    // (e.g. image/x-icon, image/svg+xml, image/heic, etc.).
+    if (!imageFile.mimetype || !imageFile.mimetype.startsWith('image/')) {
+      console.warn('Rejected upload due to invalid MIME type:', imageFile.mimetype);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file type. Only images are allowed.'
+      });
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (imageFile.size > maxSize) {
+      return res.status(400).json({
+        success: false,
+        message: 'File size too large. Maximum size is 5MB.'
+      });
+    }
+
+    // Get the customers collection
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document using the userId (sub from Cognito)
+    const customer = await customersCollection.findOne({ userId });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer profile not found for this user'
+      });
+    }
+    
+    // Check if customer has shops array
+    if (!customer.shops || !Array.isArray(customer.shops)) {
+      return res.status(404).json({
+        success: false,
+        message: 'No shops found for this customer'
+      });
+    }
+    
+    // Find the shop in the array
+    const shopIndex = customer.shops.findIndex(shop => shop.shopId === shopId);
+    
+    if (shopIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const fileExtension = imageFile.name.split('.').pop();
+    const fileName = `${timestamp}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`;
+    
+    // Determine S3 folder based on image type
+    let s3Folder;
+    switch (imageType) {
+      case 'logo':
+        s3Folder = 'logos';
+        break;
+      case 'desktopBanner':
+        s3Folder = 'banners/desktop';
+        break;
+      case 'mobileBanner':
+        s3Folder = 'banners/mobile';
+        break;
+      case 'favicon':
+        s3Folder = 'favicons';
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid image type'
+        });
+    }
+
+    const s3Key = `${s3Folder}/shop-${shopId}/${fileName}`;
+    
+    // Upload to S3
+    const s3Service = require('../services/s3Service');
+    const fs = require('fs');
+    // express-fileupload populates either `data` (when useTempFiles=false) or `tempFilePath` (when useTempFiles=true).
+    let fileBuffer;
+    if (imageFile.data && imageFile.data.length) {
+      fileBuffer = imageFile.data;
+    } else if (imageFile.tempFilePath) {
+      fileBuffer = fs.readFileSync(imageFile.tempFilePath);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to read uploaded file data'
+      });
+    }
+
+    const uploadResult = await s3Service.uploadFile(fileBuffer, s3Key, imageFile.mimetype);
+
+    // Clean up temp file if it exists
+    if (imageFile.tempFilePath) {
+      fs.unlink(imageFile.tempFilePath, () => {});
+    }
+    
+    if (!uploadResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload image to S3',
+        error: uploadResult.error
+      });
+    }
+
+    // Store the S3 key instead of a pre-signed URL (which expires)
+    // We'll generate pre-signed URLs on-demand when displaying images
+    
+    // Update the shop with the S3 key
+    const updateOperation = {
+      $set: { 
+        [`shops.${shopIndex}.${imageType}S3Key`]: s3Key,
+        [`shops.${shopIndex}.updatedAt`]: new Date(),
+        updatedAt: new Date()
+      }
+    };
+
+    const result = await customersCollection.updateOne(
+      { userId },
+      updateOperation
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to update shop with new image URL'
+      });
+    }
+    
+    console.log('SUCCESS: Image uploaded and shop updated');
+    console.log('==== END UPLOAD IMAGE DEBUG INFO ====');
+    
+    console.log('Returning S3 key:', s3Key);
+    res.status(200).json({
+      success: true,
+      message: 'Image uploaded successfully',
+      imageUrl: s3Key // Return the S3 key instead of pre-signed URL
+    });
+    
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while uploading the image',
+      error: error.message
+    });
+  }
+});
+
+// Route to get pre-signed URL for an image
+router.get('/shops/:userId/:shopId/image/:imageType', addRequestSecurity, validateUserAccess, async (req, res) => {
+  try {
+    const { userId, shopId, imageType } = req.params;
+    
+    console.log('==== GET IMAGE URL DEBUG INFO ====');
+    console.log('Getting image URL for userId:', userId);
+    console.log('Shop ID:', shopId);
+    console.log('Image type:', imageType);
+    
+    // Get the customers collection
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document using the userId (sub from Cognito)
+    const customer = await customersCollection.findOne({ userId });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer profile not found for this user'
+      });
+    }
+    
+    // Check if customer has shops array
+    if (!customer.shops || !Array.isArray(customer.shops)) {
+      return res.status(404).json({
+        success: false,
+        message: 'No shops found for this customer'
+      });
+    }
+    
+    // Find the shop in the array
+    const shop = customer.shops.find(shop => shop.shopId === shopId);
+    
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Get the S3 key for the image
+    const s3Key = shop[`${imageType}S3Key`];
+    
+    console.log(`Looking for ${imageType}S3Key:`, s3Key);
+    
+    if (!s3Key) {
+      return res.status(404).json({
+        success: false,
+        message: 'Image not found'
+      });
+    }
+    
+    // Generate a fresh pre-signed URL
+    const s3Service = require('../services/s3Service');
+    const presignedUrl = await s3Service.generatePresignedUrl(s3Key);
+    
+    console.log('Generated pre-signed URL for:', s3Key);
+    console.log('==== END GET IMAGE URL DEBUG INFO ====');
+    
+    res.status(200).json({
+      success: true,
+      imageUrl: presignedUrl,
+      // Also return a proxy URL that goes through our backend to avoid CORS issues
+      proxyUrl: `/api/customer/shops/${userId}/${shopId}/image-proxy/${imageType}`
+    });
+    
+  } catch (error) {
+    console.error('Error generating image URL:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while generating the image URL',
+      error: error.message
+    });
+  }
+});
+
+// Route to proxy images to avoid CORS issues
+router.get('/shops/:userId/:shopId/image-proxy/:imageType', addRequestSecurity, validateUserAccess, async (req, res) => {
+  console.log('==== PROXY ROUTE CALLED ====');
+  console.log('Request URL:', req.originalUrl);
+  console.log('Request method:', req.method);
+  try {
+    const { userId, shopId, imageType } = req.params;
+    
+    console.log('==== IMAGE PROXY DEBUG INFO ====');
+    console.log('Proxying image for userId:', userId);
+    console.log('Shop ID:', shopId);
+    console.log('Image type:', imageType);
+    
+    // Get the customers collection
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document using the userId (sub from Cognito)
+    const customer = await customersCollection.findOne({ userId });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer profile not found for this user'
+      });
+    }
+    
+    // Check if customer has shops array
+    if (!customer.shops || !Array.isArray(customer.shops)) {
+      return res.status(404).json({
+        success: false,
+        message: 'No shops found for this customer'
+      });
+    }
+    
+    // Find the shop in the array
+    const shop = customer.shops.find(shop => shop.shopId === shopId);
+    
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Get the S3 key for the image
+    const s3Key = shop[`${imageType}S3Key`];
+    
+    console.log(`Looking for ${imageType}S3Key:`, s3Key);
+    
+    if (!s3Key) {
+      return res.status(404).json({
+        success: false,
+        message: 'Image not found'
+      });
+    }
+    
+    // Get the image from S3 and serve it directly
+    const s3Service = require('../services/s3Service');
+    const { GetObjectCommand } = require('@aws-sdk/client-s3');
+    
+    try {
+      console.log('S3 bucket name:', s3Service.bucketName);
+      console.log('S3 key:', s3Key);
+      
+      const command = new GetObjectCommand({
+        Bucket: s3Service.bucketName,
+        Key: s3Key,
+      });
+      
+      const s3Response = await s3Service.s3.send(command);
+      
+      // Set appropriate headers
+      res.setHeader('Content-Type', s3Response.ContentType || 'image/jpeg');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
+      // Convert the stream to buffer and send it
+      const chunks = [];
+      for await (const chunk of s3Response.Body) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
+      
+      res.send(buffer);
+      
+      console.log('==== END IMAGE PROXY DEBUG INFO ====');
+      
+    } catch (s3Error) {
+      console.error('Error fetching image from S3:', s3Error);
+      res.status(500).json({
+        success: false,
+        message: 'Error fetching image from S3',
+        error: s3Error.message
+      });
+    }
+  } catch (error) {
+    console.error('Error in image proxy route:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing image proxy request'
+    });
+  }
+});
+
+// Route to proxy product images to avoid CORS issues
+// SECURITY: This route is protected by authentication, user access validation, and rate limiting
+router.get('/shops/:userId/:shopId/products/:productId/image-proxy', 
+  imageOperationLimiter, // Rate limiting to prevent abuse
+  addRequestSecurity, 
+  validateUserAccess, 
+  validateImageOperation, // Input validation
+  async (req, res) => {
+    console.log('🔒 [SECURITY] Product image proxy route accessed');
+    console.log('🔒 [SECURITY] Request details:', {
+      securityId: req.securityId,
+      userId: req.params.userId,
+      shopId: req.params.shopId,
+      productId: req.params.productId,
+      imageKey: req.query.imageKey,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')?.substring(0, 100),
+      timestamp: new Date().toISOString()
+    });
+  
+  try {
+    const { userId, shopId, productId } = req.params;
+    const { imageKey } = req.query;
+    
+    // SECURITY: Additional input validation
+    if (!imageKey || typeof imageKey !== 'string' || imageKey.length > 500) {
+      console.error('🔒 [SECURITY] Invalid imageKey provided:', imageKey);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image key provided',
+        securityAlert: 'INVALID_IMAGE_KEY'
+      });
+    }
+    
+    // SECURITY: Validate imageKey format to prevent path traversal attacks
+    if (imageKey.includes('..') || imageKey.includes('//') || !imageKey.startsWith('products/')) {
+      console.error('🔒 [SECURITY] Potential path traversal attack detected:', imageKey);
+      return res.status(403).json({
+        success: false,
+        message: 'Invalid image key format',
+        securityAlert: 'PATH_TRAVERSAL_ATTEMPT'
+      });
+    }
+    
+    // Get the customers collection
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document using the userId (sub from Cognito)
+    const customer = await customersCollection.findOne({ userId });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer profile not found for this user'
+      });
+    }
+    
+    // Check if customer has shops array
+    if (!customer.shops || !Array.isArray(customer.shops)) {
+      return res.status(404).json({
+        success: false,
+        message: 'No shops found for this customer'
+      });
+    }
+    
+    // Find the shop in the array
+    const shop = customer.shops.find(shop => shop.shopId === shopId);
+    
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Find the product in the shop
+    const product = shop.products?.find(product => product.productId === productId);
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+    
+    // SECURITY: Verify that the image key belongs to this product
+    if (!product.imageUrls || !product.imageUrls.some(url => {
+      if (url.startsWith('https://')) {
+        const urlObj = new URL(url);
+        return urlObj.pathname.substring(1) === imageKey;
+      }
+      return url === imageKey;
+    })) {
+      console.error('🔒 [SECURITY] Unauthorized image access attempt:', {
+        userId,
+        shopId,
+        productId,
+        imageKey,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')?.substring(0, 100)
+      });
+      return res.status(403).json({
+        success: false,
+        message: 'Image not found in this product',
+        securityAlert: 'UNAUTHORIZED_IMAGE_ACCESS'
+      });
+    }
+    
+    console.log('🔒 [SECURITY] Image access authorized for user:', userId);
+    
+    // Get the image from S3 and serve it directly
+    const s3Service = require('../services/s3Service');
+    const { GetObjectCommand } = require('@aws-sdk/client-s3');
+    
+    try {
+      console.log('S3 bucket name:', s3Service.bucketName);
+      console.log('S3 key:', imageKey);
+      
+      const command = new GetObjectCommand({
+        Bucket: s3Service.bucketName,
+        Key: imageKey,
+      });
+      
+      const s3Response = await s3Service.s3.send(command);
+      
+      // SECURITY: Set appropriate headers with security considerations
+      res.setHeader('Content-Type', s3Response.ContentType || 'image/jpeg');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('X-Content-Type-Options', 'nosniff'); // Prevent MIME type sniffing
+      res.setHeader('X-Frame-Options', 'DENY'); // Prevent clickjacking
+      res.setHeader('X-XSS-Protection', '1; mode=block'); // Enable XSS protection
+      res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); // Control referrer information
+      res.setHeader('Access-Control-Allow-Origin', '*'); // CORS for image serving
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
+      // Convert the stream to buffer and send it
+      const chunks = [];
+      for await (const chunk of s3Response.Body) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
+      
+      res.send(buffer);
+      
+      console.log('🔒 [SECURITY] Product image successfully served:', {
+        securityId: req.securityId,
+        userId,
+        shopId,
+        productId,
+        imageKey,
+        ip: req.ip,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (s3Error) {
+      console.error('🔒 [SECURITY] S3 error in product image proxy:', {
+        securityId: req.securityId,
+        userId,
+        shopId,
+        productId,
+        imageKey,
+        error: s3Error.message,
+        ip: req.ip,
+        timestamp: new Date().toISOString()
+      });
+      res.status(500).json({
+        success: false,
+        message: 'Error fetching product image from S3',
+        error: s3Error.message
+      });
+    }
+    
+  } catch (error) {
+    console.error('🔒 [SECURITY] General error in product image proxy:', {
+      securityId: req.securityId,
+      userId: req.params.userId,
+      shopId: req.params.shopId,
+      productId: req.params.productId,
+      error: error.message,
+      ip: req.ip,
+      timestamp: new Date().toISOString()
+    });
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while proxying the image',
       error: error.message
     });
   }
@@ -1774,7 +2258,7 @@ router.post('/shop/:shopId/product/:productId/documentation', async (req, res) =
 });
 
 // Route to add a product to a shop
-router.post('/shops/:userId/:shopId/products', async (req, res) => {
+router.post('/shops/:userId/:shopId/products', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { userId, shopId } = req.params;
     const productData = req.body;
@@ -1877,7 +2361,7 @@ router.post('/shops/:userId/:shopId/products', async (req, res) => {
 });
 
 // Route to get all products for a specific shop
-router.get('/shops/:userId/:shopId/products', async (req, res) => {
+router.get('/shops/:userId/:shopId/products', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { userId, shopId } = req.params;
     
@@ -1918,12 +2402,51 @@ router.get('/shops/:userId/:shopId/products', async (req, res) => {
     // Get products array (initialize if doesn't exist)
     const products = shop.products || [];
     console.log(`Found ${products.length} products for this shop`);
+    
+    // Generate pre-signed URLs for all product images
+    console.log(`Generating signed URLs for ${products.length} products...`);
+    const productsWithSignedUrls = await Promise.all(
+      products.map(async (product) => {
+        if (product.imageUrls && product.imageUrls.length > 0) {
+          console.log(`Processing ${product.imageUrls.length} images for product ${product.productId || product.titre}`);
+          try {
+            const signedUrls = await Promise.all(
+              product.imageUrls.map(async (url) => {
+                try {
+                  // Handle both full S3 URLs and S3 keys
+                  let key;
+                  if (url.startsWith('https://')) {
+                    // Full S3 URL - extract the key
+                    const key = decodeURIComponent(new URL(url).pathname.substring(1));
+                    return await getSignedUrl(key);
+                  } else {
+                    // Already an S3 key
+                    return await getSignedUrl(url);
+                  }
+                } catch (urlError) {
+                  console.error(`Failed to generate signed URL for image: ${url}`, urlError);
+                  // Return the original URL if signing fails
+                  return url;
+                }
+              })
+            );
+            return { ...product, imageUrls: signedUrls };
+          } catch (e) {
+            console.error(`Failed to generate signed URLs for product ${product.productId}:`, e);
+            // Return the product with original URLs if signing fails
+            return product;
+          }
+        }
+        return product;
+      })
+    );
+    
     console.log('==== END FETCH PRODUCTS DEBUG INFO ====');
     
-    // Return products array
+    // Return products array with signed URLs
     res.status(200).json({
       success: true,
-      products: products,
+      products: productsWithSignedUrls,
       shopName: shop.nomProjet || shop.name || 'Shop',
       shopStatus: shop.status
     });
@@ -1938,7 +2461,7 @@ router.get('/shops/:userId/:shopId/products', async (req, res) => {
 });
 
 // Route to update a product in a shop
-router.put('/shops/:userId/:shopId/products/:productId', async (req, res) => {
+router.put('/shops/:userId/:shopId/products/:productId', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { userId, shopId, productId } = req.params;
     const productData = req.body;
@@ -1994,18 +2517,22 @@ router.put('/shops/:userId/:shopId/products/:productId', async (req, res) => {
     // Remove status fields that customers shouldn't be able to modify
     const { active, documented, hasShopify, hasEC, ...allowedProductData } = productData;
     
-    // Update the product data
+    // Get the existing product to preserve all fields
+    const existingProduct = shop.products[productIndex];
+    
+    // Create updated product by merging existing data with new data
     const updatedProduct = {
-      ...allowedProductData,
+      ...existingProduct,  // Preserve all existing fields
+      ...allowedProductData,  // Override only the fields being updated
       productId: productId, // Keep the original product ID
       updatedAt: new Date(),
       // Preserve original creation timestamp
-      createdAt: shop.products[productIndex].createdAt,
+      createdAt: existingProduct.createdAt,
       // Preserve existing status fields (customers can't modify these)
-      active: shop.products[productIndex].active,
-      documented: shop.products[productIndex].documented,
-      hasShopify: shop.products[productIndex].hasShopify,
-      hasEC: shop.products[productIndex].hasEC
+      active: existingProduct.active,
+      documented: existingProduct.documented,
+      hasShopify: existingProduct.hasShopify,
+      hasEC: existingProduct.hasEC
     };
     
     // Update the product in the shop's products array
@@ -2163,53 +2690,7 @@ router.post('/shops/:shopId/upload/favicon', faviconUpload.single('favicon'), as
   }
 });
 
-// Route to upload product images
-router.post('/shops/:shopId/products/:productId/upload', require('../services/s3Service').productUpload.array('productImages', 5), async (req, res) => {
-  try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: 'No product images uploaded' });
-    }
-
-    const customersCollection = await getCustomersCollection();
-    const shopId = req.params.shopId;
-    const productId = req.params.productId;
-    
-    const imageUrls = req.files.map(file => file.location);
-
-    // Update product with image URLs
-    const result = await customersCollection.updateOne(
-      { 
-        'shops.shopId': shopId,
-        'shops.products.productId': productId
-      },
-      { 
-        $set: { 
-          'shops.$[shop].products.$[product].imageUrls': imageUrls,
-          'shops.$[shop].products.$[product].updatedAt': new Date()
-        }
-      },
-      {
-        arrayFilters: [
-          { 'shop.shopId': shopId },
-          { 'product.productId': productId }
-        ]
-      }
-    );
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, message: 'Product not found' });
-    }
-
-    res.json({ 
-      success: true, 
-      imageUrls: imageUrls,
-      message: `${imageUrls.length} product images uploaded successfully` 
-    });
-  } catch (error) {
-    console.error('Error uploading product images:', error);
-    res.status(500).json({ success: false, message: 'Error uploading product images' });
-  }
-});
+// UPLOAD ROUTE MOVED TO customerUpload.js TO AVOID BODY PARSER CONFLICTS
 
 // Debug: Log all registered routes
 console.log('🔍 [DEBUG] Customer routes loaded. Available routes:');
@@ -2220,4 +2701,417 @@ router.stack.forEach((layer) => {
   }
 });
 
+// Route to delete a specific product image
+// SECURITY: This endpoint is protected by:
+// - Rate limiting (50 operations per 15 minutes per user)
+// - Request security logging and tracking
+// - User access validation (users can only access their own data)
+// - Input validation (parameter format and type checking)
+// - Ownership validation (ensures product belongs to authenticated user)
+// - Audit logging (all operations are logged for security monitoring)
+router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex', 
+  imageOperationLimiter, // Rate limiting to prevent abuse
+  addRequestSecurity, 
+  validateUserAccess, 
+  validateImageOperation, // Input validation
+  async (req, res) => {
+  try {
+    const { userId, shopId, productId, imageIndex } = req.params;
+    
+    console.log('==== DELETE PRODUCT IMAGE DEBUG INFO ====');
+    console.log('Deleting product image for userId:', userId);
+    console.log('Shop ID:', shopId);
+    console.log('Product ID:', productId);
+    console.log('Image index:', imageIndex);
+    
+    // Get the customers collection
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document using the userId (sub from Cognito)
+    const customer = await customersCollection.findOne({ userId });
+    
+    if (!customer) {
+      console.error('🔒 [SECURITY] Unauthorized access attempt - customer not found for userId:', userId);
+      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      return res.status(404).json({
+        success: false,
+        message: 'Customer profile not found for this user',
+        userIdProvided: userId,
+        securityAlert: 'CUSTOMER_NOT_FOUND'
+      });
+    }
+    
+    // SECURITY: Additional validation - ensure the authenticated user matches the requested userId
+    const sessionUserId = req.session.userInfo?.sub || req.session.userInfo?.userId;
+    if (sessionUserId !== userId) {
+      console.error('🔒 [SECURITY] User ID mismatch in delete operation:', {
+        sessionUserId: sessionUserId,
+        requestedUserId: userId,
+        userEmail: req.session.userInfo?.email,
+        ip: req.ip
+      });
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: User ID mismatch',
+        securityAlert: 'USER_ID_MISMATCH'
+      });
+    }
+    
+    // Find the specific shop
+    const shop = customer.shops?.find(s => s.shopId === shopId);
+    
+    if (!shop) {
+      console.log(`FAILURE: No shop found with shopId: ${shopId}`);
+      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Find the specific product
+    const productIndex = shop.products?.findIndex(p => p.productId === productId);
+    
+    if (productIndex === -1 || productIndex === undefined) {
+      console.log(`FAILURE: No product found with productId: ${productId}`);
+      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+    
+    const product = shop.products[productIndex];
+    
+    if (!product.imageUrls || !Array.isArray(product.imageUrls)) {
+      console.log(`FAILURE: No images found for product ${productId}`);
+      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      return res.status(404).json({
+        success: false,
+        message: 'No images found for this product'
+      });
+    }
+    
+    const imageIndexNum = parseInt(imageIndex);
+    if (isNaN(imageIndexNum) || imageIndexNum < 0 || imageIndexNum >= product.imageUrls.length) {
+      console.log(`FAILURE: Invalid image index: ${imageIndex}`);
+      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image index'
+      });
+    }
+    
+    // Get the image URL to delete from S3
+    const imageUrlToDelete = product.imageUrls[imageIndexNum];
+    
+    // SECURITY: Log the deletion attempt for audit purposes
+    console.log('🔒 [SECURITY] Image deletion attempt:', {
+      userId: userId,
+      shopId: shopId,
+      productId: productId,
+      imageIndex: imageIndexNum,
+      imageUrl: imageUrlToDelete,
+      timestamp: new Date().toISOString(),
+      ip: req.ip,
+      userAgent: req.get('User-Agent')?.substring(0, 100)
+    });
+    
+    // Delete from S3
+    const s3Service = require('../services/s3Service');
+    try {
+      // Extract key from full URL or use as is if it's already a key
+      let s3Key;
+      if (imageUrlToDelete.startsWith('https://')) {
+        // Full S3 URL - extract the key
+        s3Key = decodeURIComponent(new URL(imageUrlToDelete).pathname.substring(1));
+      } else {
+        // Already an S3 key
+        s3Key = imageUrlToDelete;
+      }
+      
+      const deleteResult = await s3Service.deleteImage(s3Key);
+      if (!deleteResult.success) {
+        console.error('Failed to delete image from S3:', deleteResult.error);
+        // Continue with database update even if S3 deletion fails
+      }
+    } catch (s3Error) {
+      console.error('Error deleting image from S3:', s3Error);
+      // Continue with database update even if S3 deletion fails
+    }
+    
+    // Remove the image from the product's imageUrls array
+    const updatedImageUrls = product.imageUrls.filter((_, index) => index !== imageIndexNum);
+    
+    // Update the product in the database
+    const result = await customersCollection.updateOne(
+      { userId, 'shops.shopId': shopId },
+      { 
+        $set: { 
+          [`shops.$.products.${productIndex}.imageUrls`]: updatedImageUrls,
+          [`shops.$.products.${productIndex}.updatedAt`]: new Date(),
+          'shops.$.updatedAt': new Date()
+        }
+      }
+    );
+    
+    if (result.modifiedCount === 0) {
+      console.log('Failed to update product imageUrls in database');
+      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to update product images'
+      });
+    }
+    
+    console.log('Product image deleted successfully');
+    console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+    
+    res.status(200).json({
+      success: true,
+      message: 'Product image deleted successfully',
+      remainingImages: updatedImageUrls.length
+    });
+  } catch (error) {
+    console.error('Error deleting product image:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while deleting the product image',
+      error: error.message
+    });
+  }
+});
+
+// Route to reorder product images
+// SECURITY: This endpoint is protected by:
+// - Rate limiting (50 operations per 15 minutes per user)
+// - Request security logging and tracking
+// - User access validation (users can only access their own data)
+// - Input validation (parameter format and type checking)
+// - Request body validation (array format, URL validation, length limits)
+// - Ownership validation (ensures product belongs to authenticated user)
+// - Audit logging (all operations are logged for security monitoring)
+router.put('/shops/:userId/:shopId/products/:productId/images/reorder', 
+  imageOperationLimiter, // Rate limiting to prevent abuse
+  addRequestSecurity, 
+  validateUserAccess, 
+  validateImageOperation, // Input validation
+  async (req, res) => {
+  try {
+    const { userId, shopId, productId } = req.params;
+    const { newOrder } = req.body; // Array of image URLs in the new order
+    
+    console.log('==== REORDER PRODUCT IMAGES DEBUG INFO ====');
+    console.log('Reordering product images for userId:', userId);
+    console.log('Shop ID:', shopId);
+    console.log('Product ID:', productId);
+    console.log('New order:', newOrder);
+    
+    if (!newOrder || !Array.isArray(newOrder)) {
+      console.error('🔒 [SECURITY] Invalid newOrder format:', typeof newOrder);
+      return res.status(400).json({
+        success: false,
+        message: 'New order must be an array of image URLs',
+        securityAlert: 'INVALID_REQUEST_BODY_FORMAT'
+      });
+    }
+    
+    // SECURITY: Validate array length to prevent abuse
+    if (newOrder.length > 10) {
+      console.error('🔒 [SECURITY] Too many images in reorder request:', newOrder.length);
+      return res.status(400).json({
+        success: false,
+        message: 'Too many images in reorder request',
+        securityAlert: 'TOO_MANY_IMAGES_IN_REQUEST'
+      });
+    }
+    
+    // SECURITY: Validate each URL in the array
+    for (let i = 0; i < newOrder.length; i++) {
+      const url = newOrder[i];
+      if (typeof url !== 'string' || url.length === 0) {
+        console.error('🔒 [SECURITY] Invalid URL at index', i, ':', url);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid image URL in reorder request',
+          securityAlert: 'INVALID_IMAGE_URL_IN_REQUEST'
+        });
+      }
+      
+      // SECURITY: Validate URL format (should be S3 URL or key)
+      if (!url.startsWith('https://') && !url.includes('/')) {
+        console.error('🔒 [SECURITY] Invalid URL format at index', i, ':', url);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid image URL format',
+          securityAlert: 'INVALID_URL_FORMAT'
+        });
+      }
+    }
+    
+    // Get the customers collection
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document using the userId (sub from Cognito)
+    const customer = await customersCollection.findOne({ userId });
+    
+    if (!customer) {
+      console.error('🔒 [SECURITY] Unauthorized access attempt - customer not found for userId:', userId);
+      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      return res.status(404).json({
+        success: false,
+        message: 'Customer profile not found for this user',
+        userIdProvided: userId,
+        securityAlert: 'CUSTOMER_NOT_FOUND'
+      });
+    }
+    
+    // SECURITY: Additional validation - ensure the authenticated user matches the requested userId
+    const sessionUserId = req.session.userInfo?.sub || req.session.userInfo?.userId;
+    if (sessionUserId !== userId) {
+      console.error('🔒 [SECURITY] User ID mismatch in reorder operation:', {
+        sessionUserId: sessionUserId,
+        requestedUserId: userId,
+        userEmail: req.session.userInfo?.email,
+        ip: req.ip
+      });
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: User ID mismatch',
+        securityAlert: 'USER_ID_MISMATCH'
+      });
+    }
+    
+    // Find the specific shop
+    const shop = customer.shops?.find(s => s.shopId === shopId);
+    
+    if (!shop) {
+      console.log(`FAILURE: No shop found with shopId: ${shopId}`);
+      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Find the specific product
+    const productIndex = shop.products?.findIndex(p => p.productId === productId);
+    
+    if (productIndex === -1 || productIndex === undefined) {
+      console.log(`FAILURE: No product found with productId: ${productId}`);
+      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+    
+    const product = shop.products[productIndex];
+    
+    if (!product.imageUrls || !Array.isArray(product.imageUrls)) {
+      console.log(`FAILURE: No images found for product ${productId}`);
+      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      return res.status(404).json({
+        success: false,
+        message: 'No images found for this product'
+      });
+    }
+    
+    // SECURITY: Log the reorder attempt for audit purposes
+    console.log('🔒 [SECURITY] Image reorder attempt:', {
+      userId: userId,
+      shopId: shopId,
+      productId: productId,
+      currentImageCount: product.imageUrls.length,
+      newOrderCount: newOrder.length,
+      timestamp: new Date().toISOString(),
+      ip: req.ip,
+      userAgent: req.get('User-Agent')?.substring(0, 100)
+    });
+    
+    // SECURITY: Validate that all images in newOrder exist in the current imageUrls
+    // Since we're dealing with signed URLs that change, we need to extract the S3 keys for comparison
+    const extractS3Key = (url) => {
+      if (url.startsWith('https://')) {
+        // Full S3 URL - extract the key
+        try {
+          return decodeURIComponent(new URL(url).pathname.substring(1));
+        } catch (e) {
+          return url; // Return as-is if URL parsing fails
+        }
+      } else {
+        // Already an S3 key
+        return url;
+      }
+    };
+    
+    // Extract S3 keys for comparison
+    const currentImageKeys = new Set(product.imageUrls.map(extractS3Key));
+    const newOrderKeys = new Set(newOrder.map(extractS3Key));
+    
+    if (currentImageKeys.size !== newOrderKeys.size) {
+      console.error('🔒 [SECURITY] Image count mismatch in reorder request:', {
+        currentCount: currentImageKeys.size,
+        newOrderCount: newOrderKeys.size
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'New order must contain exactly the same images as the current order',
+        securityAlert: 'IMAGE_COUNT_MISMATCH'
+      });
+    }
+    
+    // Validate that all images in newOrder exist in the current product
+    for (const imageUrl of newOrder) {
+      const imageKey = extractS3Key(imageUrl);
+      if (!currentImageKeys.has(imageKey)) {
+        console.error('🔒 [SECURITY] Invalid image in reorder request:', imageKey);
+        return res.status(400).json({
+          success: false,
+          message: 'New order contains images that do not exist in the current product',
+          securityAlert: 'INVALID_IMAGE_IN_REQUEST'
+        });
+      }
+    }
+    
+    // Update the product with the new image order
+    const result = await customersCollection.updateOne(
+      { userId, 'shops.shopId': shopId },
+      { 
+        $set: { 
+          [`shops.$.products.${productIndex}.imageUrls`]: newOrder,
+          [`shops.$.products.${productIndex}.updatedAt`]: new Date(),
+          'shops.$.updatedAt': new Date()
+        }
+      }
+    );
+    
+    if (result.modifiedCount === 0) {
+      console.log('Failed to update product imageUrls order in database');
+      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to update product image order'
+      });
+    }
+    
+    console.log('Product images reordered successfully');
+    console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+    
+    res.status(200).json({
+      success: true,
+      message: 'Product images reordered successfully',
+      newOrder: newOrder
+    });
+  } catch (error) {
+    console.error('Error reordering product images:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while reordering the product images',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
+

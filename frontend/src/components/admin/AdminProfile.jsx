@@ -1,16 +1,26 @@
 import React, { useState } from "react";
+import {
+  FaUser,
+  FaLock,
+  FaEye,
+  FaEyeSlash,
+  FaCheckCircle,
+} from "react-icons/fa";
 
 const AdminProfile = () => {
   const [formData, setFormData] = useState({
-    name: "Admin User", // Replace with actual admin data
-    email: "admin@example.com",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
-
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -18,6 +28,8 @@ const AdminProfile = () => {
       ...prev,
       [name]: value,
     }));
+
+    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -26,141 +38,210 @@ const AdminProfile = () => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setErrors({});
-    setSuccessMessage("");
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
 
-    // Validate form
+  const validateForm = () => {
     const newErrors = {};
-    if (!formData.name.trim()) {
-      newErrors.name = "Le nom est requis";
+
+    // Current password validation
+    if (!formData.currentPassword) {
+      newErrors.currentPassword = "Le mot de passe actuel est requis";
     }
-    if (!formData.email.trim()) {
-      newErrors.email = "L'email est requis";
-    }
-    if (formData.newPassword && formData.newPassword.length < 6) {
+
+    // New password validation
+    if (!formData.newPassword) {
+      newErrors.newPassword = "Le nouveau mot de passe est requis";
+    } else if (formData.newPassword.length < 8) {
       newErrors.newPassword =
-        "Le mot de passe doit contenir au moins 6 caractères";
+        "Le mot de passe doit contenir au moins 8 caractères";
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.newPassword)) {
+      newErrors.newPassword =
+        "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre";
     }
-    if (formData.newPassword !== formData.confirmPassword) {
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "La confirmation du mot de passe est requise";
+    } else if (formData.newPassword !== formData.confirmPassword) {
       newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
     }
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    // Check if new password is different from current
+    if (
+      formData.currentPassword &&
+      formData.newPassword &&
+      formData.currentPassword === formData.newPassword
+    ) {
+      newErrors.newPassword =
+        "Le nouveau mot de passe doit être différent de l'actuel";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSuccess(false);
+
+    if (!validateForm()) {
       return;
     }
 
-    // Handle form submission
-    console.log("Updating profile:", formData);
-    setSuccessMessage("Profil mis à jour avec succès");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword,
+          userType: "admin", // Specify admin user type
+        }),
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSuccess(true);
+        setFormData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        setShowPasswords({
+          current: false,
+          new: false,
+          confirm: false,
+        });
+      } else {
+        setErrors({
+          submit: data.message || "Erreur lors du changement de mot de passe",
+        });
+      }
+    } catch (error) {
+      console.error("Error changing password:", error);
+      setErrors({
+        submit: "Erreur de connexion. Veuillez réessayer.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">Mon Profil</h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {successMessage && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-              {successMessage}
-            </div>
-          )}
-
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Nom complet
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                errors.name
-                  ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:border-sna-primary focus:ring-sna-primary"
-              }`}
-            />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-            )}
+    <div className="flex justify-center items-start min-h-screen p-6">
+      <div className="max-w-2xl w-full">
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+              <FaUser className="mr-2" />
+              Mon Compte Administrateur
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Gérez vos informations de compte et votre mot de passe
+            </p>
           </div>
 
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                errors.email
-                  ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:border-sna-primary focus:ring-sna-primary"
-              }`}
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+          <div className="p-6">
+            {success && (
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                <div className="flex">
+                  <FaCheckCircle className="h-5 w-5 text-green-400" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-green-800">
+                      Mot de passe modifié avec succès !
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
-          </div>
 
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Changer le mot de passe
-            </h3>
+            {errors.submit && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex">
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-red-800">
+                      {errors.submit}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label
-                  htmlFor="currentPassword"
-                  className="block text-sm font-medium text-gray-700"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Mot de passe actuel
                 </label>
-                <input
-                  type="password"
-                  id="currentPassword"
-                  name="currentPassword"
-                  value={formData.currentPassword}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sna-primary focus:ring-sna-primary sm:text-sm"
-                />
+                <div className="relative">
+                  <input
+                    type={showPasswords.current ? "text" : "password"}
+                    name="currentPassword"
+                    value={formData.currentPassword}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.currentPassword
+                        ? "border-red-300"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Entrez votre mot de passe actuel"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility("current")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showPasswords.current ? (
+                      <FaEyeSlash className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <FaEye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+                {errors.currentPassword && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.currentPassword}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label
-                  htmlFor="newPassword"
-                  className="block text-sm font-medium text-gray-700"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nouveau mot de passe
                 </label>
-                <input
-                  type="password"
-                  id="newPassword"
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.newPassword
-                      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:border-sna-primary focus:ring-sna-primary"
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    type={showPasswords.new ? "text" : "password"}
+                    name="newPassword"
+                    value={formData.newPassword}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.newPassword ? "border-red-300" : "border-gray-300"
+                    }`}
+                    placeholder="Entrez votre nouveau mot de passe"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility("new")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showPasswords.new ? (
+                      <FaEyeSlash className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <FaEye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
                 {errors.newPassword && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.newPassword}
@@ -169,42 +250,63 @@ const AdminProfile = () => {
               </div>
 
               <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Confirmer le nouveau mot de passe
                 </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.confirmPassword
-                      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:border-sna-primary focus:ring-sna-primary"
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    type={showPasswords.confirm ? "text" : "password"}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.confirmPassword
+                        ? "border-red-300"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Confirmez votre nouveau mot de passe"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility("confirm")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showPasswords.confirm ? (
+                      <FaEyeSlash className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <FaEye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
                 {errors.confirmPassword && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.confirmPassword}
                   </p>
                 )}
               </div>
-            </div>
-          </div>
 
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sna-primary hover:bg-sna-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sna-primary"
-            >
-              Sauvegarder les modifications
-            </button>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Modification en cours...
+                    </>
+                  ) : (
+                    <>
+                      <FaLock className="mr-2" />
+                      Modifier le mot de passe
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

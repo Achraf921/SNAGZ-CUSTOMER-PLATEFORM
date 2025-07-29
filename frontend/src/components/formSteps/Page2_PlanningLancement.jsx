@@ -18,7 +18,7 @@ const Page2_PlanningLancement = ({ formData, handleChange }) => {
             htmlFor="dateMiseEnLigne"
             className="block text-sm font-medium text-gray-700"
           >
-            Date de Mise en Ligne Prévue
+            Date de Mise en Ligne Prévue <span className="text-red-500">*</span>
           </label>
           <div className="mt-1">
             <input
@@ -27,6 +27,7 @@ const Page2_PlanningLancement = ({ formData, handleChange }) => {
               id="dateMiseEnLigne"
               value={formData.dateMiseEnLigne}
               onChange={handleChange}
+              required
               className="shadow-sm focus:ring-sna-primary focus:border-sna-primary block w-full sm:text-sm border-gray-300 rounded-md"
             />
           </div>
@@ -37,7 +38,7 @@ const Page2_PlanningLancement = ({ formData, handleChange }) => {
             htmlFor="dateCommercialisation"
             className="block text-sm font-medium text-gray-700"
           >
-            Date de Commercialisation
+            Date de Commercialisation <span className="text-red-500">*</span>
           </label>
           <div className="mt-1">
             <input
@@ -46,6 +47,7 @@ const Page2_PlanningLancement = ({ formData, handleChange }) => {
               id="dateCommercialisation"
               value={formData.dateCommercialisation}
               onChange={handleChange}
+              required
               className="shadow-sm focus:ring-sna-primary focus:border-sna-primary block w-full sm:text-sm border-gray-300 rounded-md"
             />
           </div>
@@ -56,7 +58,7 @@ const Page2_PlanningLancement = ({ formData, handleChange }) => {
             htmlFor="dateSortieOfficielle"
             className="block text-sm font-medium text-gray-700"
           >
-            Date de Sortie Officielle
+            Date de Sortie Officielle <span className="text-red-500">*</span>
           </label>
           <div className="mt-1">
             <input
@@ -65,6 +67,7 @@ const Page2_PlanningLancement = ({ formData, handleChange }) => {
               id="dateSortieOfficielle"
               value={formData.dateSortieOfficielle}
               onChange={handleChange}
+              required
               className="shadow-sm focus:ring-sna-primary focus:border-sna-primary block w-full sm:text-sm border-gray-300 rounded-md"
             />
           </div>

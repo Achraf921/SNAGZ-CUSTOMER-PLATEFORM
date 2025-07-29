@@ -33,7 +33,7 @@ function MainPage() {
       title: "Administrateur",
       description: "Portail de gestion et configuration système.",
       view: "adminLogin",
-      defaultRedirectUrl: "/admin/dashboard", // Assuming /admin/dashboard exists or will be made
+      defaultRedirectUrl: "/admin/client-accounts",
       apiEndpoint: "/login-admin-portal",
     },
   };

@@ -20,7 +20,7 @@ const ClientsList = () => {
     const fetchClients = async () => {
       try {
         const response = await fetch(
-          `/api/customer/all?details=true&_=${new Date().getTime()}`,
+          `/api/internal/all?details=true&_=${new Date().getTime()}`,
           { headers: { "Cache-Control": "no-cache" } }
         );
         if (!response.ok)
@@ -199,7 +199,7 @@ const ClientsList = () => {
   if (error) return <p>Erreur: {error}</p>;
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="w-full p-4">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">Liste des Clients</h1>
         <input

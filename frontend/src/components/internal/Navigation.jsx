@@ -12,8 +12,15 @@ const Navigation = () => {
   ];
 
   const handleLogout = async () => {
-    // Add logout logic here (clear tokens, etc.)
+    console.log("🔒 SECURITY: Starting secure navigation logout process...");
+
     try {
+      // Import security utilities
+      const { clearAllAuthData } = await import("../../utils/authSecurity");
+
+      // Clear ALL frontend data immediately for security
+      clearAllAuthData();
+
       // Call the API logout endpoint
       const response = await fetch("/api/logout-internal", {
         method: "POST",
@@ -24,16 +31,27 @@ const Navigation = () => {
       });
 
       if (response.ok) {
-        console.log("Navigation logout successful");
+        console.log("✅ SECURITY: Navigation logout successful");
       } else {
-        console.error("Navigation logout API call failed");
+        console.error("⚠️ SECURITY: Navigation logout API call failed");
       }
     } catch (error) {
-      console.error("Error during navigation logout:", error);
+      console.error("🚨 SECURITY: Error during navigation logout:", error);
     }
 
-    localStorage.removeItem("token");
+    // CRITICAL: Clear ALL browser storage and session data
+    localStorage.clear();
     sessionStorage.clear();
+
+    // Clear any cookies that might exist
+    document.cookie.split(";").forEach(function (c) {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
+    console.log("🧹 SECURITY: All navigation user data cleared");
+
     window.location.href = "/logout-internal";
   };
 

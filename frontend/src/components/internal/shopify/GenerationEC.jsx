@@ -24,7 +24,7 @@ const GenerationEC = () => {
   useEffect(() => {
     const loadShopsAndProducts = async () => {
       try {
-        const res = await fetch("/api/customer/all?details=true", {
+        const res = await fetch("/api/internal/all?details=true", {
           headers: { "Cache-Control": "no-cache" },
         });
         const data = await res.json();

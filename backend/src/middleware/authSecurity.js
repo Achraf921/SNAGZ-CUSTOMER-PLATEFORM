@@ -54,20 +54,21 @@ const validateUserAccess = (req, res, next) => {
       console.error('Requested userId:', requestedUserId);
       console.error('User email:', sessionUserInfo.email);
       console.error('IP:', req.ip);
+      console.error('Path:', req.path);
+      console.error('Timestamp:', new Date().toISOString());
       
-      // Check if this is a legitimate new user vs. actual security breach
-      // For customer routes, we'll let the route handler determine if it's a new user
-      if (req.path.includes('/by-user-id/') || req.path.includes('/customer/')) {
-        console.log('🔍 SECURITY: Potential new user accessing customer routes - allowing route to handle');
-        // Let the route handler decide - they can show welcome modal for new users
-      } else {
-        // For other routes, this is a genuine security violation
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: User ID mismatch',
-          securityAlert: 'UNAUTHORIZED_USER_ACCESS_ATTEMPT'
-        });
-      }
+      // CRITICAL SECURITY: Block ALL unauthorized access attempts
+      // No exceptions - user can only access their own data
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Unauthorized access attempt',
+        securityAlert: 'UNAUTHORIZED_USER_ACCESS_BLOCKED',
+        details: {
+          sessionUserId: sessionUserId,
+          requestedUserId: requestedUserId,
+          timestamp: new Date().toISOString()
+        }
+      });
     }
 
     console.log('✅ SECURITY: User access validation passed');

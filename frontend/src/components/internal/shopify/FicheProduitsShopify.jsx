@@ -31,7 +31,7 @@ const FicheProduitsShopify = () => {
 
   const loadShops = async () => {
     try {
-      const res = await fetch("/api/customer/all?details=true");
+      const res = await fetch("/api/internal/all?details=true");
       const data = await res.json();
       const collected = [];
       (data.customers || []).forEach((c) => {
@@ -59,7 +59,7 @@ const FicheProduitsShopify = () => {
       await Promise.all(
         collected.map(async (s) => {
           try {
-            const res2 = await fetch(`/api/customer/shop/${s.shopId}/products`);
+            const res2 = await fetch(`/api/internal/shop/${s.shopId}/products`);
             const data2 = await res2.json();
             productsMap[s.shopId] = (data2.products || []).filter(
               (p) => p.documented === true
@@ -82,7 +82,7 @@ const FicheProduitsShopify = () => {
 
   const fetchProducts = async (shopId) => {
     if (shopProducts[shopId]) return; // already loaded
-    const res = await fetch(`/api/customer/shop/${shopId}/products`);
+    const res = await fetch(`/api/internal/shop/${shopId}/products`);
     const data = await res.json();
     const products = (data.products || []).filter((p) => p.documented === true);
     setShopProducts((prev) => ({ ...prev, [shopId]: products }));

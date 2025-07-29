@@ -12,7 +12,7 @@ const AllShops = () => {
     // Fetch all shops data from backend
     const fetchAllShops = async () => {
       try {
-        const response = await fetch("/api/customer/all-shops");
+        const response = await fetch("/api/internal/all-shops");
         if (!response.ok)
           throw new Error("Erreur lors du chargement des boutiques");
         const data = await response.json();
@@ -61,7 +61,7 @@ const AllShops = () => {
   if (error) return <p>Erreur: {error}</p>;
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="w-full p-4">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">
           Toutes les Boutiques

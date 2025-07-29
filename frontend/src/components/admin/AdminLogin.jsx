@@ -26,7 +26,7 @@ const AdminLogin = ({ showMainMenu }) => {
         if (data.redirectUrl) {
           window.location.href = data.redirectUrl;
         } else {
-          window.location.href = "/admin/dashboard";
+          window.location.href = "/admin/client-accounts";
         }
       } else {
         setError(data.message || "Login failed. Please try again.");

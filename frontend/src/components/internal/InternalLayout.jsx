@@ -70,7 +70,7 @@ const InternalLayout = ({ children }) => {
       icon: <FaFileExport />,
     },
     {
-      name: "Creation de compte client",
+      name: "Gestion de compte client",
       href: "/internal/creation-comptes-client",
       icon: <FaUserPlus />,
     },
@@ -87,9 +87,15 @@ const InternalLayout = ({ children }) => {
   ];
 
   const handleLogout = async () => {
-    console.log("Logging out internal user...");
+    console.log("🔒 SECURITY: Starting secure internal logout process...");
 
     try {
+      // Import security utilities
+      const { clearAllAuthData } = await import("../../utils/authSecurity");
+
+      // Clear ALL frontend data immediately for security
+      clearAllAuthData();
+
       // Call the API logout endpoint
       const response = await fetch("/api/logout-internal", {
         method: "POST",
@@ -100,17 +106,27 @@ const InternalLayout = ({ children }) => {
       });
 
       if (response.ok) {
-        console.log("Internal logout successful");
+        console.log("✅ SECURITY: Internal logout successful");
       } else {
-        console.error("Internal logout API call failed");
+        console.error("⚠️ SECURITY: Internal logout API call failed");
       }
     } catch (error) {
-      console.error("Error during internal logout:", error);
+      console.error("🚨 SECURITY: Error during internal logout:", error);
     }
 
-    // Clear any stored tokens or session data
-    localStorage.removeItem("token");
+    // CRITICAL: Clear ALL browser storage and session data
+    localStorage.clear();
     sessionStorage.clear();
+
+    // Clear any cookies that might exist
+    document.cookie.split(";").forEach(function (c) {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
+    console.log("🧹 SECURITY: All internal user data cleared");
+
     // Call the proper backend logout route
     window.location.href = "/logout-internal";
   };
@@ -122,9 +138,9 @@ const InternalLayout = ({ children }) => {
       </div> */}
       <div className="flex flex-1">
         {/* Sidebar */}
-        <div className="w-64 bg-white shadow-sm relative z-40 flex flex-col">
+        <div className="w-64 bg-white shadow-sm relative z-40 flex flex-col h-screen">
           <div className="flex flex-col flex-1">
-            <div className="flex-1 py-6 px-4">
+            <div className="flex-1 py-6 px-4 overflow-y-auto">
               <nav className="space-y-2">
                 {navigation.map((item) => (
                   <a
@@ -135,6 +151,7 @@ const InternalLayout = ({ children }) => {
                     {React.isValidElement(item.icon) ? (
                       React.cloneElement(item.icon, {
                         className: "mr-3 h-5 w-5 flex-shrink-0",
+                        style: { fontWeight: "normal" },
                       })
                     ) : (
                       <svg
@@ -142,6 +159,7 @@ const InternalLayout = ({ children }) => {
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
+                        style={{ fontWeight: "normal" }}
                       >
                         {item.icon}
                       </svg>
@@ -153,12 +171,15 @@ const InternalLayout = ({ children }) => {
             </div>
 
             {/* Logout button */}
-            <div className="border-t border-gray-200 p-4">
+            <div className="border-t border-gray-200 p-4 flex-shrink-0">
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center px-4 py-3 text-sm rounded-lg text-red-600 hover:bg-red-50 transition-colors"
               >
-                <FaSignOutAlt className="mr-3 h-5 w-5 flex-shrink-0" />
+                <FaSignOutAlt
+                  className="mr-3 h-5 w-5 flex-shrink-0"
+                  style={{ fontWeight: "normal" }}
+                />
                 Se déconnecter
               </button>
             </div>
@@ -167,7 +188,7 @@ const InternalLayout = ({ children }) => {
 
         {/* Main content */}
         <main className="flex-1 py-8 px-6">
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="w-full">{children}</div>
         </main>
       </div>
     </div>
