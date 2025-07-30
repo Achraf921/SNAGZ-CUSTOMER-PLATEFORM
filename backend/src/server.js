@@ -162,10 +162,14 @@ app.use(session({
 console.log('🔧 [MIDDLEWARE] Mounting upload routes before body parsers...');
 const customerUploadRoutes = require('./routes/customerUpload');
 app.use('/api/customer', customerUploadRoutes);
+
+// Mount internal upload routes before body parsers as well
+const internalUploadRoutes = require('./routes/internalUpload');
+app.use('/api/internal', internalUploadRoutes);
 console.log('🔧 [MIDDLEWARE] Upload routes mounted successfully');
 
-app.use(express.json({ limit: '10mb' })); // Parse JSON bodies with increased limit
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(express.json({ limit: '50mb' })); // Parse JSON bodies with increased limit
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Parse URL-encoded bodies with increased limit
 
 // Rate limiting for API routes to prevent abuse
 const apiLimiter = rateLimit({
@@ -1465,4 +1469,10 @@ async function findAvailablePort(startPort, endPort) {
 //         isAuthenticated: req.isAuthenticated,
 //         userInfo: req.session.userInfo
 //     });
-// }); 
+// });
+
+// Export middleware for use in other modules
+module.exports = {
+  requireInternalAPIAuth,
+  app
+}; 

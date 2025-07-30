@@ -229,6 +229,40 @@ const ClientShopsDisplay = ({
         );
       }
 
+      // Special handling for Shopify Setup Status
+      if (field === "shopifySetupStatus") {
+        return (
+          <div className="flex items-center space-x-2">
+            <select
+              value={editValues[field] || ""}
+              onChange={(e) => handleFieldChange(field, e.target.value)}
+              className="border rounded p-1 text-sm flex-1"
+            >
+              <option value="">Sélectionner un statut</option>
+              <option value="unparametrized">Unparametrized</option>
+              <option value="parametrized">Parametrized</option>
+            </select>
+            <div className="flex space-x-1">
+              <button
+                onClick={() => saveField(shop, field)}
+                disabled={isSaving}
+                className="p-1 text-green-600 hover:text-green-800"
+                title="Enregistrer"
+              >
+                <FiSave size={16} />
+              </button>
+              <button
+                onClick={() => setEditingField(null)}
+                className="p-1 text-red-600 hover:text-red-800"
+                title="Annuler"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+          </div>
+        );
+      }
+
       // Special handling for specific fields that should have Oui/Non dropdowns
       const ouiNonFields = [
         "precommande",
@@ -567,11 +601,18 @@ const ClientShopsDisplay = ({
                               ([key]) =>
                                 ![
                                   "_id",
+                                  "id",
                                   "shopId",
-                                  "createdAt",
-                                  "updatedAt",
+                                  "nomProjet",
                                   "status",
-                                  "coutsEtDetailsModuleMondialRelay",
+                                  "products",
+                                  "updatedAt",
+                                  "createdAt",
+                                  "clientName",
+                                  "clientId",
+                                  "payment",
+                                  "Payement",
+                                  "productsCount",
                                   "coutsEtDetailsModuleDelivengo",
                                   "coutsEtDetailsMaintenanceSite",
                                   "hasShopify",
@@ -580,6 +621,26 @@ const ClientShopsDisplay = ({
                                   "shopifyCreatedAt", // Exclude Shopify Created At
                                   "documented", // Exclude Documented
                                   "compteClientRef", // Exclude Compte Client Ref
+                                  // Add technical fields that should be hidden
+                                  "desktopBannerUrl",
+                                  "mobileBannerUrl",
+                                  "faviconUrl",
+                                  "shopifyAdminUrl",
+                                  "shopifyConfig",
+                                  "unparametrizedDate",
+                                  "currentThemeId",
+                                  "dawnThemePushedAt",
+                                  "parametrizedAt",
+                                  "mobileBannerS3Key",
+                                  "logoS3Key",
+                                  "desktopBannerS3Key",
+                                  "faviconS3Key",
+                                  "lastModified",
+                                  // Additional fields to hide
+                                  "logoUrl",
+                                  "coutsEtDetailsModuleMondialRelay",
+                                  "themeName",
+                                  "dawnThemePushed",
                                 ].includes(key)
                             )
                             .map(([field, value]) => (

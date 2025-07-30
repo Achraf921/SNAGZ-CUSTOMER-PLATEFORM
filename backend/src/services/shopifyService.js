@@ -229,7 +229,13 @@ async function processImagesWithStagedUploads(shopifyUrl, accessToken, imageUrls
       // Extract S3 bucket and key from URL
       const urlParts = imageUrl.replace('https://', '').split('/');
       const bucketName = urlParts[0].split('.')[0]; // Extract bucket name from domain
-      const key = urlParts.slice(1).join('/'); // Rest is the key
+      let key = urlParts.slice(1).join('/'); // Rest is the key
+      
+      // Remove query parameters from the key
+      const queryIndex = key.indexOf('?');
+      if (queryIndex !== -1) {
+        key = key.substring(0, queryIndex);
+      }
       
       console.log(`[IMAGE-PROCESSING] Extracted bucket: ${bucketName}, key: ${key}`);
       
@@ -313,10 +319,94 @@ function mapProductType(productType) {
 }
 
 /**
+ * Find the appropriate Shopify Standard Product Taxonomy category
+ */
+async function findProductCategory(shopifyUrl, accessToken, searchTerm) {
+  console.log(`[CATEGORY-SEARCH] 🔍 ===============================================`);
+  console.log(`[CATEGORY-SEARCH] 🔍 Searching for category with term: "${searchTerm}"`);
+  console.log(`[CATEGORY-SEARCH] 🔍 Shopify URL: ${shopifyUrl}`);
+  console.log(`[CATEGORY-SEARCH] 🔍 Access Token present: ${!!accessToken}`);
+  console.log(`[CATEGORY-SEARCH] 🔍 ===============================================`);
+  
+  const TAXONOMY_SEARCH_QUERY = `
+    query taxonomySearch($search: String!, $first: Int!) {
+      taxonomy {
+        categories(search: $search, first: $first) {
+          nodes {
+            id
+            fullName
+            isLeaf
+          }
+        }
+      }
+    }
+  `;
+  
+  try {
+    console.log(`[CATEGORY-SEARCH] 📡 Making GraphQL request...`);
+    const response = await fetch(`${shopifyUrl}/admin/api/2025-07/graphql.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify({
+        query: TAXONOMY_SEARCH_QUERY,
+        variables: { 
+          search: searchTerm,
+          first: 10
+        }
+      })
+    });
+    
+    console.log(`[CATEGORY-SEARCH] 📡 Response status: ${response.status}`);
+    console.log(`[CATEGORY-SEARCH] 📡 Response ok: ${response.ok}`);
+    
+    const data = await response.json();
+    console.log(`[CATEGORY-SEARCH] 📡 Raw response data:`, JSON.stringify(data, null, 2));
+    
+    if (data.errors) {
+      console.error(`[CATEGORY-SEARCH] ❌ GraphQL errors:`, data.errors);
+      throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
+    }
+    
+    const categories = data.data?.taxonomy?.categories?.nodes || [];
+    console.log(`[CATEGORY-SEARCH] 📊 Found ${categories.length} categories for "${searchTerm}"`);
+    
+    if (categories.length > 0) {
+      console.log(`[CATEGORY-SEARCH] 📋 Categories found:`, 
+        categories.map(c => ({ id: c.id, fullName: c.fullName, isLeaf: c.isLeaf })));
+    } else {
+      console.log(`[CATEGORY-SEARCH] 📋 No categories found for search term: "${searchTerm}"`);
+    }
+    
+    // Find the first leaf category
+    const leafCategory = categories.find(category => category.isLeaf);
+    
+    if (leafCategory) {
+      console.log(`[CATEGORY-SEARCH] ✅ Selected leaf category: ${leafCategory.fullName} (${leafCategory.id})`);
+      return leafCategory.id;
+    } else {
+      console.log(`[CATEGORY-SEARCH] ❌ No leaf categories found for "${searchTerm}"`);
+      throw new Error(`No leaf categories found for "${searchTerm}"`);
+    }
+  } catch (error) {
+    console.error(`[CATEGORY-SEARCH] 💥 Error searching for category: ${error.message}`);
+    console.error(`[CATEGORY-SEARCH] 💥 Error stack:`, error.stack);
+    throw error;
+  }
+}
+
+/**
  * Publish products to Shopify store
  */
 async function publishProductsToShopify(shop, products) {
   try {
+    console.log(`🔥🔥🔥 [RESTART-TEST] SERVER RESTARTED - NEW CHANGES APPLIED! 🔥🔥🔥`);
+    console.log(`🚨🚨🚨 [CRITICAL-FUNCTION-START] publishProductsToShopify FUNCTION HAS STARTED!`);
+    console.log(`🚨🚨🚨 [CRITICAL-FUNCTION-START] THIS LOG MUST APPEAR IN YOUR LOGS!`);
+    console.log(`🚨🚨🚨 [CRITICAL-FUNCTION-START] ===============================================`);
+    
     console.log(`[SHOPIFY-DEBUG] Starting publishProductsToShopify for shop: { shopId: ${shop._id}, shopName: ${shop.nomProjet}, productsCount: ${products.length} }`);
     
     // Extract domain and credentials
@@ -338,9 +428,15 @@ async function publishProductsToShopify(shop, products) {
 
     for (const product of products) {
       try {
-        // Debug: Log the raw product structure
-        console.log(`[SHOPIFY-DEBUG] Raw product data:`, JSON.stringify(product, null, 2));
-        console.log(`[SHOPIFY-DEBUG] Product keys:`, Object.keys(product));
+        // 🚨 SUPER CRITICAL: Mark the start of product processing
+        console.log(`🚨🚨🚨 [SUPER-CRITICAL] ===============================================`);
+        console.log(`🚨🚨🚨 [SUPER-CRITICAL] STARTING PRODUCT PROCESSING LOOP`);
+        console.log(`🚨🚨🚨 [SUPER-CRITICAL] Product title: ${product.title || product.titre || 'NO TITLE'}`);
+        console.log(`🚨🚨🚨 [SUPER-CRITICAL] ===============================================`);
+        
+        // Basic product info for debugging
+        console.log(`[SHOPIFY-DEBUG] Processing product: ${product.title || product.titre}`);
+        console.log(`[SHOPIFY-DEBUG] Product type: ${product.type || product.typeProduit || 'Not specified'}`);
         
         // Handle different possible product data structures
         const productTitle = product.title || product.titre || product.nom || 'Product Without Title';
@@ -349,12 +445,7 @@ async function publishProductsToShopify(shop, products) {
         const productPrice = product.price || product.prix || '0.00';
         const productEan = product.ean || product.codeEAN || product.barcode;
         const productImages = product.imageUrls || product.images || [];
-        const productWeight = product.poids || product.weight || product.poids || 400;
-        
-        console.log(`[SHOPIFY-DEBUG] Extracted weight: ${productWeight} (from ${product.poids || product.weight || 'default'})`);
-        
-        console.log(`[SHOPIFY-DEBUG] Extracted data: { title: ${productTitle}, type: ${productTypeRaw}, price: ${productPrice}, images: ${productImages.length} }`);
-        console.log(`[SHOPIFY-DEBUG] Processing product: ${productTitle}`);
+        const productWeight = product.poids || product.weight || 400;
         
         // Process images using staged uploads
         let mediaItems = [];
@@ -366,8 +457,75 @@ async function publishProductsToShopify(shop, products) {
         // Generate SKU
         const sku = generateSKU(productTitle);
         
+        console.log(`🚨🚨🚨 [FLOW-DEBUG] Generated SKU: ${sku}`);
+        console.log(`🚨🚨🚨 [FLOW-DEBUG] About to proceed to category section...`);
+        
+        console.log(`🚨🚨🚨 [CRITICAL-DEBUG] Starting category and product creation section...`);
+        
         // Map category
         const productType = mapProductType(productTypeRaw);
+        
+        console.log(`🚨🚨🚨 [CRITICAL-DEBUG] ProductType mapped: ${productType}`);
+        
+        // 🚨 EXECUTION CHECK: Verify we reached this point
+        console.log(`🔥��🔥 [EXECUTION-CHECK] REACHED CATEGORY SECTION!`);
+        console.log(`🔥🔥🔥 [EXECUTION-CHECK] productType: "${productType}"`);
+        console.log(`🔥🔥🔥 [EXECUTION-CHECK] SKU: "${sku}"`);
+        console.log(`🔥🔥🔥 [EXECUTION-CHECK] Media Items: ${mediaItems.length}`);
+        
+        // ✅ COMPLETE CATEGORY MAPPING - Using correct Shopify Standard Product Taxonomy GIDs
+        let categoryGID = null;
+        const productCategory = product.produit || productTypeRaw || 'Miscellaneous';
+        
+        // Mapping based on your actual form dropdown values with correct GIDs
+        const categoryMapping = {
+          // Media categories (Music & Movies)
+          'CD': 'gid://shopify/TaxonomyCategory/me-3-3',           // Media > Music & Sound Recordings > Music CDs
+          'Vinyl': 'gid://shopify/TaxonomyCategory/me-3-6',        // Media > Music & Sound Recordings > Vinyl Records
+          'DVD': 'gid://shopify/TaxonomyCategory/me-7-3',          // Media > Videos > DVDs
+          'Blue-Ray': 'gid://shopify/TaxonomyCategory/me-7-1',     // Media > Videos > Blu-ray
+          'Blu-ray': 'gid://shopify/TaxonomyCategory/me-7-1',      // Same as above (alternative spelling)
+          
+          // Clothing & Apparel categories
+          'T-Shirt': 'gid://shopify/TaxonomyCategory/aa-1-13-8',   // Apparel & Accessories > Clothing > Clothing Tops > T-Shirts
+          'Tshirt': 'gid://shopify/TaxonomyCategory/aa-1-13-8',    // Same as above (synonym)
+          'T Shirt': 'gid://shopify/TaxonomyCategory/aa-1-13-8',   // Same as above (synonym)
+          'Chemise': 'gid://shopify/TaxonomyCategory/aa-1-13-7',   // Apparel & Accessories > Clothing > Clothing Tops > Shirts (Dress Shirts)
+          'Hoodie': 'gid://shopify/TaxonomyCategory/aa-1-13-13',   // Apparel & Accessories > Clothing > Clothing Tops > Hoodies
+          'Sweat': 'gid://shopify/TaxonomyCategory/aa-1-13-14',    // Apparel & Accessories > Clothing > Clothing Tops > Sweatshirts
+          'Polo': 'gid://shopify/TaxonomyCategory/aa-1-13-6',      // Apparel & Accessories > Clothing > Clothing Tops > Polos (Polo Shirts)
+          'Débardeur': 'gid://shopify/TaxonomyCategory/aa-1-13-9', // Apparel & Accessories > Clothing > Clothing Tops > Tank Tops
+          'Tank': 'gid://shopify/TaxonomyCategory/aa-1-13-9',      // Same as above (synonym)
+          'Pantalon': 'gid://shopify/TaxonomyCategory/aa-1-12-11', // Apparel & Accessories > Clothing > Pants > Trousers (casual/general pants)
+          'Short': 'gid://shopify/TaxonomyCategory/aa-1-14-1',     // Apparel & Accessories > Clothing > Shorts > Bermudas (general casual shorts)
+          
+          // Accessories categories
+          'Casquette': 'gid://shopify/TaxonomyCategory/aa-2-17-1',  // Apparel & Accessories > Clothing Accessories > Hats > Baseball Caps
+          'Bonnet': 'gid://shopify/TaxonomyCategory/aa-2-17-2',     // Apparel & Accessories > Clothing Accessories > Hats > Beanies
+          'Bracelet': 'gid://shopify/TaxonomyCategory/aa-6-3',      // Apparel & Accessories > Jewelry > Bracelets
+          
+          // Other product categories
+          'Coque': 'gid://shopify/TaxonomyCategory/el-4-8-4-2',     // Electronics > Communications > Telephony > Mobile & Smart Phone Accessories > Mobile Phone Cases
+          'Mug': 'gid://shopify/TaxonomyCategory/hg-11-10-5-5',     // Home & Garden > Kitchen & Dining > Tableware > Drinkware > Mugs
+          'Sticker': 'gid://shopify/TaxonomyCategory/ae-2-1-2-8-4', // Arts & Entertainment > Hobbies & Creative Arts > Arts & Crafts > Art & Crafting Materials > Embellishments & Trims > Decorative Stickers
+          'Lithographie': 'gid://shopify/TaxonomyCategory/hg-3-4-2-2', // Home & Garden > Decor > Artwork > Posters, Prints, & Visual Artwork > Prints
+          'Livre': 'gid://shopify/TaxonomyCategory/me-1-3',         // Media > Books > Print Books
+          'Photographie': 'gid://shopify/TaxonomyCategory/hg-3-4-2-2', // Same as Lithographie (Art Prints)
+          'Autre': 'gid://shopify/TaxonomyCategory/aa-1-13-8',      // Default to T-Shirts
+        };
+        
+        categoryGID = categoryMapping[productCategory];
+        
+        if (categoryGID) {
+          console.log(`[CATEGORY] ✅ Assigned category for "${productCategory}": ${categoryGID}`);
+        } else {
+          console.log(`[CATEGORY] ❌ No category mapping found for: "${productCategory}"`);
+          // Default to T-Shirts for unmapped products
+          categoryGID = 'gid://shopify/TaxonomyCategory/aa-1-13-7';
+          console.log(`[CATEGORY] 🔄 Using default T-Shirts category: ${categoryGID}`);
+        }
+        
+        console.log(`[SHOPIFY-DEBUG] Product: ${productTitle}, Produit: ${productCategory}, Weight: ${productWeight}g, Images: ${productImages.length}`);
         
         // Create product WITHOUT media first (better for trial accounts)
         console.log(`[SHOPIFY-DEBUG] Creating product first, then adding ${mediaItems.length} media items`);
@@ -379,6 +537,10 @@ async function publishProductsToShopify(shop, products) {
               id
               title
               status
+              category {
+                id
+                fullName
+              }
                 variants(first: 1) {
                   nodes {
                     id
@@ -394,13 +556,38 @@ async function publishProductsToShopify(shop, products) {
         }
       `;
 
+      console.log(`🚨🚨🚨 [MUTATION-DEBUG] ===============================================`);
+      console.log(`🚨🚨🚨 [MUTATION-DEBUG] About to execute GraphQL product creation mutation`);
+      console.log(`🚨🚨🚨 [MUTATION-DEBUG] ===============================================`);
+      
+      console.log(`🎯🎯🎯 [PRODUCT-INPUT-DEBUG] ===============================================`);
+      console.log(`🎯🎯🎯 [PRODUCT-INPUT-DEBUG] About to create productInput object`);
+      console.log(`🎯🎯🎯 [PRODUCT-INPUT-DEBUG] categoryGID value: ${categoryGID}`);
+      console.log(`🎯🎯🎯 [PRODUCT-INPUT-DEBUG] categoryGID type: ${typeof categoryGID}`);
+      console.log(`🎯🎯🎯 [PRODUCT-INPUT-DEBUG] categoryGID is null: ${categoryGID === null}`);
+      console.log(`🎯🎯🎯 [PRODUCT-INPUT-DEBUG] categoryGID is undefined: ${categoryGID === undefined}`);
+      console.log(`🎯🎯🎯 [PRODUCT-INPUT-DEBUG] ===============================================`);
+
       const productInput = {
           title: productTitle,
           descriptionHtml: `<p>${productDescription}</p>`,
           productType: productType,
-        status: 'ACTIVE',
+          status: 'ACTIVE',
           vendor: shop.nomClient || 'SNA'
         };
+        
+        // Only add category if we found a valid GID
+        if (categoryGID) {
+          console.log(`🎯 [PRODUCT-INPUT-SUCCESS] Adding category to productInput: ${categoryGID}`);
+          productInput.category = categoryGID;
+        } else {
+          console.log(`🎯 [PRODUCT-INPUT-WARNING] No categoryGID found - product will be created without category`);
+        }
+        
+        // Log the product input with category
+        console.log(`[PRODUCT-INPUT] Creating product with category: ${productInput.category || 'None'}`);
+        console.log(`[PRODUCT-INPUT] Product title: ${productInput.title}, Type: ${productInput.productType}`);
+        console.log(`[PRODUCT-INPUT] Full productInput object:`, JSON.stringify(productInput, null, 2));
         
         const createVariables = {
           product: productInput
@@ -416,7 +603,7 @@ async function publishProductsToShopify(shop, products) {
           }
         });
         
-        console.log(`[SHOPIFY-DEBUG] Product creation response:`, JSON.stringify(createResponse.data, null, 2));
+        console.log(`[SHOPIFY-DEBUG] Product creation completed`);
         
         if (createResponse.data.errors) {
           throw new Error(`GraphQL errors: ${JSON.stringify(createResponse.data.errors)}`);
@@ -432,6 +619,20 @@ async function publishProductsToShopify(shop, products) {
         }
         
         console.log(`[SHOPIFY-DEBUG] Product created successfully: { productId: ${createdProduct.id}, defaultVariantId: ${createdProduct.variants.nodes[0]?.id}, title: ${createdProduct.title} }`);
+        
+        // 🚨 CRITICAL DEBUG: Check what's in the product response
+        console.log(`🚨🚨🚨 [PRODUCT-RESPONSE-DEBUG] ===============================================`);
+        console.log(`🚨🚨🚨 [PRODUCT-RESPONSE-DEBUG] Full createdProduct object:`, JSON.stringify(createdProduct, null, 2));
+        console.log(`🚨🚨🚨 [PRODUCT-RESPONSE-DEBUG] createdProduct.category:`, createdProduct.category);
+        console.log(`🚨🚨🚨 [PRODUCT-RESPONSE-DEBUG] Has category: ${!!createdProduct.category}`);
+        console.log(`🚨🚨🚨 [PRODUCT-RESPONSE-DEBUG] ===============================================`);
+        
+        // Log category assignment result
+        if (createdProduct.category) {
+          console.log(`[CATEGORY-SUCCESS] ✅ Product assigned to category: ${createdProduct.category.fullName}`);
+        } else {
+          console.log(`[CATEGORY-INFO] ⚠️ Product created without category assignment`);
+        }
         
         // Add media to product separately with extensive logging
         if (mediaItems.length > 0) {
@@ -609,18 +810,63 @@ async function publishProductsToShopify(shop, products) {
         console.log(`[VARIANT-MANAGEMENT] Starting variant processing using bulk approach`);
         
         // Get sizes and colors from product data
-        const sizes = product.tailles || product.sizes || [];
+        const rawSizes = product.tailles || product.sizes || [];
         const colors = product.couleurs || product.colors || [];
         const stock = product.stock || {};
         const skus = product.skus || {};
         const eans = product.eans || {};
 
+        // ✅ CRITICAL FIX: Sort sizes in proper order (XS, S, M, L, XL, XXL, etc.)
+        const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+        const sizes = rawSizes.sort((a, b) => {
+          const indexA = sizeOrder.indexOf(a);
+          const indexB = sizeOrder.indexOf(b);
+          
+          // If both sizes are in the standard order, sort by their position
+          if (indexA !== -1 && indexB !== -1) {
+            return indexA - indexB;
+          }
+          
+          // If only one size is in the standard order, prioritize it
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+          
+          // If neither size is in the standard order, sort alphabetically
+          return a.localeCompare(b);
+        });
+
         console.log(`[VARIANT-MANAGEMENT] Found ${sizes.length} sizes, ${colors.length} colors`);
-        console.log(`[VARIANT-MANAGEMENT] Sizes:`, sizes);
+        console.log(`[VARIANT-MANAGEMENT] Raw sizes:`, rawSizes);
+        console.log(`[VARIANT-MANAGEMENT] Sorted sizes:`, sizes);
         console.log(`[VARIANT-MANAGEMENT] Colors:`, colors);
         console.log(`[VARIANT-MANAGEMENT] Stock data:`, stock);
         console.log(`[VARIANT-MANAGEMENT] SKUs data:`, skus);
         console.log(`[VARIANT-MANAGEMENT] EANs data:`, eans);
+        
+        // Apply EAN fallback strategy
+        const hasProductLevelEan = eans.default || productEan || product.ean || product.codeEAN || product.barcode;
+        if (hasProductLevelEan) {
+          if (sizes.length > 0 && colors.length > 0) {
+            sizes.forEach(size => {
+              colors.forEach(color => {
+                const key = `${size}-${color}`;
+                if (!eans[key]) eans[key] = hasProductLevelEan;
+              });
+            });
+          } else if (sizes.length > 0) {
+            sizes.forEach(size => {
+              if (!eans[size]) eans[size] = hasProductLevelEan;
+            });
+          } else if (colors.length > 0) {
+            colors.forEach(color => {
+              if (!eans[color]) eans[color] = hasProductLevelEan;
+            });
+          } else {
+            if (!eans.default) eans.default = hasProductLevelEan;
+          }
+        }
+        
+
 
       // Generate variants based on size/color combinations
       let variants = [];
@@ -632,16 +878,34 @@ async function publishProductsToShopify(shop, products) {
           colors.forEach(color => {
             const stockKey = `${size}-${color}`;
               const skuKey = `${size}-${color}`;
+            
+            // ENHANCED EAN LOOKUP WITH EXPLICIT FALLBACK
+            let eanValue = eans[skuKey];
+            console.log(`[VARIANT-EAN-LOOKUP] Initial lookup for ${skuKey}: ${eanValue}`);
+            
+            // CRITICAL: Always use fallback if variant-specific EAN is missing
+            if (!eanValue) {
+              // Try eans.default first, then other fallbacks
+              eanValue = eans.default || hasProductLevelEan;
+              console.log(`[VARIANT-EAN-EXPLICIT] Applied fallback EAN for ${skuKey}: ${eanValue} (source: ${eans.default ? 'eans.default' : 'hasProductLevelEan'})`);
+            }
+            
+            console.log(`[VARIANT-EAN-DEBUG] Size-Color variant ${size}-${color}:`);
+            console.log(`[VARIANT-EAN-DEBUG] - Looking for EAN with key: ${skuKey}`);
+            console.log(`[VARIANT-EAN-DEBUG] - Found EAN value: ${eanValue}`);
+            console.log(`[VARIANT-EAN-DEBUG] - EAN source: ${eans[skuKey] ? 'variant-specific' : 'fallback'}`);
+            
             const variantObj = {
                 price: String(product.prix || product.price || 0),
                 sku: skus[skuKey] || undefined,
-                barcode: eans[skuKey] || undefined,
+                barcode: eanValue,
               optionValues: [
                 { optionName: 'Size', name: size },
                 { optionName: 'Color', name: color }
               ],
               stockQuantity: stock[stockKey] || 0
             };
+            console.log(`[VARIANT-EAN-DEBUG] - Final variant barcode: ${variantObj.barcode}`);
             variants.push(variantObj);
           });
         });
@@ -649,41 +913,92 @@ async function publishProductsToShopify(shop, products) {
         // Only sizes
           console.log(`[VARIANT-MANAGEMENT] Creating size-only variants`);
         sizes.forEach(size => {
+          // ENHANCED EAN LOOKUP WITH EXPLICIT FALLBACK
+          let eanValue = eans[size];
+          console.log(`[VARIANT-EAN-LOOKUP] Initial lookup for ${size}: ${eanValue}`);
+          
+          // CRITICAL: Always use fallback if variant-specific EAN is missing
+          if (!eanValue) {
+            // Try eans.default first, then other fallbacks
+            eanValue = eans.default || hasProductLevelEan;
+            console.log(`[VARIANT-EAN-EXPLICIT] Applied fallback EAN for ${size}: ${eanValue} (source: ${eans.default ? 'eans.default' : 'hasProductLevelEan'})`);
+          }
+          
+          console.log(`[VARIANT-EAN-DEBUG] Size-only variant ${size}:`);
+          console.log(`[VARIANT-EAN-DEBUG] - Looking for EAN with key: ${size}`);
+          console.log(`[VARIANT-EAN-DEBUG] - Found EAN value: ${eanValue}`);
+          console.log(`[VARIANT-EAN-DEBUG] - EAN source: ${eans[size] ? 'variant-specific' : 'fallback'}`);
+          
           const variantObj = {
               price: String(product.prix || product.price || 0),
               sku: skus[size] || undefined,
-              barcode: eans[size] || undefined,
+              barcode: eanValue,
             optionValues: [
               { optionName: 'Size', name: size }
             ],
             stockQuantity: stock[size] || 0
           };
+          console.log(`[VARIANT-EAN-DEBUG] - Final variant barcode: ${variantObj.barcode}`);
           variants.push(variantObj);
         });
       } else if (colors.length > 0) {
         // Only colors
           console.log(`[VARIANT-MANAGEMENT] Creating color-only variants`);
         colors.forEach(color => {
+          // ENHANCED EAN LOOKUP WITH EXPLICIT FALLBACK
+          let eanValue = eans[color];
+          console.log(`[VARIANT-EAN-LOOKUP] Initial lookup for ${color}: ${eanValue}`);
+          
+          // CRITICAL: Always use fallback if variant-specific EAN is missing
+          if (!eanValue) {
+            // Try eans.default first, then other fallbacks
+            eanValue = eans.default || hasProductLevelEan;
+            console.log(`[VARIANT-EAN-EXPLICIT] Applied fallback EAN for ${color}: ${eanValue} (source: ${eans.default ? 'eans.default' : 'hasProductLevelEan'})`);
+          }
+          
+          console.log(`[VARIANT-EAN-DEBUG] Color-only variant ${color}:`);
+          console.log(`[VARIANT-EAN-DEBUG] - Looking for EAN with key: ${color}`);
+          console.log(`[VARIANT-EAN-DEBUG] - Found EAN value: ${eanValue}`);
+          console.log(`[VARIANT-EAN-DEBUG] - EAN source: ${eans[color] ? 'variant-specific' : 'fallback'}`);
+          
           const variantObj = {
               price: String(product.prix || product.price || 0),
               sku: skus[color] || undefined,
-              barcode: eans[color] || undefined,
+              barcode: eanValue,
             optionValues: [
               { optionName: 'Color', name: color }
             ],
             stockQuantity: stock[color] || 0
           };
+          console.log(`[VARIANT-EAN-DEBUG] - Final variant barcode: ${variantObj.barcode}`);
           variants.push(variantObj);
         });
       } else {
           // No variants - single product, update default variant
           console.log(`[VARIANT-MANAGEMENT] Single product, updating default variant`);
+          
+          // ENHANCED EAN LOOKUP WITH EXPLICIT FALLBACK FOR SINGLE PRODUCT
+          let singleEan = eans.default || product.ean || product.codeEAN;
+          if (!singleEan && hasProductLevelEan) {
+            singleEan = hasProductLevelEan;
+            console.log(`[VARIANT-EAN-EXPLICIT] Applied fallback EAN for single product: ${singleEan}`);
+          }
+          
+          console.log(`[VARIANT-EAN-DEBUG] Single product variant:`);
+          console.log(`[VARIANT-EAN-DEBUG] - product.ean: ${product.ean}`);
+          console.log(`[VARIANT-EAN-DEBUG] - product.codeEAN: ${product.codeEAN}`);
+          console.log(`[VARIANT-EAN-DEBUG] - eans.default: ${eans.default}`);
+          console.log(`[VARIANT-EAN-DEBUG] - productEan (extracted earlier): ${productEan}`);
+          console.log(`[VARIANT-EAN-DEBUG] - Final EAN value: ${singleEan}`);
+          console.log(`[VARIANT-EAN-DEBUG] - EAN source: ${eans.default ? 'eans.default' : 'fallback'}`);
+          
         const singleVariant = {
             price: String(product.prix || product.price || 0),
             sku: product.sku || skus.default || undefined,
-            barcode: product.ean || product.codeEAN || eans.default || undefined,
+            barcode: singleEan,
           stockQuantity: stock.default || stock || 0
         };
+        console.log(`[VARIANT-EAN-DEBUG] - Final single variant barcode: ${singleVariant.barcode}`);
         variants.push(singleVariant);
       }
 
@@ -770,6 +1085,15 @@ async function publishProductsToShopify(shop, products) {
                   }
                   inventoryItem {
                     id
+                    sku
+                    tracked
+                    requiresShipping
+                    measurement {
+                      weight {
+                        value
+                        unit
+                      }
+                    }
                   }
                 }
                 userErrors {
@@ -780,14 +1104,27 @@ async function publishProductsToShopify(shop, products) {
             }
           `;
 
-          // Create variants with only supported fields - exclude SKU, barcode, stockQuantity
+          // Create variants with weight in inventoryItem.measurement.weight (2025-07 pattern)
+          const weightInKilograms = (Number(productWeight) || 300) / 1000; // Convert grams to kilograms
+          
           const variantInputs = variants.map(variant => ({
             price: variant.price,
-            optionValues: variant.optionValues
-            // SKU, barcode, inventory will be set in separate update step
+            optionValues: variant.optionValues,
+            inventoryItem: {
+              sku: variant.sku || undefined,
+              tracked: true,
+              requiresShipping: true,
+              measurement: {
+                weight: {
+                  value: weightInKilograms,
+                  unit: 'KILOGRAMS'
+                }
+              }
+            }
+            // barcode will be set in separate update step
           }));
 
-          console.log(`[VARIANT-MANAGEMENT] Creating variants with basic input:`, JSON.stringify(variantInputs, null, 2));
+          console.log(`[VARIANT-MANAGEMENT] Creating variants with weight in inventoryItem.measurement:`, JSON.stringify(variantInputs, null, 2));
 
           const variantResponse = await axios.post(shopifyUrl, {
         query: VARIANT_BULK_CREATE_MUTATION,
@@ -813,6 +1150,20 @@ async function publishProductsToShopify(shop, products) {
           } else {
             const createdVariants = variantResponse.data.data.productVariantsBulkCreate.productVariants;
             console.log(`[VARIANT-MANAGEMENT-SUCCESS] Created ${createdVariants.length} variants successfully`);
+            
+            // LOG WEIGHT VERIFICATION
+            console.log(`[VARIANT-WEIGHT-VERIFICATION] ===============================================`);
+            createdVariants.forEach((variant, index) => {
+              const weightValue = variant.inventoryItem?.measurement?.weight?.value;
+              const weightUnit = variant.inventoryItem?.measurement?.weight?.unit;
+              console.log(`[VARIANT-WEIGHT-VERIFICATION] Variant ${index + 1} (${variant.id}):`, {
+                sku: variant.sku,
+                weight: weightValue ? `${weightValue} ${weightUnit}` : 'NOT SET',
+                weightValue: weightValue,
+                weightUnit: weightUnit
+              });
+            });
+            console.log(`[VARIANT-WEIGHT-VERIFICATION] ===============================================`);
 
             console.log(`[VARIANT-MANAGEMENT] About to call updateVariantsWithDetails`);
             console.log(`[VARIANT-MANAGEMENT] Created variants count: ${createdVariants.length}`);
@@ -828,7 +1179,16 @@ async function publishProductsToShopify(shop, products) {
             // Now update variants with SKU, barcode, and inventory
             console.log(`[VARIANT-MANAGEMENT] Calling updateVariantsWithDetails...`);
             try {
-              await updateVariantsWithDetails(shopifyUrl, accessToken, createdVariants, variants, product.poids || product.weight, productTitle, createdProduct.id);
+              // LOG WEIGHT BEFORE PASSING TO UPDATE FUNCTION
+console.log(`[WEIGHT-PASS-DEBUG] ===============================================`);
+console.log(`[WEIGHT-PASS-DEBUG] Passing weight to updateVariantsWithDetails:`);
+console.log(`[WEIGHT-PASS-DEBUG] - product.poids: ${product.poids}`);
+console.log(`[WEIGHT-PASS-DEBUG] - product.weight: ${product.weight}`);
+console.log(`[WEIGHT-PASS-DEBUG] - productWeight variable: ${productWeight}`);
+console.log(`[WEIGHT-PASS-DEBUG] - Passing value: ${product.poids || product.weight}`);
+console.log(`[WEIGHT-PASS-DEBUG] ===============================================`);
+
+await updateVariantsWithDetails(shopifyUrl, accessToken, createdVariants, variants, productWeight, productTitle, createdProduct.id);
               console.log(`[VARIANT-MANAGEMENT] updateVariantsWithDetails completed successfully`);
             } catch (error) {
               console.error(`[VARIANT-MANAGEMENT-ERROR] updateVariantsWithDetails failed:`, error.message);
@@ -836,76 +1196,109 @@ async function publishProductsToShopify(shop, products) {
             }
           }
         } else if (variants.length === 1) {
-          // Single variant - update the default variant
-          console.log(`[VARIANT-MANAGEMENT] Updating single default variant`);
+          // Single variant - use bulk variant create to replace default variant with proper data
+          console.log(`[VARIANT-MANAGEMENT] Single variant - replacing default variant with proper data`);
           
-          const defaultVariantId = createdProduct.variants.nodes[0]?.id;
-          if (!defaultVariantId) {
-            console.error(`[VARIANT-MANAGEMENT-ERROR] No default variant ID found`);
-          } else {
-            const VARIANT_UPDATE_MUTATION = `
-              mutation productVariantUpdate($input: ProductVariantInput!) {
-                productVariantUpdate(input: $input) {
-                  productVariant {
-                    id
-                    sku
-                    price
-                    barcode
-                    weight
-                    weightUnit
-                  }
-                  userErrors {
-                    field
-                    message
-                  }
+          const variant = variants[0];
+          const weightInKilograms = (Number(product.poids || product.weight) || 400) / 1000; // Convert grams to kilograms
+          
+          // Create proper variant input following the same pattern as multi-variants
+          const variantInput = {
+            price: variant.price,
+            inventoryItem: {
+              sku: variant.sku || generateSKU(productTitle),
+              tracked: true,
+              requiresShipping: true,
+              measurement: {
+                weight: {
+                  value: weightInKilograms,
+                  unit: 'KILOGRAMS'
                 }
               }
-            `;
-
-            const variant = variants[0];
-            const updateInput = {
-              id: defaultVariantId,
-              price: variant.price,
-              sku: variant.sku || generateSKU(productTitle),
-              barcode: variant.barcode
-            };
-
-            // Add weight if provided
-            if (product.poids || product.weight) {
-              updateInput.weight = Number(product.poids || product.weight);
-              updateInput.weightUnit = 'GRAMS';
-              console.log(`[VARIANT-MANAGEMENT] Adding weight: ${updateInput.weight} grams`);
-            } else {
-              // Set default weight
-              updateInput.weight = 400;
-              updateInput.weightUnit = 'GRAMS';
-              console.log(`[VARIANT-MANAGEMENT] Setting default weight: 400 grams`);
             }
+            // barcode will be set in updateVariantsWithDetails step
+          };
+          
+          console.log(`[VARIANT-MANAGEMENT] Single variant input:`, {
+            price: variantInput.price,
+            sku: variantInput.inventoryItem.sku,
+            weight: variantInput.inventoryItem.measurement.weight,
+            stockQuantity: variant.stockQuantity
+          });
 
-            console.log(`[VARIANT-MANAGEMENT] Single variant data:`, {
-              sku: variant.sku,
-              barcode: variant.barcode,
-              stockQuantity: variant.stockQuantity,
-              price: variant.price
-            });
-            console.log(`[VARIANT-MANAGEMENT] Updating variant with:`, updateInput);
-            console.log(`[VARIANT-MANAGEMENT] About to call single variant update...`);
-
-            const updateResponse = await axios.post(shopifyUrl, {
-              query: VARIANT_UPDATE_MUTATION,
-              variables: { input: updateInput }
-            }, {
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Shopify-Access-Token': accessToken
+          const VARIANT_BULK_CREATE_MUTATION = `
+            mutation productVariantsBulkCreate($productId: ID!, $strategy: ProductVariantsBulkCreateStrategy!, $variants: [ProductVariantsBulkInput!]!) {
+              productVariantsBulkCreate(productId: $productId, strategy: $strategy, variants: $variants) {
+                productVariants {
+                  id
+                  sku
+                  price
+                  barcode
+                  inventoryItem {
+                    id
+                    sku
+                    tracked
+                    requiresShipping
+                    measurement {
+                      weight {
+                        value
+                        unit
+                      }
+                    }
+                  }
+                }
+                userErrors {
+                  field
+                  message
+                }
               }
+            }
+          `;
+
+          const variantCreateResponse = await axios.post(shopifyUrl, {
+            query: VARIANT_BULK_CREATE_MUTATION,
+            variables: {
+              productId: createdProduct.id,
+              strategy: 'REMOVE_STANDALONE_VARIANT', // Replace the default variant
+              variants: [variantInput]
+            }
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Access-Token': accessToken
+            }
+          });
+
+          console.log(`[VARIANT-MANAGEMENT] Single variant create response:`, JSON.stringify(variantCreateResponse.data, null, 2));
+
+          if (variantCreateResponse.data.errors || variantCreateResponse.data.data?.productVariantsBulkCreate?.userErrors?.length > 0) {
+            const variantError = variantCreateResponse.data.errors?.[0]?.message || 
+                               variantCreateResponse.data.data.productVariantsBulkCreate.userErrors[0]?.message;
+            console.error(`[VARIANT-MANAGEMENT-ERROR] Single variant creation failed: ${variantError}`);
+          } else {
+            const createdVariants = variantCreateResponse.data.data.productVariantsBulkCreate.productVariants;
+            console.log(`[VARIANT-MANAGEMENT-SUCCESS] Created single variant successfully`);
+            
+            // LOG WEIGHT VERIFICATION
+            console.log(`[VARIANT-WEIGHT-VERIFICATION] Single variant weight verification:`);
+            const createdVariant = createdVariants[0];
+            const weightValue = createdVariant.inventoryItem?.measurement?.weight?.value;
+            const weightUnit = createdVariant.inventoryItem?.measurement?.weight?.unit;
+            console.log(`[VARIANT-WEIGHT-VERIFICATION] Single variant (${createdVariant.id}):`, {
+              sku: createdVariant.sku,
+              weight: weightValue ? `${weightValue} ${weightUnit}` : 'NOT SET',
+              weightValue: weightValue,
+              weightUnit: weightUnit
             });
-
-            console.log(`[VARIANT-MANAGEMENT] Update response:`, JSON.stringify(updateResponse.data, null, 2));
-
-            // Set inventory for single variant
-            if (variant.stockQuantity > 0) {
-              await setSingleInventoryLevel(shopifyUrl, accessToken, defaultVariantId, variant.stockQuantity, product.poids || product.weight);
+            
+            // Update with SKU, barcode, and inventory using the same function as multi-variants
+            console.log(`[VARIANT-MANAGEMENT] Calling updateVariantsWithDetails for single variant...`);
+            try {
+              await updateVariantsWithDetails(shopifyUrl, accessToken, createdVariants, [variant], productWeight, productTitle, createdProduct.id);
+              console.log(`[VARIANT-MANAGEMENT] Single variant updateVariantsWithDetails completed successfully`);
+            } catch (error) {
+              console.error(`[VARIANT-MANAGEMENT-ERROR] Single variant updateVariantsWithDetails failed:`, error.message);
+              console.error(`[VARIANT-MANAGEMENT-ERROR] Full error:`, error);
             }
           }
         }
@@ -918,7 +1311,8 @@ async function publishProductsToShopify(shop, products) {
 
       results.push({
         success: true,
-          productId: createdProduct.id,
+          productId: product.productId || product._id, // MongoDB product ID
+          shopifyProductId: createdProduct.id, // Shopify GraphQL ID
           title: productTitle,
           shopifyUrl: `https://${shopifyDomain}/admin/products/${createdProduct.id.split('/').pop()}`
         });
@@ -931,6 +1325,7 @@ async function publishProductsToShopify(shop, products) {
         console.error(`[SHOPIFY-ERROR] Failed to publish product "${errorTitle}":`, error);
       results.push({
         success: false,
+          productId: product.productId || product._id, // MongoDB product ID
           title: errorTitle,
           error: error.message
       });
@@ -1155,19 +1550,21 @@ async function updateVariantsWithDetails(shopifyUrl, accessToken, createdVariant
   console.log(`[VARIANT-UPDATE] Checking original variants data...`);
   console.log(`[VARIANT-UPDATE] Original variants array length: ${variants.length}`);
   
-  // Only log first few variants to avoid truncation
-  const variantsToLog = variants.slice(0, 3);
-  variantsToLog.forEach((variant, index) => {
-    console.log(`[VARIANT-UPDATE] Variant ${index + 1}:`, {
+  // LOG ALL VARIANTS WITH DETAILED BARCODE INFO
+  console.log(`[VARIANT-UPDATE-BARCODES] ===============================================`);
+  console.log(`[VARIANT-UPDATE-BARCODES] Detailed barcode information for ALL variants:`);
+  variants.forEach((variant, index) => {
+    console.log(`[VARIANT-UPDATE-BARCODES] Variant ${index + 1}:`, {
       sku: variant.sku,
       barcode: variant.barcode,
+      barcodeType: typeof variant.barcode,
+      barcodeLength: variant.barcode ? String(variant.barcode).length : 0,
+      hasBarcode: !!variant.barcode,
       stockQuantity: variant.stockQuantity,
       price: variant.price
     });
   });
-  if (variants.length > 3) {
-    console.log(`[VARIANT-UPDATE] ... and ${variants.length - 3} more variants`);
-  }
+  console.log(`[VARIANT-UPDATE-BARCODES] ===============================================`);
 
   // Check if created variants have the required structure
   console.log(`[VARIANT-UPDATE] Checking created variants structure...`);
@@ -1304,63 +1701,68 @@ async function updateVariantsWithDetails(shopifyUrl, accessToken, createdVariant
     }
 
         // Step 2: Update variant barcode and weight using productVariantsBulkUpdate (2025-07 pattern)
-    console.log(`[VARIANT-UPDATE] Step 2: Updating variant barcode and weight using productVariantsBulkUpdate...`);
+    console.log(`[VARIANT-UPDATE] Step 2: Updating variant barcode using productVariantsBulkUpdate...`);
     
     // Prepare bulk update data
+    console.log(`[VARIANT-BULK-UPDATE-PREP] ===============================================`);
+    console.log(`[VARIANT-BULK-UPDATE-PREP] Weight parameter received:`, weight);
+    console.log(`[VARIANT-BULK-UPDATE-PREP] Weight type:`, typeof weight);
+    console.log(`[VARIANT-BULK-UPDATE-PREP] Weight converted to number:`, Number(weight));
+    console.log(`[VARIANT-BULK-UPDATE-PREP] ===============================================`);
+    
     const variantUpdates = [];
     for (let i = 0; i < createdVariants.length; i++) {
       const variant = createdVariants[i];
       const originalVariant = variants[i];
 
+      console.log(`[VARIANT-BARCODE-WEIGHT-PREP-${i + 1}] ==============================`);
+      console.log(`[VARIANT-BARCODE-WEIGHT-PREP-${i + 1}] Original variant barcode:`, originalVariant.barcode);
+      console.log(`[VARIANT-BARCODE-WEIGHT-PREP-${i + 1}] Barcode type:`, typeof originalVariant.barcode);
+      console.log(`[VARIANT-BARCODE-WEIGHT-PREP-${i + 1}] Has barcode:`, !!originalVariant.barcode);
+      console.log(`[VARIANT-BARCODE-WEIGHT-PREP-${i + 1}] Barcode after String():`, originalVariant.barcode ? String(originalVariant.barcode) : 'null');
+      console.log(`[VARIANT-BARCODE-WEIGHT-PREP-${i + 1}] Barcode after trim():`, originalVariant.barcode ? String(originalVariant.barcode).trim() : 'null');
+      
+      // CRITICAL FIX: Ensure barcode is always passed, even if it's the same for all variants
+      const barcodeValue = originalVariant.barcode ? String(originalVariant.barcode).trim() : null;
+      
       const variantInput = {
         id: variant.id,
-        barcode: originalVariant.barcode ? String(originalVariant.barcode).trim() : null,
-        weight: Number(weight) || 400,
-        weightUnit: 'GRAMS'
+        barcode: barcodeValue
       };
 
       variantUpdates.push(variantInput);
       
-      console.log(`[VARIANT-BARCODE-WEIGHT-${i + 1}] Prepared update:`, {
+      console.log(`[VARIANT-BARCODE-${i + 1}] Prepared update:`, {
         id: variantInput.id,
         barcode: variantInput.barcode,
-        weight: variantInput.weight,
-        weightUnit: variantInput.weightUnit
+        barcodeIsNull: variantInput.barcode === null,
+        barcodeLength: variantInput.barcode ? variantInput.barcode.length : 0
       });
+      console.log(`[VARIANT-BARCODE-WEIGHT-PREP-${i + 1}] ==============================`);
     }
 
-    // Use productVariantUpdate to set barcode and weight
-    console.log(`[VARIANT-BARCODE-WEIGHT] Using productVariantUpdate for barcode and weight...`);
-    
-    // Update each variant with barcode and weight
-    for (let i = 0; i < createdVariants.length; i++) {
-      const variant = createdVariants[i];
-      const originalVariant = variants[i];
-      
-      console.log(`[VARIANT-BARCODE-WEIGHT-${i + 1}] Updating variant ${variant.id}...`);
-      
-      const variantInput = {
-        id: variant.id,
-        barcode: originalVariant.barcode ? String(originalVariant.barcode).trim() : null,
-        weight: Number(weight) || 400,
-        weightUnit: 'GRAMS'
-      };
-      
-      console.log(`[VARIANT-BARCODE-WEIGHT-${i + 1}] Variant input:`, {
-        id: variantInput.id,
-        barcode: variantInput.barcode,
-        weight: variantInput.weight,
-        weightUnit: variantInput.weightUnit
+    // CRITICAL: Log all variant updates before sending
+    console.log(`[VARIANT-BARCODE-FINAL-CHECK] ===============================================`);
+    console.log(`[VARIANT-BARCODE-FINAL-CHECK] ALL VARIANT UPDATES TO BE SENT:`);
+    variantUpdates.forEach((update, index) => {
+      console.log(`[VARIANT-BARCODE-FINAL-CHECK] Variant ${index + 1}:`, {
+        id: update.id,
+        barcode: update.barcode,
+        barcodeLength: update.barcode ? update.barcode.length : 0,
+        barcodeType: typeof update.barcode
       });
-      
-      const PRODUCT_VARIANT_UPDATE_MUTATION = `
-        mutation productVariantUpdate($input: ProductVariantInput!) {
-          productVariantUpdate(input: $input) {
-            productVariant {
+    });
+    console.log(`[VARIANT-BARCODE-FINAL-CHECK] ===============================================`);
+    
+    // Use productVariantsBulkUpdate to set barcode and weight
+          console.log(`[VARIANT-BARCODE] Using productVariantsBulkUpdate for barcode only...`);
+    
+          const PRODUCT_VARIANT_BULK_UPDATE_MUTATION = `
+        mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+          productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+            productVariants {
               id
               barcode
-              weight
-              weightUnit
             }
             userErrors {
               field
@@ -1369,47 +1771,55 @@ async function updateVariantsWithDetails(shopifyUrl, accessToken, createdVariant
           }
         }
       `;
-      
-      try {
-        const variantResponse = await axios.post(shopifyUrl, {
-          query: PRODUCT_VARIANT_UPDATE_MUTATION,
-          variables: {
-            input: variantInput
-          }
-        }, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': accessToken
-          }
-        });
-
-        const varErrors = variantResponse.data.errors;
-        const varUserErrors = variantResponse.data.data?.productVariantUpdate?.userErrors;
-        
-        if (!varErrors && (!varUserErrors || varUserErrors.length === 0)) {
-          const updatedVariant = variantResponse.data.data?.productVariantUpdate?.productVariant;
-          console.log(`[VARIANT-BARCODE-WEIGHT-SUCCESS-${i + 1}] Updated variant:`, {
-            id: updatedVariant.id,
-            barcode: updatedVariant.barcode,
-            weight: updatedVariant.weight,
-            weightUnit: updatedVariant.weightUnit
-          });
-        } else {
-          const errorMsg = varErrors?.[0]?.message || varUserErrors?.[0]?.message;
-          console.error(`[VARIANT-BARCODE-WEIGHT-ERROR-${i + 1}] Variant update failed: ${errorMsg}`);
-          
-          if (varUserErrors && varUserErrors.length > 0) {
-            varUserErrors.forEach((error) => {
-              console.error(`[VARIANT-BARCODE-WEIGHT-ERROR-${i + 1}] Field: ${error.field}, Message: ${error.message}`);
-            });
-          }
+    
+    try {
+      const variantResponse = await axios.post(shopifyUrl, {
+        query: PRODUCT_VARIANT_BULK_UPDATE_MUTATION,
+        variables: {
+          productId: productId,
+          variants: variantUpdates
         }
-      } catch (error) {
-        console.error(`[VARIANT-BARCODE-WEIGHT-EXCEPTION-${i + 1}] Error updating variant:`, error.message);
-      }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken
+        }
+      });
+
+      const varErrors = variantResponse.data.errors;
+      const varUserErrors = variantResponse.data.data?.productVariantsBulkUpdate?.userErrors;
       
-      // Small delay between updates
-      await new Promise(resolve => setTimeout(resolve, 200));
+      console.log(`[VARIANT-BULK-UPDATE-RESPONSE] ===============================================`);
+      console.log(`[VARIANT-BULK-UPDATE-RESPONSE] Full response data:`, JSON.stringify(variantResponse.data, null, 2));
+      console.log(`[VARIANT-BULK-UPDATE-RESPONSE] ===============================================`);
+      
+      if (!varErrors && (!varUserErrors || varUserErrors.length === 0)) {
+        const updatedVariants = variantResponse.data.data?.productVariantsBulkUpdate?.productVariants;
+        console.log(`[VARIANT-BARCODE-SUCCESS] Updated ${updatedVariants?.length || 0} variants with barcode`);
+        
+        updatedVariants?.forEach((variant, index) => {
+          console.log(`[VARIANT-BARCODE-SUCCESS-${index + 1}] Updated variant:`, {
+            id: variant.id,
+            barcode: variant.barcode,
+            barcodeIsNull: variant.barcode === null,
+            barcodeIsUndefined: variant.barcode === undefined
+          });
+        });
+      } else {
+        const errorMsg = varErrors?.[0]?.message || varUserErrors?.[0]?.message;
+        console.error(`[VARIANT-BARCODE-ERROR] Variant bulk update failed: ${errorMsg}`);
+        
+        console.error(`[VARIANT-BARCODE-ERROR] GraphQL errors:`, varErrors);
+        console.error(`[VARIANT-BARCODE-ERROR] User errors:`, varUserErrors);
+        
+        if (varUserErrors && varUserErrors.length > 0) {
+          varUserErrors.forEach((error, idx) => {
+            console.error(`[VARIANT-BARCODE-ERROR-${idx}] Field: ${error.field}, Message: ${error.message}`);
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`[VARIANT-BARCODE-EXCEPTION] Error updating variants:`, error.message);
     }
 
 
@@ -1451,7 +1861,7 @@ async function updateVariantsWithDetails(shopifyUrl, accessToken, createdVariant
               variables: {
                 input: {
                   inventoryItemId: variant.inventoryItem.id,
-                  delta: originalVariant.stockQuantity
+                  delta: parseInt(originalVariant.stockQuantity, 10)
                 }
               }
             }, {
@@ -1501,7 +1911,7 @@ async function updateVariantsWithDetails(shopifyUrl, accessToken, createdVariant
         inventoryUpdates.push({
           inventoryItemId: inventoryItemId,
           locationId: locationId,
-          quantity: stockQuantity
+          quantity: parseInt(stockQuantity, 10)
         });
         
         console.log(`[VARIANT-UPDATE-STOCK-${i + 1}] Preparing stock update for ${inventoryItemId}: ${stockQuantity} units`);
@@ -1567,13 +1977,21 @@ async function updateVariantsWithDetails(shopifyUrl, accessToken, createdVariant
       }
     }
 
-    console.log(`[VARIANT-UPDATE] ============ VARIANT UPDATE COMPLETED (2025-07 PATTERN) ============`);
-    console.log(`[VARIANT-UPDATE] ✅ Updated using correct 2025-07 API: inventoryItemUpdate + productVariantUpdate + inventorySetQuantities`);
-    console.log(`[VARIANT-UPDATE] 📊 SUMMARY: Processed ${createdVariants.length} variants`);
-    console.log(`[VARIANT-UPDATE] 📊 SUMMARY: SKU updates attempted for all variants`);
-    console.log(`[VARIANT-UPDATE] 📊 SUMMARY: Barcode updates attempted for variants with barcode data`);
-    console.log(`[VARIANT-UPDATE] 📊 SUMMARY: Weight updates attempted with value: ${weight}`);
-    console.log(`[VARIANT-UPDATE] 📊 SUMMARY: Stock updates attempted using inventorySetQuantities`);
+    // Step 4: Weight was already set during variant creation in inventoryItem.measurement.weight
+    console.log(`[VARIANT-UPDATE] Step 4: Weight was set during variant creation - skipping separate weight update`);
+    console.log(`[VARIANT-WEIGHT-INFO] All variants created with weight: ${weight || 'N/A'} grams (${((Number(weight) || 300) / 1000).toFixed(3)} kg)`);
+
+          console.log(`[VARIANT-UPDATE] ============ VARIANT UPDATE COMPLETED (2025-07 PATTERN) ============`);
+      console.log(`[VARIANT-UPDATE] ✅ Updated using correct 2025-07 API:`);
+      console.log(`[VARIANT-UPDATE]    - productVariantsBulkCreate with inventoryItem.measurement.weight (Weight set during creation)`);
+      console.log(`[VARIANT-UPDATE]    - inventoryItemUpdate for SKU (cleanup step)`);
+      console.log(`[VARIANT-UPDATE]    - productVariantsBulkUpdate for Barcode`);
+      console.log(`[VARIANT-UPDATE]    - inventorySetQuantities for Stock`);
+      console.log(`[VARIANT-UPDATE] 📊 SUMMARY: Processed ${createdVariants.length} variants`);
+      console.log(`[VARIANT-UPDATE] 📊 SUMMARY: SKU updates attempted for all variants`);
+      console.log(`[VARIANT-UPDATE] 📊 SUMMARY: Barcode updates attempted for ALL variants with value: ${variants[0]?.barcode || 'N/A'}`);
+      console.log(`[VARIANT-UPDATE] 📊 SUMMARY: Weight SET DURING CREATION for ALL variants with value: ${weight || 'N/A'} grams (${((Number(weight) || 300) / 1000).toFixed(3)} kg)`);
+      console.log(`[VARIANT-UPDATE] 📊 SUMMARY: Stock updates attempted using inventorySetQuantities`);
     
   } catch (error) {
     console.error(`[VARIANT-UPDATE-ERROR] Exception during variant update:`, error.message);

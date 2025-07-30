@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ShopDetails from "./ShopDetails"; // Assuming ShopDetails is in the same directory
+import { FaUpload, FaPlus } from "react-icons/fa";
 
 const AllShops = () => {
   const [shops, setShops] = useState([]);
@@ -7,6 +8,112 @@ const AllShops = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedRows, setExpandedRows] = useState({});
+  const [uploadingImage, setUploadingImage] = useState(null); // Changed from uploadingLogo to uploadingImage
+
+  // Function to handle image upload for any image type
+  const handleImageUpload = (shopId, imageType) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Check file size (50MB limit)
+        const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+        if (file.size > maxSize) {
+          setError(
+            `Le fichier est trop volumineux. Taille maximale autorisée: 50MB. Taille du fichier: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+          );
+          return;
+        }
+
+        // Check file type
+        if (!file.type.startsWith("image/")) {
+          setError("Veuillez sélectionner un fichier image valide.");
+          return;
+        }
+
+        await uploadShopImage(shopId, file, imageType);
+      }
+    };
+    input.click();
+  };
+
+  // Function to upload shop image
+  const uploadShopImage = async (shopId, file, imageType) => {
+    try {
+      setUploadingImage(`${shopId}-${imageType}`);
+
+      const shop = shops.find((s) => s.id === shopId);
+      if (!shop) {
+        throw new Error("Shop not found");
+      }
+
+      const formData = new FormData();
+      formData.append("image", file);
+      formData.append("imageType", imageType);
+
+      const response = await fetch(
+        `/api/internal/shops/${shop.clientId}/${shopId}/images/upload`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to upload image");
+      }
+
+      const result = await response.json();
+
+      // Update the shop in the state with the new image URL
+      setShops((prevShops) =>
+        prevShops.map((s) =>
+          s.id === shopId
+            ? {
+                ...s,
+                [`${imageType}Url`]: result.imageUrl,
+                // Also update alternative field names if they exist
+                ...(imageType === "desktopBanner" && {
+                  bannerUrl: result.imageUrl,
+                }),
+                ...(imageType === "mobileBanner" && {
+                  mobileBannerUrl: result.imageUrl,
+                }),
+              }
+            : s
+        )
+      );
+
+      console.log(`${imageType} uploaded successfully:`, result);
+      setError(null); // Clear any previous errors
+    } catch (error) {
+      console.error(`Error uploading ${imageType}:`, error);
+
+      // Provide specific error messages based on the error type
+      let errorMessage = `Erreur lors du téléchargement de ${imageType}: `;
+
+      if (error.message.includes("File size too large")) {
+        errorMessage +=
+          "Le fichier est trop volumineux (limite: 50MB). Veuillez réduire la taille de l'image.";
+      } else if (error.message.includes("Invalid file type")) {
+        errorMessage +=
+          "Type de fichier non valide. Veuillez sélectionner une image.";
+      } else if (error.message.includes("Failed to fetch")) {
+        errorMessage +=
+          "Problème de connexion. Veuillez vérifier votre connexion internet et réessayer.";
+      } else {
+        errorMessage += error.message;
+      }
+
+      setError(errorMessage);
+    } finally {
+      setUploadingImage(null);
+    }
+  };
 
   useEffect(() => {
     // Fetch all shops data from backend
@@ -27,7 +134,10 @@ const AllShops = () => {
             status: shop.status,
             hasShopify: shop.hasShopify,
             documented: shop.documented,
-            logoUrl: shop.logoUrl, // Add logoUrl to the state
+            logoUrl: shop.logoUrl,
+            desktopBannerUrl: shop.desktopBannerUrl || shop.bannerUrl, // fallback to bannerUrl
+            mobileBannerUrl: shop.mobileBannerUrl,
+            faviconUrl: shop.faviconUrl,
           }))
         );
       } catch (err) {
@@ -58,10 +168,21 @@ const AllShops = () => {
   };
 
   if (isLoading) return <p>Chargement de toutes les boutiques...</p>;
-  if (error) return <p>Erreur: {error}</p>;
+  if (error) return <p className="text-red-500">Erreur: {error}</p>;
 
   return (
     <div className="w-full p-4">
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+          <button
+            onClick={() => setError(null)}
+            className="ml-2 text-red-900 hover:text-red-700"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">
           Toutes les Boutiques
@@ -123,13 +244,34 @@ const AllShops = () => {
                   <tr className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <div className="flex items-center">
-                        {console.log(shop.logoUrl)}
-                        {shop.logoUrl && (
+                        {shop.logoUrl ? (
                           <img
                             src={shop.logoUrl}
                             alt="Logo"
-                            className="h-8 w-8 rounded-full mr-3 object-cover"
+                            className="h-8 w-8 rounded-full mr-3 object-cover border border-gray-200"
                           />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full mr-3 bg-gray-200 flex items-center justify-center relative group">
+                            {uploadingImage &&
+                            uploadingImage.startsWith(`${shop.id}-logo`) ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                            ) : (
+                              <>
+                                <span className="text-gray-400 text-xs">
+                                  N/A
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    handleImageUpload(shop.id, "logo")
+                                  }
+                                  className="absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-0 hover:bg-opacity-80 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                                  title="Ajouter un logo"
+                                >
+                                  <FaPlus className="text-white text-xs" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         )}
                         <span>{shop.name || "-"}</span>
                       </div>
@@ -182,11 +324,183 @@ const AllShops = () => {
                   {expandedRows[shop.id] && (
                     <tr>
                       <td colSpan="6" className="px-6 py-4 bg-gray-50">
-                        <ShopDetails
-                          clientId={shop.clientId}
-                          shopId={shop.id}
-                          onDelete={handleShopDelete}
-                        />
+                        <div className="space-y-4">
+                          {/* Image Management Section */}
+                          <div className="bg-white p-4 rounded-lg border">
+                            <h4 className="text-lg font-medium text-gray-900 mb-4">
+                              Gestion des Images
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                              {/* Logo */}
+                              <div className="text-center">
+                                <h5 className="text-sm font-medium text-gray-700 mb-2">
+                                  Logo
+                                </h5>
+                                <div className="w-24 h-24 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                                  {shop.logoUrl ? (
+                                    <img
+                                      src={shop.logoUrl}
+                                      alt="Logo"
+                                      className="w-full h-full object-cover rounded-lg"
+                                    />
+                                  ) : (
+                                    <div className="text-center">
+                                      {uploadingImage &&
+                                      uploadingImage.startsWith(
+                                        `${shop.id}-logo`
+                                      ) ? (
+                                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent mx-auto"></div>
+                                      ) : (
+                                        <button
+                                          onClick={() =>
+                                            handleImageUpload(shop.id, "logo")
+                                          }
+                                          className="text-gray-400 hover:text-blue-500 transition-colors"
+                                          title="Ajouter un logo"
+                                        >
+                                          <FaPlus className="text-2xl" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Logo
+                                </p>
+                              </div>
+
+                              {/* Desktop Banner */}
+                              <div className="text-center">
+                                <h5 className="text-sm font-medium text-gray-700 mb-2">
+                                  Banner Desktop
+                                </h5>
+                                <div className="w-24 h-12 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                                  {shop.desktopBannerUrl ? (
+                                    <img
+                                      src={shop.desktopBannerUrl}
+                                      alt="Desktop Banner"
+                                      className="w-full h-full object-cover rounded-lg"
+                                    />
+                                  ) : (
+                                    <div className="text-center">
+                                      {uploadingImage &&
+                                      uploadingImage.startsWith(
+                                        `${shop.id}-desktopBanner`
+                                      ) ? (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mx-auto"></div>
+                                      ) : (
+                                        <button
+                                          onClick={() =>
+                                            handleImageUpload(
+                                              shop.id,
+                                              "desktopBanner"
+                                            )
+                                          }
+                                          className="text-gray-400 hover:text-blue-500 transition-colors"
+                                          title="Ajouter un banner desktop"
+                                        >
+                                          <FaPlus className="text-lg" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Banner Desktop
+                                </p>
+                              </div>
+
+                              {/* Mobile Banner */}
+                              <div className="text-center">
+                                <h5 className="text-sm font-medium text-gray-700 mb-2">
+                                  Banner Mobile
+                                </h5>
+                                <div className="w-16 h-24 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                                  {shop.mobileBannerUrl ? (
+                                    <img
+                                      src={shop.mobileBannerUrl}
+                                      alt="Mobile Banner"
+                                      className="w-full h-full object-cover rounded-lg"
+                                    />
+                                  ) : (
+                                    <div className="text-center">
+                                      {uploadingImage &&
+                                      uploadingImage.startsWith(
+                                        `${shop.id}-mobileBanner`
+                                      ) ? (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mx-auto"></div>
+                                      ) : (
+                                        <button
+                                          onClick={() =>
+                                            handleImageUpload(
+                                              shop.id,
+                                              "mobileBanner"
+                                            )
+                                          }
+                                          className="text-gray-400 hover:text-blue-500 transition-colors"
+                                          title="Ajouter un banner mobile"
+                                        >
+                                          <FaPlus className="text-lg" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Banner Mobile
+                                </p>
+                              </div>
+
+                              {/* Favicon */}
+                              <div className="text-center">
+                                <h5 className="text-sm font-medium text-gray-700 mb-2">
+                                  Favicon
+                                </h5>
+                                <div className="w-16 h-16 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                                  {shop.faviconUrl ? (
+                                    <img
+                                      src={shop.faviconUrl}
+                                      alt="Favicon"
+                                      className="w-full h-full object-cover rounded-lg"
+                                    />
+                                  ) : (
+                                    <div className="text-center">
+                                      {uploadingImage &&
+                                      uploadingImage.startsWith(
+                                        `${shop.id}-favicon`
+                                      ) ? (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mx-auto"></div>
+                                      ) : (
+                                        <button
+                                          onClick={() =>
+                                            handleImageUpload(
+                                              shop.id,
+                                              "favicon"
+                                            )
+                                          }
+                                          className="text-gray-400 hover:text-blue-500 transition-colors"
+                                          title="Ajouter un favicon"
+                                        >
+                                          <FaPlus className="text-lg" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Favicon
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Shop Details */}
+                          <ShopDetails
+                            clientId={shop.clientId}
+                            shopId={shop.id}
+                            onDelete={handleShopDelete}
+                          />
+                        </div>
                       </td>
                     </tr>
                   )}

@@ -10,6 +10,125 @@ const path = require('path');
 const dotenv = require('dotenv');
 const { getSignedUrl } = require('../services/s3Service');
 const axios = require('axios'); // Added axios for Shopify API calls
+const multer = require('multer');
+const { S3Client, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl: getSignedUrlV3 } = require('@aws-sdk/s3-request-presigner');
+
+// S3 Client Configuration
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+// Enhanced authentication middleware for internal API routes with additional security
+const requireInternalAPIAuth = (req, res, next) => {
+  // Enhanced security logging
+  const securityContext = {
+    ip: req.ip,
+    userAgent: req.get('User-Agent')?.substring(0, 100),
+    route: req.originalUrl,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  };
+
+  if (!req.session.internalUserInfo) {
+    console.log(`🚨 [SECURITY ALERT] Unauthorized internal API access attempt:`, securityContext);
+    
+    // Add security headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required - Internal personnel access only',
+      securityAlert: 'UNAUTHORIZED_API_ACCESS',
+      requestId: `SEC_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+    });
+  }
+  
+  // Log successful access with user context
+  console.log(`✅ [SECURITY] Internal API access granted:`, {
+    ...securityContext,
+    userId: req.session.internalUserInfo.sub || req.session.internalUserInfo.userId,
+    userEmail: req.session.internalUserInfo.email
+  });
+  
+  // Add security headers for authenticated requests
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  next();
+};
+
+// Multer configuration for internal portal image uploads
+const internalImageUpload = multer({
+  dest: path.join(__dirname, '..', 'uploads', 'temp'),
+  fileFilter: (req, file, cb) => {
+    console.log('🔍 [INTERNAL MULTER] Processing file:', file.originalname, file.mimetype, 'Size:', file.size || 'unknown');
+    console.log('🔍 [INTERNAL MULTER] Full file object:', {
+      fieldname: file.fieldname,
+      originalname: file.originalname,
+      encoding: file.encoding,
+      mimetype: file.mimetype,
+      size: file.size
+    });
+    
+    // Only allow image files
+    if (file.mimetype.startsWith('image/')) {
+      console.log('🔍 [INTERNAL MULTER] File accepted:', file.originalname);
+      cb(null, true);
+    } else {
+      console.log('🔍 [INTERNAL MULTER] File rejected (not an image):', file.originalname);
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024, // Increased to 10MB limit
+    files: 1
+  },
+  onError: function(err, next) {
+    console.log('🚨 [MULTER ERROR CALLBACK]', err);
+    next(err);
+  }
+}).single('image');
+
+// Add debugging wrapper for multer
+const debugMulter = (req, res, next) => {
+  console.log('🔍 [MULTER DEBUG] Request received:', {
+    method: req.method,
+    url: req.url,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'content-length': req.headers['content-length'],
+      'user-agent': req.headers['user-agent']
+    }
+  });
+  
+  // Call the original multer
+  internalImageUpload(req, res, (err) => {
+    if (err) {
+      console.log('🚨 [MULTER DEBUG] Error in multer:', err);
+    } else {
+      console.log('🔍 [MULTER DEBUG] Multer completed successfully:', {
+        file: req.file ? {
+          fieldname: req.file.fieldname,
+          originalname: req.file.originalname,
+          filename: req.file.filename,
+          path: req.file.path,
+          size: req.file.size
+        } : 'No file received',
+        body: req.body
+      });
+    }
+    next(err);
+  });
+};
 
 // Constants for Shopify OAuth
 // Allow multiple env var names for flexibility (SHOPIFY_CLIENT_ID or SHOPIFY_API_KEY)
@@ -17,7 +136,7 @@ const SHOPIFY_CLIENT_ID = process.env.SHOPIFY_CLIENT_ID || process.env.SHOPIFY_A
 const SHOPIFY_CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_API_SECRET;
 
 // NEW: Route to get PayPal credentials securely
-router.get('/config/paypal-credentials', (req, res) => {
+router.get('/config/paypal-credentials', requireInternalAPIAuth, (req, res) => {
   // This should be protected in a real app, e.g., by checking user role
   try {
     const credentials = {
@@ -56,8 +175,8 @@ router.get('/config/paypal-credentials', (req, res) => {
   }
 });
 
-// NEW: Route to get Mondial Relay credentials securely
-router.get('/config/mondialrelay-credentials', (req, res) => {
+// NEW: Route to get Mondial Relay credentials securely  
+router.get('/config/mondialrelay-credentials', requireInternalAPIAuth, (req, res) => {
   try {
     console.log('[MondialRelay] Fetching credentials...');
     
@@ -89,7 +208,7 @@ router.get('/config/mondialrelay-credentials', (req, res) => {
 });
 
 // NEW: Route to securely download specific configuration files
-router.get('/files/download/:filename', (req, res) => {
+router.get('/files/download/:filename', requireInternalAPIAuth, (req, res) => {
   const allowedFiles = [
     'Extrait KBIS - SNA GZ.pdf',
     'Justificatif de domicile 23 juil. 2024.pdf',
@@ -153,7 +272,7 @@ router.get('/files/download/:filename', (req, res) => {
 });
 
 // NEW: Route to save Shopify API credentials for a specific shop
-router.post('/shops/:shopId/api-credentials', async (req, res) => {
+router.post('/shops/:shopId/api-credentials', requireInternalAPIAuth, async (req, res) => {
   const { shopId } = req.params;
   const { apiKey, apiSecret, accessToken, adminUrl } = req.body;
 
@@ -219,7 +338,7 @@ router.post('/shops/:shopId/api-credentials', async (req, res) => {
 });
 
 // Route to save shop domain during creation wizard
-router.post('/shops/:shopId/save-domain', async (req, res) => {
+router.post('/shops/:shopId/save-domain', requireInternalAPIAuth, async (req, res) => {
   const { shopId } = req.params;
   const { shopifyDomain, adminUrl } = req.body;
 
@@ -262,7 +381,7 @@ router.post('/shops/:shopId/save-domain', async (req, res) => {
 });
 
 // Route to mark shop as having Shopify created
-router.put('/shops/:shopId/mark-shopify-created', async (req, res) => {
+router.put('/shops/:shopId/mark-shopify-created', requireInternalAPIAuth, async (req, res) => {
   const { shopId } = req.params;
 
   console.log(`[MARK CREATED] Received request for shopId: ${shopId}`);
@@ -301,7 +420,7 @@ router.put('/shops/:shopId/mark-shopify-created', async (req, res) => {
 });
 
 // --- NEW ENDPOINT: mark a shop as parametrized once the wizard is finished ---
-router.put('/shops/:shopId/mark-parametrized', async (req, res) => {
+router.put('/shops/:shopId/mark-parametrized', requireInternalAPIAuth, async (req, res) => {
    const { shopId } = req.params;
 
    if (!shopId) {
@@ -360,15 +479,15 @@ router.put('/shops/:shopId/mark-parametrized', async (req, res) => {
  });
 
 // Route to get all shops for all customers (for internal portal)
-router.get('/all-shops', async (req, res) => {
+router.get('/all-shops', requireInternalAPIAuth, async (req, res) => {
   try {
     const customersCollection = await getCustomersCollection();
     const customers = await customersCollection.find({}).toArray();
-    // Aggregate all shops from all customers, attach client info
     const allShops = [];
 
     console.log("--- DEBUGGING /api/internal/all-shops ---");
-    customers.forEach(customer => {
+    
+    for (const customer of customers) {
       const clientName = customer.raisonSociale || customer.name || '-';
       const clientId = customer._id?.toString() || customer.id || '-';
 
@@ -376,7 +495,49 @@ router.get('/all-shops', async (req, res) => {
       console.log(`Processing Customer: '${clientName}', Payement Status: [${customer.Payement}]`);
 
       if (Array.isArray(customer.shops)) {
-        customer.shops.forEach(shop => {
+        for (const shop of customer.shops) {
+          // Generate signed URLs for all image types if they exist
+          let logoUrl = null;
+          let desktopBannerUrl = null;
+          let mobileBannerUrl = null;
+          let faviconUrl = null;
+
+          if (shop.logoUrl) {
+            try {
+              const key = new URL(shop.logoUrl).pathname.substring(1);
+              logoUrl = await getSignedUrl(decodeURIComponent(key));
+            } catch (e) {
+              console.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
+            }
+          }
+
+          if (shop.desktopBannerUrl) {
+            try {
+              const key = new URL(shop.desktopBannerUrl).pathname.substring(1);
+              desktopBannerUrl = await getSignedUrl(decodeURIComponent(key));
+            } catch (e) {
+              console.error(`Error generating signed URL for desktop banner: ${shop.desktopBannerUrl}`, e);
+            }
+          }
+
+          if (shop.mobileBannerUrl) {
+            try {
+              const key = new URL(shop.mobileBannerUrl).pathname.substring(1);
+              mobileBannerUrl = await getSignedUrl(decodeURIComponent(key));
+            } catch (e) {
+              console.error(`Error generating signed URL for mobile banner: ${shop.mobileBannerUrl}`, e);
+            }
+          }
+
+          if (shop.faviconUrl) {
+            try {
+              const key = new URL(shop.faviconUrl).pathname.substring(1);
+              faviconUrl = await getSignedUrl(decodeURIComponent(key));
+            } catch (e) {
+              console.error(`Error generating signed URL for favicon: ${shop.faviconUrl}`, e);
+            }
+          }
+
           allShops.push({
             _id: shop._id || shop.shopId, // Pass the shop's unique ID
             shopId: shop.shopId || shop.id,
@@ -391,11 +552,16 @@ router.get('/all-shops', async (req, res) => {
             hasShopify: shop.hasShopify === true || shop.shopifyConfigured === true,
             isParametrized: shop.isParametrized === true,
             parametrizationError: shop.parametrizationError || null,
-            documented: shop.documented || 'undocumented'
+            documented: shop.documented || 'undocumented',
+            logoUrl: logoUrl,
+            desktopBannerUrl: desktopBannerUrl,
+            mobileBannerUrl: mobileBannerUrl,
+            faviconUrl: faviconUrl
           });
-        });
+        }
       }
-    });
+    }
+    
     console.log("--- END DEBUGGING ---");
     res.status(200).json({ success: true, shops: allShops });
   } catch (error) {
@@ -408,7 +574,7 @@ router.get('/all-shops', async (req, res) => {
 });
 
 // Route to get all customers data (for internal portal)
-router.get('/all', async (req, res) => {
+router.get('/all', requireInternalAPIAuth, async (req, res) => {
   try {
     const { details } = req.query;
     const customersCollection = await getCustomersCollection();
@@ -456,8 +622,8 @@ router.get('/all', async (req, res) => {
   }
 });
 
-// Route to get all shops from all customers (for internal portal)
-router.get('/all-shops', async (req, res) => {
+// Route to get all shops from all customers (for internal portal) - DUPLICATE ROUTE: NEEDS REVIEW
+router.get('/all-shops-duplicate', requireInternalAPIAuth, async (req, res) => {
   try {
     const customersCollection = await getCustomersCollection();
     const customers = await customersCollection.find({}).toArray();
@@ -512,7 +678,7 @@ router.get('/all-shops', async (req, res) => {
 });
 
 // Route to get specific customer by MongoDB ID (for internal portal)
-router.get('/customer/:customerId', async (req, res) => {
+router.get('/customer/:customerId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { customerId } = req.params;
     console.log(`[INTERNAL] Getting customer details for ID: ${customerId}`);
@@ -554,7 +720,7 @@ router.get('/customer/:customerId', async (req, res) => {
 });
 
 // Route to get specific client by ID (for internal portal)
-router.get('/clients/:clientId', async (req, res) => {
+router.get('/clients/:clientId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId } = req.params;
     console.log(`[INTERNAL] Getting client details for ID: ${clientId}`);
@@ -596,7 +762,7 @@ router.get('/clients/:clientId', async (req, res) => {
 });
 
 // Route to update specific client by ID (for internal portal)
-router.put('/clients/:clientId', async (req, res) => {
+router.put('/clients/:clientId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId } = req.params;
     const updateData = req.body;
@@ -662,7 +828,7 @@ router.put('/clients/:clientId', async (req, res) => {
 });
 
 // Route to get shop products for internal portal
-router.get('/shop/:shopId/products', async (req, res) => {
+router.get('/shop/:shopId/products', requireInternalAPIAuth, async (req, res) => {
   try {
     const { shopId } = req.params;
     console.log(`[INTERNAL] Getting products for shop: ${shopId}`);
@@ -710,7 +876,7 @@ router.get('/shop/:shopId/products', async (req, res) => {
 });
 
 // Route to get shop documentation (for internal portal)
-router.get('/shop/:shopId/documentation', (req, res) => {
+router.get('/shop/:shopId/documentation', requireInternalAPIAuth, (req, res) => {
   const { shopId } = req.params;
   console.log(`[INTERNAL] Getting documentation for shop: ${shopId}`);
   
@@ -719,7 +885,7 @@ router.get('/shop/:shopId/documentation', (req, res) => {
 });
 
 // Route to get product documentation (for internal portal)
-router.get('/shop/:shopId/product/:productId/documentation', async (req, res) => {
+router.get('/shop/:shopId/product/:productId/documentation', requireInternalAPIAuth, async (req, res) => {
   const { shopId, productId } = req.params;
   console.log(`[INTERNAL] Getting product documentation for shop: ${shopId}, product: ${productId}`);
   
@@ -728,7 +894,7 @@ router.get('/shop/:shopId/product/:productId/documentation', async (req, res) =>
 });
 
 // Route to post shop documentation (for internal portal)
-router.post('/shop/:shopId/documentation', async (req, res) => {
+router.post('/shop/:shopId/documentation', requireInternalAPIAuth, async (req, res) => {
   const { shopId } = req.params;
   console.log(`[INTERNAL] Creating shop documentation for: ${shopId}`);
   
@@ -749,25 +915,94 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
 });
 
 // Route to post product documentation (for internal portal)
-router.post('/shop/:shopId/product/:productId/documentation', async (req, res) => {
-  const { shopId, productId } = req.params;
-  console.log(`[INTERNAL] Creating product documentation for shop: ${shopId}, product: ${productId}`);
-  
-  // Forward the request to the customer route
+router.post('/shop/:shopId/product/:productId/documentation', requireInternalAPIAuth, async (req, res) => {
   try {
-    res.redirect(307, `/api/customer/shop/${shopId}/product/${productId}/documentation`);
+    const { shopId, productId } = req.params;
+    const { action } = req.body; // 'document', 'mark_documented', 'undocument'
+    
+    console.log(`[INTERNAL] Product documentation action for shop: ${shopId}, product: ${productId}, action: ${action}`);
+    
+    if (!['document', 'mark_documented', 'undocument'].includes(action)) {
+      return res.status(400).json({ success: false, message: 'Invalid action' });
+    }
+    
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document that contains the shop
+    const customer = await customersCollection.findOne({
+      'shops.shopId': shopId
+    });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Find specific shop and product
+    const shop = customer.shops.find(s => s.shopId === shopId);
+    if (!shop) {
+      return res.status(404).json({ success: false, message: 'Shop not found' });
+    }
+    
+    const productIndex = shop.products?.findIndex(p => p.productId === productId);
+    if (productIndex === -1 || productIndex === undefined) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    
+    const product = shop.products[productIndex];
+    
+    // For mark_documented and undocument actions (simple status updates)
+    if (action === 'mark_documented' || action === 'undocument') {
+      const newDocumentedStatus = action === 'mark_documented';
+      
+      const updateResult = await customersCollection.updateOne(
+        { 'shops.shopId': shopId },
+        { 
+          $set: { 
+            [`shops.$.products.${productIndex}.documented`]: newDocumentedStatus,
+            [`shops.$.products.${productIndex}.updatedAt`]: new Date()
+          }
+        }
+      );
+      
+      if (updateResult.modifiedCount === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to update product documentation status'
+        });
+      }
+      
+      res.status(200).json({
+        success: true,
+        message: action === 'mark_documented' 
+          ? `Produit "${product.titre}" marqué comme documenté`
+          : `Documentation supprimée pour le produit "${product.titre}"`,
+        productId: productId,
+        documented: newDocumentedStatus
+      });
+    } else {
+      // For 'document' action, we would need to implement the full documentation generation
+      // For now, forward to customer route or implement here if needed
+      return res.status(501).json({
+        success: false,
+        message: 'Document generation not implemented in internal API'
+      });
+    }
+    
   } catch (error) {
-    console.error('[INTERNAL] Error forwarding product documentation request:', error);
+    console.error('[INTERNAL] Error updating product documentation:', error);
     res.status(500).json({
       success: false,
-      message: 'Error processing product documentation request',
+      message: 'An error occurred while updating product documentation',
       error: error.message
     });
   }
 });
 
 // Route to get all products from all customers (for internal portal)
-router.get('/all-products', async (req, res) => {
+router.get('/all-products', requireInternalAPIAuth, async (req, res) => {
   try {
     const { status } = req.query;
     
@@ -828,13 +1063,43 @@ router.get('/all-products', async (req, res) => {
         if (product.imageUrls && product.imageUrls.length > 0) {
           try {
             const signedUrls = await Promise.all(
-              product.imageUrls.map((url) => {
-                // The key is the part of the URL after the bucket name
-                // Decode the key to handle any special characters (e.g., %20 for spaces)
-                const key = decodeURIComponent(new URL(url).pathname.substring(1));
-                return getSignedUrl(key);
+              product.imageUrls.map(async (url) => {
+                try {
+                  // The key is the part of the URL after the bucket name
+                  // Decode the key to handle any special characters (e.g., %20 for spaces)
+                  let key;
+                  if (url.startsWith('https://')) {
+                    // Full S3 URL - extract the key
+                    try {
+                      const urlObj = new URL(url);
+                      key = decodeURIComponent(urlObj.pathname.substring(1));
+                    } catch (urlParseError) {
+                      console.error(`Failed to parse URL: ${url}`, urlParseError);
+                      // Fallback: try to extract from URL string directly
+                      const bucketPattern = /\.amazonaws\.com\/(.+)$/;
+                      const match = url.match(bucketPattern);
+                      if (match) {
+                        key = decodeURIComponent(match[1]);
+                      } else {
+                        console.error(`Could not extract key from URL: ${url}`);
+                        throw new Error(`Invalid S3 URL format: ${url}`);
+                      }
+                    }
+                  } else {
+                    // Already an S3 key
+                    key = decodeURIComponent(url);
+                  }
+                  
+                  const signedUrl = await getSignedUrl(key);
+                  return signedUrl;
+                } catch (urlError) {
+                  console.error(`Failed to generate signed URL for image: ${url}`, urlError);
+                  // Return the original URL if signing fails
+                  return url;
+                }
               })
             );
+            
             return { ...product, imageUrls: signedUrls };
           } catch (e) {
             console.error(`Failed to generate signed URLs for product ${product.productId}:`, e);
@@ -861,7 +1126,7 @@ router.get('/all-products', async (req, res) => {
 });
 
 // Route to validate product status fields (for internal portal)
-router.put('/products/:clientId/:shopId/:productId/validate', async (req, res) => {
+router.put('/products/:clientId/:shopId/:productId/validate', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId, shopId, productId } = req.params;
     const { active } = req.body; // Only `active` status is expected
@@ -961,7 +1226,7 @@ router.put('/products/:clientId/:shopId/:productId/validate', async (req, res) =
 });
 
 // Route to generate product documentation (for internal portal)
-router.post('/products/:clientId/:shopId/:productId/generate-documentation', async (req, res) => {
+router.post('/products/:clientId/:shopId/:productId/generate-documentation', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId, shopId, productId } = req.params;
     
@@ -1065,7 +1330,7 @@ router.post('/products/:clientId/:shopId/:productId/generate-documentation', asy
 });
 
 // Generate EC file for selected products (NEW CLEAN ROUTE)
-router.post('/ec/shop/:shopId/generate', async (req, res) => {
+router.post('/ec/shop/:shopId/generate', requireInternalAPIAuth, async (req, res) => {
   const log = (message) => {
     // Log to console for immediate feedback
     console.log(`[EC Service] ${message}`);
@@ -1159,7 +1424,7 @@ router.post('/ec/shop/:shopId/generate', async (req, res) => {
 });
 
 // Generate EC file for selected products (OLD ROUTE - KEPT FOR BACKWARD COMPATIBILITY)
-router.post('/shopify/shop/:shopId/generate-ec', async (req, res) => {
+router.post('/shopify/shop/:shopId/generate-ec', requireInternalAPIAuth, async (req, res) => {
   const log = (message) => {
     // Log to console for immediate feedback
     console.log(`[EC Service] ${message}`);
@@ -1258,7 +1523,7 @@ router.post('/shopify/shop/:shopId/generate-ec', async (req, res) => {
 });
 
 // NEW: Route to configure Shopify theme with images using GraphQL Admin API
-router.post('/shops/:shopId/configure-theme', async (req, res) => {
+router.post('/shops/:shopId/configure-theme', requireInternalAPIAuth, async (req, res) => {
   const { shopId } = req.params;
 
   console.log(`[THEME CONFIG] Received request for shopId: ${shopId}`);
@@ -1954,7 +2219,7 @@ router.post('/shops/:shopId/configure-theme', async (req, res) => {
 });
 
 // Route to get Shopify partner account credentials
-router.get('/config/shopify-partner-credentials', (req, res) => {
+router.get('/config/shopify-partner-credentials', requireInternalAPIAuth, (req, res) => {
   const email = process.env.SHOPIFY_PARTNER_EMAIL;
   const password = process.env.SHOPIFY_PARTNER_PASSWORD;
 
@@ -1968,8 +2233,8 @@ router.get('/config/shopify-partner-credentials', (req, res) => {
   res.json({ success: true, credentials: { email, password } });
 });
 
-// Get a specific client by clientId (for internal portal)
-router.get('/clients/:clientId', async (req, res) => {
+// Get a specific client by clientId (for internal portal) - DUPLICATE ROUTE: NEEDS REVIEW
+router.get('/clients-duplicate/:clientId', requireInternalAPIAuth, async (req, res) => {
   console.log('==== GET /clients/:clientId ====');
   console.log('Client ID from params:', req.params.clientId);
   
@@ -2027,8 +2292,8 @@ router.get('/clients/:clientId', async (req, res) => {
   }
 });
 
-// Route to update a client (for internal portal)
-router.put('/clients/:clientId', async (req, res) => {
+// Route to update a client (for internal portal) - DUPLICATE ROUTE: NEEDS REVIEW  
+router.put('/clients-duplicate/:clientId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId } = req.params;
     const updatedClientFields = req.body;
@@ -2085,7 +2350,7 @@ router.put('/clients/:clientId', async (req, res) => {
 });
 
 // Route to update a specific shop for a client (for internal portal)
-router.put('/clients/:clientId/shops/:shopId', async (req, res) => {
+router.put('/clients/:clientId/shops/:shopId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId, shopId } = req.params;
     const updatedShopFields = req.body;
@@ -2195,7 +2460,7 @@ router.put('/clients/:clientId/shops/:shopId', async (req, res) => {
 });
 
 // Update a specific product (for internal portal)
-router.put('/products/:clientId/:shopId/:productId', async (req, res) => {
+router.put('/products/:clientId/:shopId/:productId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId, shopId, productId } = req.params;
     const updateData = req.body;
@@ -2305,7 +2570,7 @@ router.put('/products/:clientId/:shopId/:productId', async (req, res) => {
 });
 
 // Route to specifically update the hasShopify status of a product
-router.put('/products/:clientId/:shopId/:productId/set-shopify-status', async (req, res) => {
+router.put('/products/:clientId/:shopId/:productId/set-shopify-status', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId, shopId, productId } = req.params;
     const { hasShopify } = req.body;
@@ -2354,7 +2619,7 @@ router.put('/products/:clientId/:shopId/:productId/set-shopify-status', async (r
 });
 
 // NEW: Route to delete a product (for internal portal)
-router.delete('/products/:clientId/:shopId/:productId', async (req, res) => {
+router.delete('/products/:clientId/:shopId/:productId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId, shopId, productId } = req.params;
 
@@ -2385,7 +2650,7 @@ router.delete('/products/:clientId/:shopId/:productId', async (req, res) => {
 });
 
 // Get a specific shop for a client (for internal portal)
-router.get('/clients/:clientId/shops/:shopId', async (req, res) => {
+router.get('/clients/:clientId/shops/:shopId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId, shopId } = req.params;
     const customersCollection = await getCustomersCollection();
@@ -2445,7 +2710,7 @@ router.get('/clients/:clientId/shops/:shopId', async (req, res) => {
 });
 
 // NEW: Route to save Shopify credentials and retry theme configuration
-router.post('/shops/:shopId/save-credentials-and-configure-theme', async (req, res) => {
+router.post('/shops/:shopId/save-credentials-and-configure-theme', requireInternalAPIAuth, async (req, res) => {
   const { shopId } = req.params;
   const { accessToken, shopifyDomain } = req.body;
 
@@ -2964,7 +3229,7 @@ router.post('/shops/:shopId/save-credentials-and-configure-theme', async (req, r
 });
 
 // NEW: Route to delete a shop (for internal portal)
-router.delete('/clients/:clientId/shops/:shopId', async (req, res) => {
+router.delete('/clients/:clientId/shops/:shopId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId, shopId } = req.params;
 
@@ -2995,7 +3260,7 @@ router.delete('/clients/:clientId/shops/:shopId', async (req, res) => {
 });
 
 // Publier des produits sur Shopify
-router.put('/shopify/shop/:shopId/publish-products', async (req, res) => {
+router.put('/shopify/shop/:shopId/publish-products', requireInternalAPIAuth, async (req, res) => {
   try {
     const { shopId } = req.params;
     const { productIds } = req.body;
@@ -3044,13 +3309,60 @@ router.put('/shopify/shop/:shopId/publish-products', async (req, res) => {
     console.log(`[API] Shop access validated successfully for shop: ${accessCheck.shopData?.name || 'Unknown'}`);
 
     // Get products to publish
-    const products = shop.products?.filter(p => productIds.includes(p.productId)) || [];
-    if (products.length === 0) {
+    const allProducts = shop.products?.filter(p => productIds.includes(p.productId)) || [];
+    if (allProducts.length === 0) {
       return res.status(404).json({ error: 'No matching products found' });
     }
 
-    console.log(`[API] Publishing ${products.length} products to Shopify for shop ${shop.nomClient || shop.customerName}`);
-    const publishResults = await publishProductsToShopify(shop, products);
+    // ✅ STRICT VALIDATION: If ANY product is already published, block ALL publishing
+    const unpublishedProducts = allProducts.filter(product => !product.hasShopify);
+    const alreadyPublishedProducts = allProducts.filter(product => product.hasShopify);
+    
+    if (alreadyPublishedProducts.length > 0) {
+      console.log(`[API] Blocking publication - found ${alreadyPublishedProducts.length} already published products:`, 
+        alreadyPublishedProducts.map(p => p.title || p.titre));
+      
+      const publishedProductsList = alreadyPublishedProducts.map(p => p.title || p.titre).join(', ');
+      
+      return res.status(400).json({ 
+        error: `Publication bloquée : le(s) produit(s) suivant(s) sont déjà publiés sur Shopify : ${publishedProductsList}. Veuillez désélectionner ces produits pour continuer.`,
+        alreadyPublishedCount: alreadyPublishedProducts.length,
+        unpublishedCount: unpublishedProducts.length,
+        totalRequested: allProducts.length,
+        alreadyPublishedProducts: alreadyPublishedProducts.map(p => ({
+          id: p.productId,
+          title: p.title || p.titre
+        }))
+      });
+    }
+
+    console.log(`[API] All ${allProducts.length} selected products are unpublished - proceeding with publication`);
+
+    // ✅ ADD DEFAULT EAN TO PRODUCTS THAT NEED IT
+    const productsWithEAN = allProducts.map(product => {
+      const processedProduct = { ...product };
+      
+      // Ensure EANs object exists
+      if (!processedProduct.eans) {
+        processedProduct.eans = {};
+      }
+      
+      // Add default EAN if missing
+      if (!processedProduct.eans.default) {
+        // Try to get EAN from first variant or generate a default
+        const firstVariantEAN = Object.values(processedProduct.eans)[0];
+        const productEAN = processedProduct.ean || processedProduct.codeEAN || processedProduct.barcode;
+        
+        processedProduct.eans.default = firstVariantEAN || productEAN || '0000000000000';
+        
+        console.log(`[API] Added default EAN for product "${processedProduct.title || processedProduct.titre}": ${processedProduct.eans.default}`);
+      }
+      
+      return processedProduct;
+    });
+
+    console.log(`[API] Publishing ${productsWithEAN.length} products to Shopify for shop ${shop.nomClient || shop.customerName}`);
+    const publishResults = await publishProductsToShopify(shop, productsWithEAN);
 
     // Update hasShopify status for successfully published products
     if (publishResults.results && publishResults.results.length > 0) {
@@ -3082,12 +3394,17 @@ router.put('/shopify/shop/:shopId/publish-products', async (req, res) => {
     }
 
     // Return detailed results
+    const successCount = publishResults.publishedCount || 0;
+    const totalProcessed = publishResults.totalCount || productsWithEAN.length;
+    const failureCount = totalProcessed - successCount;
+    
     res.json({
       success: publishResults.success,
-      message: `${publishResults.successCount}/${publishResults.totalProcessed} produits publiés avec succès`,
-      totalProcessed: publishResults.totalProcessed,
-      successCount: publishResults.successCount,
-      failureCount: publishResults.failureCount,
+      message: `${successCount}/${totalProcessed} produits publiés avec succès`,
+      totalProcessed: totalProcessed,
+      totalRequested: allProducts.length,
+      successCount: successCount,
+      failureCount: failureCount,
       results: publishResults.results
     });
 
@@ -3101,7 +3418,7 @@ router.put('/shopify/shop/:shopId/publish-products', async (req, res) => {
 });
 
 // Get Shopify auth URL for a shop
-router.get('/shopify/auth-url/:shopId', async (req, res) => {
+router.get('/shopify/auth-url/:shopId', requireInternalAPIAuth, async (req, res) => {
   /**
    * We no longer rely on the OAuth flow here because the internal team
    * will parametrize the store "à la main". What we really need is a link
@@ -3157,7 +3474,7 @@ router.get('/shopify/auth-url/:shopId', async (req, res) => {
 });
 
 // Route to save Shopify credentials for manual setup
-router.put('/shopify/shop/:shopId/credentials', async (req, res) => {
+router.put('/shopify/shop/:shopId/credentials', requireInternalAPIAuth, async (req, res) => {
   try {
     const { shopId } = req.params;
     const { shopifyConfig } = req.body;
@@ -3208,7 +3525,7 @@ router.put('/shopify/shop/:shopId/credentials', async (req, res) => {
 });
 
 // Route to finalize manual Shopify setup
-router.put('/shopify/shop/:shopId/finalize', async (req, res) => {
+router.put('/shopify/shop/:shopId/finalize', requireInternalAPIAuth, async (req, res) => {
   try {
     const { shopId } = req.params;
 
@@ -3251,7 +3568,7 @@ router.put('/shopify/shop/:shopId/finalize', async (req, res) => {
 });
 
 // Route to unparametrize a shop (set status to unparameterized)
-router.put('/shopify/shop/:shopId/unparametrize', async (req, res) => {
+router.put('/shopify/shop/:shopId/unparametrize', requireInternalAPIAuth, async (req, res) => {
   try {
     const { shopId } = req.params;
 
@@ -3303,7 +3620,7 @@ router.put('/shopify/shop/:shopId/unparametrize', async (req, res) => {
 });
 
 // NEW: Route to push Dawn theme with custom assets
-router.post('/shops/:shopId/push-dawn-theme', async (req, res) => {
+router.post('/shops/:shopId/push-dawn-theme', requireInternalAPIAuth, async (req, res) => {
   const { shopId } = req.params;
       const log = (message) => console.log(`[DAWN THEME PUSH] ${message}`);
     
@@ -4149,6 +4466,1175 @@ router.post('/shops/:shopId/push-dawn-theme', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: error.message || 'An error occurred while pushing the Dawn theme.' 
+    });
+  }
+});
+
+// Route to proxy images for internal portal downloads
+router.get('/image-proxy', requireInternalAPIAuth, async (req, res) => {
+  try {
+    const { imageKey } = req.query;
+    
+    console.log(`[INTERNAL IMAGE PROXY] Requested image key: ${imageKey}`);
+    
+    if (!imageKey) {
+      return res.status(400).json({
+        success: false,
+        message: 'Image key is required'
+      });
+    }
+    
+    // Get the image from S3 and serve it directly
+    const { GetObjectCommand } = require('@aws-sdk/client-s3');
+    const { s3, bucketName } = require('../services/s3Service');
+    
+    try {
+      console.log('S3 bucket name:', bucketName);
+      console.log('S3 key:', imageKey);
+      
+      const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: imageKey,
+      });
+      
+      const s3Response = await s3.send(command);
+      
+      // Set appropriate headers for download
+      res.setHeader('Content-Type', s3Response.ContentType || 'image/jpeg');
+      res.setHeader('Content-Disposition', `attachment; filename="${imageKey.split('/').pop()}"`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
+      // Convert the stream to buffer and send it
+      const chunks = [];
+      for await (const chunk of s3Response.Body) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
+      
+      res.send(buffer);
+      
+      console.log(`[INTERNAL IMAGE PROXY] Successfully served image: ${imageKey}`);
+      
+    } catch (s3Error) {
+      console.error('[INTERNAL IMAGE PROXY] Error fetching image from S3:', s3Error);
+      res.status(404).json({
+        success: false,
+        message: 'Image not found',
+        error: s3Error.message
+      });
+    }
+  } catch (error) {
+    console.error('[INTERNAL IMAGE PROXY] Error in image proxy route:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing image proxy request',
+      error: error.message
+    });
+  }
+});
+
+// Route to handle image reordering for internal portal
+// Route to handle image replacement for internal portal
+router.put('/products/:clientId/:shopId/:productId/images/:imageIndex/replace', requireInternalAPIAuth, async (req, res) => {
+  try {
+    const { clientId, shopId, productId, imageIndex } = req.params;
+    const { newImageUrl, oldImageUrl } = req.body;
+    
+    console.log(`[INTERNAL IMAGE REPLACE] Replacing image ${imageIndex} for product ${productId}`);
+    console.log(`[INTERNAL IMAGE REPLACE] Old URL:`, oldImageUrl);
+    console.log(`[INTERNAL IMAGE REPLACE] New URL:`, newImageUrl);
+    
+    if (!newImageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'newImageUrl is required'
+      });
+    }
+    
+    const customersCollection = await getCustomersCollection();
+    
+    // Find customer by clientId (could be _id or userId)
+    let customer;
+    try {
+      customer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
+    } catch (e) {
+      customer = await customersCollection.findOne({ userId: clientId });
+    }
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found'
+      });
+    }
+    
+    // Find the shop
+    const shop = customer.shops?.find(s => s.shopId === shopId);
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Find the product
+    const product = shop.products?.find(p => p.productId === productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+    
+    // Validate image index
+    const index = parseInt(imageIndex);
+    if (isNaN(index) || index < 0 || index >= product.imageUrls.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image index'
+      });
+    }
+    
+    // Replace the image URL at the specified index
+    const oldUrl = product.imageUrls[index];
+    product.imageUrls[index] = newImageUrl;
+    
+    // Update the database
+    const updateResult = await customersCollection.updateOne(
+      { 
+        _id: customer._id,
+        'shops.shopId': shopId,
+        'shops.products.productId': productId
+      },
+      { 
+        $set: { 
+          'shops.$.products.$[product].imageUrls': product.imageUrls,
+          'shops.$.products.$[product].lastModified': new Date()
+        } 
+      },
+      {
+        arrayFilters: [
+          { 'product.productId': productId }
+        ]
+      }
+    );
+    
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Failed to update product images'
+      });
+    }
+    
+    console.log(`[INTERNAL IMAGE REPLACE] Successfully replaced image ${index} for product ${productId}`);
+    
+    // Optionally, delete the old image from S3 if it was provided
+    if (oldImageUrl && oldImageUrl !== newImageUrl) {
+      try {
+        const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+        const { s3 } = require('../services/s3Service');
+        
+        // Extract S3 key from URL
+        let oldKey;
+        try {
+          const urlParts = new URL(oldImageUrl);
+          oldKey = urlParts.pathname.substring(1); // Remove leading slash
+        } catch (urlError) {
+          // Fallback for relative paths or malformed URLs
+          oldKey = oldImageUrl.includes('/') ? oldImageUrl.split('/').slice(-4).join('/') : oldImageUrl;
+        }
+        
+        const deleteCommand = new DeleteObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET_NAME,
+          Key: oldKey
+        });
+        
+        await s3.send(deleteCommand);
+        console.log(`[INTERNAL IMAGE REPLACE] Deleted old image from S3: ${oldKey}`);
+      } catch (deleteError) {
+        console.warn(`[INTERNAL IMAGE REPLACE] Failed to delete old image from S3:`, deleteError);
+        // Don't fail the entire operation if S3 deletion fails
+      }
+    }
+    
+    return res.json({
+      success: true,
+      message: 'Image replaced successfully',
+      updatedImageUrls: product.imageUrls
+    });
+    
+  } catch (error) {
+    console.error('[INTERNAL IMAGE REPLACE] Error replacing image:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error replacing image',
+      error: error.message
+    });
+  }
+});
+
+// Error handling middleware for multer file upload errors
+const handleMulterError = (err, req, res, next) => {
+  console.error('🚨 [MULTER ERROR]', err.code, err.message);
+  
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      message: 'File size too large. Maximum allowed size is 10MB.',
+      error: 'FILE_SIZE_LIMIT_EXCEEDED'
+    });
+  }
+  
+  if (err.code === 'LIMIT_FILE_COUNT') {
+    return res.status(400).json({
+      success: false,
+      message: 'Too many files. Only one file allowed.',
+      error: 'FILE_COUNT_LIMIT_EXCEEDED'
+    });
+  }
+  
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({
+      success: false,
+      message: 'Unexpected file field. Use "image" field name.',
+      error: 'UNEXPECTED_FILE_FIELD'
+    });
+  }
+  
+  // Handle custom file filter errors
+  if (err.message === 'Only image files are allowed!') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid file type. Only image files are allowed.',
+      error: 'INVALID_FILE_TYPE'
+    });
+  }
+  
+  // Generic multer error
+  return res.status(400).json({
+    success: false,
+    message: 'File upload error: ' + err.message,
+    error: 'FILE_UPLOAD_ERROR'
+  });
+};
+
+// Route to handle image upload for internal portal
+// UPLOAD ROUTES MOVED TO internalUpload.js
+/*
+router.post('/products/:clientId/:shopId/:productId/images/:imageIndex/upload', requireInternalAPIAuth, debugMulter, handleMulterError, async (req, res) => {
+  try {
+    const { clientId, shopId, productId, imageIndex } = req.params;
+    
+    console.log(`[INTERNAL IMAGE UPLOAD] Uploading image ${imageIndex} for product ${productId}`);
+    console.log(`[INTERNAL IMAGE UPLOAD] File received:`, req.file ? req.file.originalname : 'No file');
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image file provided'
+      });
+    }
+    
+    // Validate image index
+    const index = parseInt(imageIndex);
+    if (isNaN(index) || index < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image index'
+      });
+    }
+    
+    // Import S3 services
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
+    const { s3 } = require('../services/s3Service');
+    
+    // Read the uploaded file
+    const fileBuffer = await fs.promises.readFile(req.file.path);
+    
+    // Generate unique key for S3
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+    const fileName = `${timestamp}-${randomString}${fileExtension}`;
+    const s3Key = `products/shop-${shopId}/product-${productId}/${fileName}`;
+    
+    console.log(`[INTERNAL IMAGE UPLOAD] Uploading to S3 with key: ${s3Key}`);
+    
+    // Upload to S3
+    const uploadCommand = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: fileBuffer,
+      ContentType: req.file.mimetype,
+      ACL: 'private'
+    });
+    
+    await s3.send(uploadCommand);
+    
+    // Generate signed URL for the uploaded image
+    const { getSignedUrl } = require('../services/s3Service');
+    const signedUrl = await getSignedUrl(s3Key);
+    
+    console.log(`[INTERNAL IMAGE UPLOAD] Successfully uploaded to S3, signed URL generated`);
+    
+    // Clean up temporary file
+    try {
+      await fs.promises.unlink(req.file.path);
+    } catch (unlinkError) {
+      console.warn(`[INTERNAL IMAGE UPLOAD] Failed to delete temp file:`, unlinkError);
+    }
+    
+    return res.json({
+      success: true,
+      message: 'Image uploaded successfully',
+      imageUrl: signedUrl,
+      s3Key: s3Key
+    });
+    
+  } catch (error) {
+    console.error('[INTERNAL IMAGE UPLOAD] Error uploading image:', error);
+    
+    // Clean up temporary file on error
+    if (req.file && req.file.path) {
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.warn(`[INTERNAL IMAGE UPLOAD] Failed to delete temp file on error:`, unlinkError);
+      }
+    }
+    
+    return res.status(500).json({
+      success: false,
+      message: 'Error uploading image',
+      error: error.message
+    });
+  }
+});
+
+// Route to handle shop image upload for internal portal
+router.post('/shops/:clientId/:shopId/images/upload', requireInternalAPIAuth, debugMulter, handleMulterError, async (req, res) => {
+  try {
+    const { clientId, shopId } = req.params;
+    const { imageType } = req.body;
+    
+    console.log(`[INTERNAL SHOP IMAGE UPLOAD] Uploading ${imageType} for shop ${shopId}`);
+    console.log(`[INTERNAL SHOP IMAGE UPLOAD] File received:`, req.file ? req.file.originalname : 'No file');
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image file provided'
+      });
+    }
+    
+    if (!imageType || !['logo', 'desktopBanner', 'mobileBanner'].includes(imageType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image type. Must be logo, desktopBanner, or mobileBanner'
+      });
+    }
+    
+    // Import S3 services
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
+    const { s3 } = require('../services/s3Service');
+    
+    // Read the uploaded file
+    const fileBuffer = await fs.promises.readFile(req.file.path);
+    
+    // Generate unique key for S3
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+    const fileName = `${timestamp}-${randomString}${fileExtension}`;
+    const s3Key = `shops/shop-${shopId}/${imageType}/${fileName}`;
+    
+    console.log(`[INTERNAL SHOP IMAGE UPLOAD] Uploading to S3 with key: ${s3Key}`);
+    
+    // Upload to S3
+    const uploadCommand = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: fileBuffer,
+      ContentType: req.file.mimetype,
+      ACL: 'private'
+    });
+    
+    await s3.send(uploadCommand);
+    
+    // Generate signed URL for the uploaded image
+    const { getSignedUrl } = require('../services/s3Service');
+    const signedUrl = await getSignedUrl(s3Key);
+    
+    console.log(`[INTERNAL SHOP IMAGE UPLOAD] Successfully uploaded to S3, signed URL generated`);
+    
+    // Clean up temporary file
+    try {
+      await fs.promises.unlink(req.file.path);
+    } catch (unlinkError) {
+      console.warn(`[INTERNAL SHOP IMAGE UPLOAD] Failed to delete temp file:`, unlinkError);
+    }
+    
+    return res.json({
+      success: true,
+      message: 'Shop image uploaded successfully',
+      imageUrl: signedUrl,
+      s3Key: s3Key
+    });
+    
+  } catch (error) {
+    console.error('[INTERNAL SHOP IMAGE UPLOAD] Error uploading shop image:', error);
+    
+    // Clean up temporary file on error
+    if (req.file && req.file.path) {
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.warn(`[INTERNAL SHOP IMAGE UPLOAD] Failed to delete temp file on error:`, unlinkError);
+      }
+    }
+    
+    return res.status(500).json({
+      success: false,
+      message: 'Error uploading shop image',
+      error: error.message
+    });
+  }
+});
+*/
+
+// Route to handle shop image replacement for internal portal
+router.put('/shops/:clientId/:shopId/images/replace', requireInternalAPIAuth, async (req, res) => {
+  try {
+    const { clientId, shopId } = req.params;
+    const { imageType, newImageUrl, oldImageUrl } = req.body;
+    
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Starting replacement for shop ${shopId}`);
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Params:`, { clientId, shopId });
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Body:`, { imageType, newImageUrl: newImageUrl ? 'provided' : 'missing', oldImageUrl: oldImageUrl ? 'provided' : 'missing' });
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Image type: ${imageType}`);
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] New URL length: ${newImageUrl ? newImageUrl.length : 'N/A'}`);
+    
+    if (!newImageUrl || !imageType) {
+      return res.status(400).json({
+        success: false,
+        message: 'newImageUrl and imageType are required'
+      });
+    }
+    
+    if (!['logo', 'desktopBanner', 'mobileBanner'].includes(imageType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image type. Must be logo, desktopBanner, or mobileBanner'
+      });
+    }
+    
+    const customersCollection = await getCustomersCollection();
+    
+    // Find customer by clientId (could be _id or userId)
+    let customer;
+    try {
+      customer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
+    } catch (e) {
+      customer = await customersCollection.findOne({ userId: clientId });
+    }
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found'
+      });
+    }
+    
+    // Find the shop
+    const shop = customer.shops?.find(s => s.shopId === shopId);
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Update the shop with the new image URL
+    const updateField = `${imageType}Url`;
+    const updateResult = await customersCollection.updateOne(
+      { 
+        _id: customer._id,
+        'shops.shopId': shopId
+      },
+      { 
+        $set: { 
+          [`shops.$.${updateField}`]: newImageUrl,
+          'shops.$.lastModified': new Date()
+        } 
+      }
+    );
+    
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Failed to update shop image'
+      });
+    }
+    
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Successfully replaced ${imageType} for shop ${shopId}`);
+    
+    // Optionally, delete the old image from S3 if it was provided
+    if (oldImageUrl && oldImageUrl !== newImageUrl) {
+      try {
+        const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+        const { s3 } = require('../services/s3Service');
+        
+        // Extract S3 key from URL
+        let oldKey;
+        try {
+          const urlParts = new URL(oldImageUrl);
+          oldKey = urlParts.pathname.substring(1); // Remove leading slash
+        } catch (urlError) {
+          // Fallback for relative paths or malformed URLs
+          oldKey = oldImageUrl.includes('/') ? oldImageUrl.split('/').slice(-4).join('/') : oldImageUrl;
+        }
+        
+        const deleteCommand = new DeleteObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET_NAME,
+          Key: oldKey
+        });
+        
+        await s3.send(deleteCommand);
+        console.log(`[INTERNAL SHOP IMAGE REPLACE] Deleted old image from S3: ${oldKey}`);
+      } catch (deleteError) {
+        console.warn(`[INTERNAL SHOP IMAGE REPLACE] Failed to delete old image from S3:`, deleteError);
+        // Don't fail the entire operation if S3 deletion fails
+      }
+    }
+    
+    return res.json({
+      success: true,
+      message: 'Shop image replaced successfully',
+      imageType: imageType,
+      newImageUrl: newImageUrl
+    });
+    
+  } catch (error) {
+    console.error('[INTERNAL SHOP IMAGE REPLACE] Detailed error information:');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error object:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Error replacing shop image';
+    let statusCode = 500;
+    
+    if (error.name === 'BSONTypeError' || error.message.includes('ObjectId')) {
+      errorMessage = 'Invalid ID format provided';
+      statusCode = 400;
+    } else if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      errorMessage = 'Database operation failed';
+      console.error('[INTERNAL SHOP IMAGE REPLACE] Database error details:', error);
+    } else if (error.message.includes('fetch') || error.message.includes('network')) {
+      errorMessage = 'Network or external service error';
+    }
+    
+    return res.status(statusCode).json({
+      success: false,
+      message: errorMessage,
+      error: error.message,
+      debugInfo: process.env.NODE_ENV === 'development' ? {
+        errorName: error.name,
+        stack: error.stack
+      } : undefined
+    });
+  }
+});
+
+router.put('/products/:clientId/:shopId/:productId/images/reorder', requireInternalAPIAuth, async (req, res) => {
+  try {
+    const { clientId, shopId, productId } = req.params;
+    const { newOrder } = req.body;
+    
+    console.log(`[INTERNAL IMAGE REORDER] Reordering images for product ${productId}`);
+    console.log(`[INTERNAL IMAGE REORDER] New order:`, newOrder);
+    
+    if (!Array.isArray(newOrder)) {
+      return res.status(400).json({
+        success: false,
+        message: 'newOrder must be an array'
+      });
+    }
+    
+    const customersCollection = await getCustomersCollection();
+    
+    // Find customer by clientId (could be _id or userId)
+    let customer;
+    try {
+      customer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
+    } catch (e) {
+      customer = await customersCollection.findOne({ userId: clientId });
+    }
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found'
+      });
+    }
+    
+    // Find the specific shop
+    const shop = customer.shops?.find(s => s.shopId === shopId);
+    
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Find the specific product
+    const productIndex = shop.products?.findIndex(p => p.productId === productId);
+    
+    if (productIndex === -1 || productIndex === undefined) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+    
+    const product = shop.products[productIndex];
+    
+    // Validate that all images in newOrder exist in the current imageUrls
+    const currentImageKeys = new Set(product.imageUrls?.map(url => {
+      if (url.startsWith('https://')) {
+        try {
+          return decodeURIComponent(new URL(url).pathname.substring(1));
+        } catch (e) {
+          return url;
+        }
+      }
+      return url;
+    }) || []);
+    
+    const isValid = newOrder.every(key => currentImageKeys.has(key));
+    
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image order: some images do not belong to this product'
+      });
+    }
+    
+    // Convert S3 keys back to full URLs for storage
+    const bucketName = process.env.AWS_S3_BUCKET_NAME;
+    const region = process.env.AWS_REGION;
+    const newOrderUrls = newOrder.map(key => 
+      `https://${bucketName}.s3.${region}.amazonaws.com/${key}`
+    );
+    
+    // Update the product in the database
+    const updateResult = await customersCollection.updateOne(
+      {
+        _id: customer._id,
+        'shops.shopId': shopId,
+        'shops.products.productId': productId
+      },
+      {
+        $set: {
+          [`shops.$.products.${productIndex}.imageUrls`]: newOrderUrls,
+        }
+      }
+    );
+    
+    if (updateResult.modifiedCount === 0) {
+      console.log('Failed to update product imageUrls order in database');
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update image order'
+      });
+    }
+    
+    console.log(`[INTERNAL IMAGE REORDER] Successfully reordered images for product ${productId}`);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Images reordered successfully',
+      newOrder: newOrderUrls
+    });
+    
+  } catch (error) {
+    console.error('[INTERNAL IMAGE REORDER] Error reordering images:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error reordering images',
+      error: error.message
+    });
+  }
+});
+
+// Route to add a new image to a product
+router.post('/products/:clientId/:shopId/:productId/images/add', requireInternalAPIAuth, async (req, res) => {
+  console.log(`🚀 [ROUTE HIT] POST /products/.../images/add - Route accessed`);
+  console.log(`🚀 [ROUTE HIT] Raw params:`, req.params);
+  console.log(`🚀 [ROUTE HIT] Raw body:`, req.body);
+  console.log(`🚀 [ROUTE HIT] Method:`, req.method);
+  console.log(`🚀 [ROUTE HIT] URL:`, req.url);
+  
+  const { clientId, shopId, productId } = req.params;
+  const { newImageUrl } = req.body;
+  
+  console.log(`🔍 [ROUTE PARSED] Extracted params:`, { clientId, shopId, productId });
+  console.log(`🔍 [ROUTE PARSED] Extracted body:`, { newImageUrl: newImageUrl ? 'present' : 'missing' });
+  
+  try {
+
+    console.log(`[INTERNAL IMAGE ADD] Adding image to product ${productId}`);
+    console.log(`[INTERNAL IMAGE ADD] Params:`, { clientId, shopId, productId });
+    console.log(`[INTERNAL IMAGE ADD] Body:`, { newImageUrl: newImageUrl ? newImageUrl.substring(0, 100) + '...' : 'null' });
+
+    if (!newImageUrl) {
+      console.error('[INTERNAL IMAGE ADD] Missing newImageUrl in request body');
+      return res.status(400).json({
+        success: false,
+        message: 'newImageUrl is required'
+      });
+    }
+
+    // Get database connection
+    console.log('[INTERNAL IMAGE ADD] Getting database connection...');
+    const { getCustomersCollection } = require('../config/db');
+    const customersCollection = await getCustomersCollection();
+
+    // Find the customer and shop
+    console.log('[INTERNAL IMAGE ADD] Searching for customer and shop...');
+    const customer = await customersCollection.findOne({
+      _id: new ObjectId(clientId),
+      'shops.shopId': shopId
+    });
+
+    console.log(`[INTERNAL IMAGE ADD] Customer found:`, customer ? 'YES' : 'NO');
+    if (!customer) {
+      console.error(`[INTERNAL IMAGE ADD] Customer with ID ${clientId} or shop with ID ${shopId} not found`);
+      return res.status(404).json({
+        success: false,
+        message: 'Customer or shop not found'
+      });
+    }
+
+    console.log(`[INTERNAL IMAGE ADD] Customer has ${customer.shops?.length || 0} shops`);
+
+    // Find the shop
+    const shop = customer.shops.find(s => s.shopId === shopId);
+    console.log(`[INTERNAL IMAGE ADD] Shop found:`, shop ? 'YES' : 'NO');
+    if (!shop) {
+      console.error(`[INTERNAL IMAGE ADD] Shop with shopId ${shopId} not found in customer shops`);
+      console.log('[INTERNAL IMAGE ADD] Available shop IDs:', customer.shops?.map(s => s.shopId) || []);
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+
+    console.log(`[INTERNAL IMAGE ADD] Shop has ${shop.products?.length || 0} products`);
+
+    // Find the product
+    const product = shop.products.find(p => p.productId === productId);
+    console.log(`[INTERNAL IMAGE ADD] Product found:`, product ? 'YES' : 'NO');
+    if (!product) {
+      console.error(`[INTERNAL IMAGE ADD] Product with productId ${productId} not found in shop products`);
+      console.log('[INTERNAL IMAGE ADD] Available product IDs:', shop.products?.map(p => p.productId) || []);
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // Check current image count
+    const currentImageCount = product.imageUrls ? product.imageUrls.length : 0;
+    console.log(`[INTERNAL IMAGE ADD] Current image count: ${currentImageCount}`);
+    if (currentImageCount >= 5) {
+      console.error(`[INTERNAL IMAGE ADD] Image limit reached: ${currentImageCount}/5`);
+      return res.status(400).json({
+        success: false,
+        message: 'Image limit of 5 reached for this product'
+      });
+    }
+
+    // Add the new image URL to the array
+    if (!product.imageUrls) {
+      product.imageUrls = [];
+      console.log('[INTERNAL IMAGE ADD] Initialized empty imageUrls array');
+    }
+    product.imageUrls.push(newImageUrl);
+    console.log(`[INTERNAL IMAGE ADD] Added image URL, new count: ${product.imageUrls.length}`);
+
+    // Find the product index for update
+    const shopIndex = customer.shops.findIndex(s => s.shopId === shopId);
+    const productIndex = customer.shops[shopIndex].products.findIndex(p => p.productId === productId);
+    console.log(`[INTERNAL IMAGE ADD] Update indices - Shop: ${shopIndex}, Product: ${productIndex}`);
+
+    if (shopIndex === -1 || productIndex === -1) {
+      console.error(`[INTERNAL IMAGE ADD] Invalid indices - Shop: ${shopIndex}, Product: ${productIndex}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to locate shop or product indices'
+      });
+    }
+
+    // Update the product in the database
+    console.log('[INTERNAL IMAGE ADD] Updating database...');
+    const updateResult = await customersCollection.updateOne(
+      { 
+        _id: new ObjectId(clientId),
+        'shops.shopId': shopId
+      },
+      { 
+        $set: { 
+          [`shops.${shopIndex}.products.${productIndex}.imageUrls`]: product.imageUrls,
+          [`shops.${shopIndex}.products.${productIndex}.updatedAt`]: new Date()
+        }
+      }
+    );
+
+    console.log(`[INTERNAL IMAGE ADD] Update result:`, {
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount,
+      acknowledged: updateResult.acknowledged
+    });
+
+    if (updateResult.matchedCount === 0) {
+      console.error('[INTERNAL IMAGE ADD] No documents matched for update');
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found for update'
+      });
+    }
+
+    if (updateResult.modifiedCount === 0) {
+      console.warn('[INTERNAL IMAGE ADD] No documents were modified (data might be identical)');
+    }
+
+    console.log(`[INTERNAL IMAGE ADD] Successfully added image to product ${productId}`);
+
+    // Generate fresh signed URLs for all images (including the new one)
+    console.log('[INTERNAL IMAGE ADD] Generating fresh signed URLs for all images...');
+    const freshImageUrls = [];
+    for (const imageUrl of product.imageUrls) {
+      try {
+        // Extract S3 key from the URL
+        const urlParts = imageUrl.split('?')[0]; // Remove query parameters
+        const s3Key = urlParts.split('.amazonaws.com/')[1]; // Extract key after domain
+        
+        if (s3Key) {
+          // Generate fresh signed URL
+          const getObjectParams = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Key: s3Key,
+          };
+          const freshSignedUrl = await getSignedUrlV3(s3Client, new GetObjectCommand(getObjectParams), { expiresIn: 3600 });
+          freshImageUrls.push(freshSignedUrl);
+          console.log(`[INTERNAL IMAGE ADD] Generated fresh URL for key: ${s3Key}`);
+        } else {
+          console.warn(`[INTERNAL IMAGE ADD] Could not extract S3 key from URL: ${imageUrl}`);
+          freshImageUrls.push(imageUrl); // Fallback to original URL
+        }
+      } catch (urlError) {
+        console.error(`[INTERNAL IMAGE ADD] Error generating fresh URL for ${imageUrl}:`, urlError);
+        freshImageUrls.push(imageUrl); // Fallback to original URL
+      }
+    }
+
+    console.log(`[INTERNAL IMAGE ADD] Generated ${freshImageUrls.length} fresh signed URLs`);
+
+    // CRITICAL: Save the fresh signed URLs back to the database
+    console.log('[INTERNAL IMAGE ADD] Persisting fresh signed URLs to database...');
+    const persistResult = await customersCollection.updateOne(
+      { 
+        _id: new ObjectId(clientId),
+        'shops.shopId': shopId
+      },
+      { 
+        $set: { 
+          [`shops.${shopIndex}.products.${productIndex}.imageUrls`]: freshImageUrls,
+          [`shops.${shopIndex}.products.${productIndex}.updatedAt`]: new Date()
+        }
+      }
+    );
+
+    console.log(`[INTERNAL IMAGE ADD] Fresh URLs persist result:`, {
+      matchedCount: persistResult.matchedCount,
+      modifiedCount: persistResult.modifiedCount,
+      acknowledged: persistResult.acknowledged
+    });
+
+    res.json({
+      success: true,
+      message: 'Image added successfully',
+      updatedImageUrls: freshImageUrls
+    });
+
+  } catch (error) {
+    console.error('[INTERNAL IMAGE ADD] Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      params: { clientId, shopId, productId }
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add image',
+      error: error.message,
+      details: error.name
+    });
+  }
+});
+
+// Route to delete an image from a product
+router.delete('/products/:clientId/:shopId/:productId/images/:imageIndex/delete', requireInternalAPIAuth, async (req, res) => {
+  console.log(`🚀 [ROUTE HIT] DELETE /products/.../images/.../delete - Route accessed`);
+  console.log(`🚀 [ROUTE HIT] Raw params:`, req.params);
+  console.log(`🚀 [ROUTE HIT] Raw body:`, req.body);
+  console.log(`🚀 [ROUTE HIT] Method:`, req.method);
+  console.log(`🚀 [ROUTE HIT] URL:`, req.url);
+  
+  const { clientId, shopId, productId, imageIndex } = req.params;
+  const { imageUrl } = req.body;
+  
+  console.log(`🔍 [ROUTE PARSED] Extracted params:`, { clientId, shopId, productId, imageIndex });
+  console.log(`🔍 [ROUTE PARSED] Extracted body:`, { imageUrl: imageUrl ? 'present' : 'missing' });
+  
+  try {
+
+    console.log(`[INTERNAL IMAGE DELETE] Deleting image ${imageIndex} from product ${productId}`);
+    console.log(`[INTERNAL IMAGE DELETE] Params:`, { clientId, shopId, productId, imageIndex });
+    console.log(`[INTERNAL IMAGE DELETE] Body:`, { imageUrl: imageUrl ? imageUrl.substring(0, 100) + '...' : 'null' });
+
+    const index = parseInt(imageIndex);
+    console.log(`[INTERNAL IMAGE DELETE] Parsed index: ${index}`);
+    if (isNaN(index) || index < 0) {
+      console.error(`[INTERNAL IMAGE DELETE] Invalid image index: ${imageIndex}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image index'
+      });
+    }
+
+    // Get database connection
+    console.log('[INTERNAL IMAGE DELETE] Getting database connection...');
+    const { getCustomersCollection } = require('../config/db');
+    const customersCollection = await getCustomersCollection();
+
+    // Find the customer and shop
+    console.log('[INTERNAL IMAGE DELETE] Searching for customer and shop...');
+    const customer = await customersCollection.findOne({
+      _id: new ObjectId(clientId),
+      'shops.shopId': shopId
+    });
+
+    console.log(`[INTERNAL IMAGE DELETE] Customer found:`, customer ? 'YES' : 'NO');
+    if (!customer) {
+      console.error(`[INTERNAL IMAGE DELETE] Customer with ID ${clientId} or shop with ID ${shopId} not found`);
+      return res.status(404).json({
+        success: false,
+        message: 'Customer or shop not found'
+      });
+    }
+
+    console.log(`[INTERNAL IMAGE DELETE] Customer has ${customer.shops?.length || 0} shops`);
+
+    // Find the shop
+    const shop = customer.shops.find(s => s.shopId === shopId);
+    console.log(`[INTERNAL IMAGE DELETE] Shop found:`, shop ? 'YES' : 'NO');
+    if (!shop) {
+      console.error(`[INTERNAL IMAGE DELETE] Shop with shopId ${shopId} not found in customer shops`);
+      console.log('[INTERNAL IMAGE DELETE] Available shop IDs:', customer.shops?.map(s => s.shopId) || []);
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+
+    console.log(`[INTERNAL IMAGE DELETE] Shop has ${shop.products?.length || 0} products`);
+
+    // Find the product
+    const product = shop.products.find(p => p.productId === productId);
+    console.log(`[INTERNAL IMAGE DELETE] Product found:`, product ? 'YES' : 'NO');
+    if (!product) {
+      console.error(`[INTERNAL IMAGE DELETE] Product with productId ${productId} not found in shop products`);
+      console.log('[INTERNAL IMAGE DELETE] Available product IDs:', shop.products?.map(p => p.productId) || []);
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // Check if image exists at the specified index
+    const currentImageCount = product.imageUrls ? product.imageUrls.length : 0;
+    console.log(`[INTERNAL IMAGE DELETE] Current image count: ${currentImageCount}, Requested index: ${index}`);
+    if (!product.imageUrls || index >= product.imageUrls.length) {
+      console.error(`[INTERNAL IMAGE DELETE] Image not found at index ${index}. Available images: ${currentImageCount}`);
+      return res.status(404).json({
+        success: false,
+        message: 'Image not found at specified index'
+      });
+    }
+
+    // Remove the image from the array
+    const oldImageUrl = product.imageUrls[index];
+    console.log(`[INTERNAL IMAGE DELETE] Image to delete: ${oldImageUrl?.substring(0, 100) || 'null'}...`);
+    product.imageUrls.splice(index, 1);
+    console.log(`[INTERNAL IMAGE DELETE] Removed image, new count: ${product.imageUrls.length}`);
+
+    // Find the product index for update
+    const shopIndex = customer.shops.findIndex(s => s.shopId === shopId);
+    const productIndex = customer.shops[shopIndex].products.findIndex(p => p.productId === productId);
+    console.log(`[INTERNAL IMAGE DELETE] Update indices - Shop: ${shopIndex}, Product: ${productIndex}`);
+
+    if (shopIndex === -1 || productIndex === -1) {
+      console.error(`[INTERNAL IMAGE DELETE] Invalid indices - Shop: ${shopIndex}, Product: ${productIndex}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to locate shop or product indices'
+      });
+    }
+
+    // Update the product in the database
+    console.log('[INTERNAL IMAGE DELETE] Updating database...');
+    const updateResult = await customersCollection.updateOne(
+      { 
+        _id: new ObjectId(clientId),
+        'shops.shopId': shopId
+      },
+      { 
+        $set: { 
+          [`shops.${shopIndex}.products.${productIndex}.imageUrls`]: product.imageUrls,
+          [`shops.${shopIndex}.products.${productIndex}.updatedAt`]: new Date()
+        }
+      }
+    );
+
+    console.log(`[INTERNAL IMAGE DELETE] Update result:`, {
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount,
+      acknowledged: updateResult.acknowledged
+    });
+
+    if (updateResult.matchedCount === 0) {
+      console.error('[INTERNAL IMAGE DELETE] No documents matched for update');
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found for update'
+      });
+    }
+
+    if (updateResult.modifiedCount === 0) {
+      console.warn('[INTERNAL IMAGE DELETE] No documents were modified (data might be identical)');
+    }
+
+    // Optional: Delete the image from S3 storage
+    console.log('[INTERNAL IMAGE DELETE] Attempting S3 cleanup...');
+    try {
+      if (oldImageUrl) {
+        // Extract S3 key from URL
+        const urlParts = oldImageUrl.split('?')[0]; // Remove query parameters
+        const s3Key = urlParts.split('.amazonaws.com/')[1]; // Extract key after domain
+        console.log(`[INTERNAL IMAGE DELETE] Extracted S3 key: ${s3Key}`);
+        if (s3Key) {
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Key: s3Key,
+          });
+          await s3Client.send(deleteCommand);
+          console.log(`[INTERNAL IMAGE DELETE] Successfully deleted image from S3: ${s3Key}`);
+        } else {
+          console.warn('[INTERNAL IMAGE DELETE] Could not extract S3 key from URL');
+        }
+      } else {
+        console.warn('[INTERNAL IMAGE DELETE] No oldImageUrl provided for S3 cleanup');
+      }
+    } catch (s3Error) {
+      console.error('[INTERNAL IMAGE DELETE] S3 deletion error:', {
+        name: s3Error.name,
+        message: s3Error.message,
+        code: s3Error.code
+      });
+      // Continue even if S3 deletion fails
+    }
+
+    console.log(`[INTERNAL IMAGE DELETE] Successfully deleted image from product ${productId}`);
+
+    // Generate fresh signed URLs for all remaining images
+    console.log('[INTERNAL IMAGE DELETE] Generating fresh signed URLs for remaining images...');
+    const freshImageUrls = [];
+    for (const imageUrl of product.imageUrls) {
+      try {
+        // Extract S3 key from the old URL
+        const urlParts = imageUrl.split('?')[0]; // Remove query parameters
+        const s3Key = urlParts.split('.amazonaws.com/')[1]; // Extract key after domain
+        
+        if (s3Key) {
+          // Generate fresh signed URL
+          const getObjectParams = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Key: s3Key,
+          };
+          const freshSignedUrl = await getSignedUrlV3(s3Client, new GetObjectCommand(getObjectParams), { expiresIn: 3600 });
+          freshImageUrls.push(freshSignedUrl);
+          console.log(`[INTERNAL IMAGE DELETE] Generated fresh URL for key: ${s3Key}`);
+        } else {
+          console.warn(`[INTERNAL IMAGE DELETE] Could not extract S3 key from URL: ${imageUrl}`);
+          freshImageUrls.push(imageUrl); // Fallback to original URL
+        }
+      } catch (urlError) {
+        console.error(`[INTERNAL IMAGE DELETE] Error generating fresh URL for ${imageUrl}:`, urlError);
+        freshImageUrls.push(imageUrl); // Fallback to original URL
+      }
+    }
+
+    console.log(`[INTERNAL IMAGE DELETE] Generated ${freshImageUrls.length} fresh signed URLs`);
+
+    // CRITICAL: Save the fresh signed URLs back to the database
+    console.log('[INTERNAL IMAGE DELETE] Persisting fresh signed URLs to database...');
+    const persistResult = await customersCollection.updateOne(
+      { 
+        _id: new ObjectId(clientId),
+        'shops.shopId': shopId
+      },
+      { 
+        $set: { 
+          [`shops.${shopIndex}.products.${productIndex}.imageUrls`]: freshImageUrls,
+          [`shops.${shopIndex}.products.${productIndex}.updatedAt`]: new Date()
+        }
+      }
+    );
+
+    console.log(`[INTERNAL IMAGE DELETE] Fresh URLs persist result:`, {
+      matchedCount: persistResult.matchedCount,
+      modifiedCount: persistResult.modifiedCount,
+      acknowledged: persistResult.acknowledged
+    });
+
+    res.json({
+      success: true,
+      message: 'Image deleted successfully',
+      updatedImageUrls: freshImageUrls,
+      deletedImageUrl: oldImageUrl
+    });
+
+  } catch (error) {
+    console.error('[INTERNAL IMAGE DELETE] Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      params: { clientId, shopId, productId, imageIndex }
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete image',
+      error: error.message,
+      details: error.name
     });
   }
 });

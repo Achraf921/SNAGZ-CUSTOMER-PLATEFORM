@@ -35,7 +35,16 @@ const ClientsList = () => {
             return {
               id: c._id || c.id,
               name: c.raisonSociale || c.name || "-",
-              email: c.email || "-",
+              email:
+                c.contact1Email ||
+                c.email ||
+                c.emailAddress ||
+                c.contactEmail ||
+                c.userEmail ||
+                c.emailContact ||
+                c.emailClient ||
+                c.mail ||
+                "-",
               shopsCount: Array.isArray(c.shops)
                 ? c.shops.length
                 : c.shopsCount || 0,

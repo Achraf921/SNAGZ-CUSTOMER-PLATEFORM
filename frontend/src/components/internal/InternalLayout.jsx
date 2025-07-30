@@ -132,65 +132,64 @@ const InternalLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* <div className="relative z-50">
-        <Header />
-      </div> */}
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <div className="w-64 bg-white shadow-sm relative z-40 flex flex-col h-screen">
-          <div className="flex flex-col flex-1">
-            <div className="flex-1 py-6 px-4 overflow-y-auto">
-              <nav className="space-y-2">
-                {navigation.map((item) => (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors text-gray-600 hover:bg-gray-50`}
-                  >
-                    {React.isValidElement(item.icon) ? (
-                      React.cloneElement(item.icon, {
-                        className: "mr-3 h-5 w-5 flex-shrink-0",
-                        style: { fontWeight: "normal" },
-                      })
-                    ) : (
-                      <svg
-                        className="mr-3 h-5 w-5 flex-shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        style={{ fontWeight: "normal" }}
-                      >
-                        {item.icon}
-                      </svg>
-                    )}
-                    {item.name}
-                  </a>
-                ))}
-              </nav>
-            </div>
-
-            {/* Logout button */}
-            <div className="border-t border-gray-200 p-4 flex-shrink-0">
-              <button
-                onClick={handleLogout}
-                className="flex w-full items-center px-4 py-3 text-sm rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-white shadow-lg flex flex-col">
+        {/* Navigation */}
+        <div className="py-6 px-4">
+          <nav className="space-y-2">
+            {navigation.map((item) => (
+              <a
+                key={item.name}
+                href={item.href}
+                className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900`}
               >
-                <FaSignOutAlt
-                  className="mr-3 h-5 w-5 flex-shrink-0"
-                  style={{ fontWeight: "normal" }}
-                />
-                Se déconnecter
-              </button>
-            </div>
-          </div>
+                {React.isValidElement(item.icon) ? (
+                  React.cloneElement(item.icon, {
+                    className: "mr-3 h-5 w-5 flex-shrink-0",
+                    style: { fontWeight: "normal" },
+                  })
+                ) : (
+                  <svg
+                    className="mr-3 h-5 w-5 flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    style={{ fontWeight: "normal" }}
+                  >
+                    {item.icon}
+                  </svg>
+                )}
+                {item.name}
+              </a>
+            ))}
+          </nav>
         </div>
 
-        {/* Main content */}
-        <main className="flex-1 py-8 px-6">
-          <div className="w-full">{children}</div>
-        </main>
+        {/* Spacer to push logout button to bottom */}
+        <div className="flex-1"></div>
+
+        {/* Logout button - always at bottom */}
+        <div className="border-t border-gray-200 p-4 bg-gray-50">
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center px-4 py-3 text-sm rounded-lg text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors font-medium"
+          >
+            <FaSignOutAlt
+              className="mr-3 h-5 w-5 flex-shrink-0"
+              style={{ fontWeight: "normal" }}
+            />
+            Se déconnecter
+          </button>
+        </div>
       </div>
+
+      {/* Main content */}
+      <main className="flex-1">
+        <div className="py-8 px-6">
+          <div className="w-full">{children}</div>
+        </div>
+      </main>
     </div>
   );
 };

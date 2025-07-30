@@ -351,6 +351,32 @@ const FicheProduitsShopify = () => {
           const errorMsg =
             data.error || data.details || "Erreur lors de la publication";
 
+          // Check if error is about products being already published (blocking publication)
+          if (
+            errorMsg.includes("Publication bloquée") ||
+            errorMsg.includes("déjà publiés sur Shopify") ||
+            errorMsg.includes("already published")
+          ) {
+            // Show the specific error message with product names
+            setNotification({
+              type: "warning",
+              message: errorMsg,
+            });
+
+            // Log the specific products that are blocking
+            if (
+              data.alreadyPublishedProducts &&
+              data.alreadyPublishedProducts.length > 0
+            ) {
+              console.log(
+                `⚠️ Publication blocked by these already published products:`,
+                data.alreadyPublishedProducts
+              );
+            }
+
+            return; // Don't show general error notification
+          }
+
           // Check if error is about missing domain configuration
           if (
             errorMsg.includes("No Shopify domain configured") ||
@@ -744,14 +770,23 @@ const FicheProduitsShopify = () => {
       <button
         disabled={isPublishing || Object.keys(selectedProducts).length === 0}
         onClick={publishSelected}
-        className={`mb-4 px-6 py-2 rounded-lg text-white font-medium transition-colors ${
+        className={`mb-4 px-6 py-2 rounded-lg text-white font-medium transition-colors flex items-center gap-2 ${
           isPublishing || Object.keys(selectedProducts).length === 0
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-sna-primary hover:bg-sna-primary/90"
         }`}
       >
-        Publier les produits sélectionnés (
-        {Object.keys(selectedProducts).length})
+        {isPublishing ? (
+          <>
+            <FaSpinner className="animate-spin" />
+            Publication en cours...
+          </>
+        ) : (
+          <>
+            Publier les produits sélectionnés (
+            {Object.keys(selectedProducts).length})
+          </>
+        )}
       </button>
 
       <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
