@@ -1,0 +1,96 @@
+[2025-07-31 12:14:51] Script started
+[2025-07-31 12:14:51] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-07-31 12:14:51] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ TsT _ Test_Amanda _ 887459 _Démarrage Projet.docx
+[2025-07-31 12:14:51] Encoded data length: 864 characters
+[2025-07-31 12:14:51] Decoding base64 data...
+[2025-07-31 12:14:51] Successfully decoded base64 data
+[2025-07-31 12:14:51] [DEBUG] Type of shop_data_string after decode: <class 'str'>
+[2025-07-31 12:14:51] [DEBUG] First 100 chars of shop_data_string: {"nomProjet":"Test_Amanda","typeProjet":"Test","contactsClient":"achrafbayi@icloud.com","nomClient":...
+[2025-07-31 12:14:51] Parsing JSON data...
+[2025-07-31 12:14:51] Successfully parsed JSON data
+[2025-07-31 12:14:51] [DEBUG] Type of shop_data after json.loads: <class 'dict'>
+[2025-07-31 12:14:51] [DEBUG] shop_data keys: ['nomProjet', 'typeProjet', 'contactsClient', 'nomClient', 'compteClientRef', 'dateMiseEnLigne', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicaceEnvisagee', 'estBoutiqueEnLigne', 'chefProjet', 'demarrageProjet', 'pourcentageSNA', 'dateMiseEnLigneDDMMYYYY', 'typeAbonnementShopify', 'moduleMondialRelay', 'moduleDelivengo', 'commercial', 'clientName', 'raisonSociale', 'shopifyPlanMonthlySelected', 'shopifyPlanYearlySelected']
+[2025-07-31 12:14:51] Starting document processing...
+[2025-07-31 12:14:51] Starting document processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-07-31 12:14:51] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ TsT _ Test_Amanda _ 887459 _Démarrage Projet.docx
+[2025-07-31 12:14:51] Successfully loaded document: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-07-31 12:14:51] [DEBUG - Inside replace_placeholders_and_format] Type of shop_data: <class 'dict'>
+[2025-07-31 12:14:51] [DEBUG - Inside replace_placeholders_and_format] Content of shop_data: {'nomProjet': 'Test_Amanda', 'typeProjet': 'Test', 'contactsClient': 'achrafbayi@icloud.com', 'nomClient': 'TsT', 'compteClientRef': '887459', 'dateMiseEnLigne': '2025/07/16', 'dateCommercialisation': '2025/07/16', 'dateSortieOfficielle': '2025/07/16', 'precommande': 'OUI', 'dedicaceEnvisagee': 'NON', 'estBoutiqueEnLigne': 'OUI', 'chefProjet': 'Amanda Doe', 'demarrageProjet': '2025/07/16', 'pourcentageSNA': 67, 'dateMiseEnLigneDDMMYYYY': '16/07/2025', 'typeAbonnementShopify': 'annuel', 'moduleMondialRelay': True, 'moduleDelivengo': False, 'commercial': 'Achraf', 'clientName': '887459_TST', 'raisonSociale': 'TsT', 'shopifyPlanMonthlySelected': False, 'shopifyPlanYearlySelected': True}
+[2025-07-31 12:14:51] Starting global placeholder replacement...
+[2025-07-31 12:14:51] Total runs to process: 91
+[2025-07-31 12:14:51] Runs with non-empty text: 78
+[2025-07-31 12:14:51] Run 0: 'FICHE DE SUIVI PROJET D2C'
+[2025-07-31 12:14:51] Run 1: 'Projet'
+[2025-07-31 12:14:51] Run 2: ' :  '
+[2025-07-31 12:14:51] Run 3: 'Type de Projet'
+[2025-07-31 12:14:51] Run 4: ' :  '
+[2025-07-31 12:14:51] Run 5: 'XXX2'
+[2025-07-31 12:14:51] Run 6: 'Boutique en ligne'
+[2025-07-31 12:14:51] Run 7: ' : '
+[2025-07-31 12:14:51] Run 8: 'Commercial'
+[2025-07-31 12:14:51] Run 9: ' : '
+[2025-07-31 12:14:51] Looking for placeholder: XXX1 (value: 'Test_Amanda')
+[2025-07-31 12:14:51] Total replacements made for XXX1: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX2 (value: 'Test')
+[2025-07-31 12:14:51] ✅ (run exact) Replaced XXX2 with 'Test': 'XXX2' → 'Test'
+[2025-07-31 12:14:51] Total replacements made for XXX2: 1
+[2025-07-31 12:14:51] Looking for placeholder: XXX3 (value: 'Achraf')
+[2025-07-31 12:14:51] ✅ (run exact) Replaced XXX3 with 'Achraf': 'XXX3' → 'Achraf'
+[2025-07-31 12:14:51] Total replacements made for XXX3: 1
+[2025-07-31 12:14:51] Looking for placeholder: XXX4 (value: 'TsT')
+[2025-07-31 12:14:51] Total replacements made for XXX4: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX5 (value: '887459')
+[2025-07-31 12:14:51] Total replacements made for XXX5: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX7 (value: '2025/07/16')
+[2025-07-31 12:14:51] Total replacements made for XXX7: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX8 (value: '2025/07/16')
+[2025-07-31 12:14:51] Total replacements made for XXX8: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX9 (value: '2025/07/16')
+[2025-07-31 12:14:51] Total replacements made for XXX9: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX10 (value: 'OUI')
+[2025-07-31 12:14:51] Total replacements made for XXX10: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX11 (value: 'NON')
+[2025-07-31 12:14:51] Total replacements made for XXX11: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX12 (value: 'OUI')
+[2025-07-31 12:14:51] Total replacements made for XXX12: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX13 (value: 'Amanda Doe')
+[2025-07-31 12:14:51] Total replacements made for XXX13: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX14 (value: '2025/07/16')
+[2025-07-31 12:14:51] Total replacements made for XXX14: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX15 (value: 'achrafbayi@icloud.com')
+[2025-07-31 12:14:51] Total replacements made for XXX15: 0
+[2025-07-31 12:14:51] Looking for placeholder: XXX69 (value: '67')
+[2025-07-31 12:14:51] ✅ (run exact) Replaced XXX69 with '67': 'XXX69' → '67'
+[2025-07-31 12:14:51] Total replacements made for XXX69: 1
+[2025-07-31 12:14:51] Looking for placeholder: COMPTENUM (value: '887459')
+[2025-07-31 12:14:51] Total replacements made for COMPTENUM: 0
+[2025-07-31 12:14:51] Attempting direct paragraph text replacement...
+[2025-07-31 12:14:51] Attempting direct table cell text replacement...
+[2025-07-31 12:14:51] Found XXX7 in table cell: 'Date Mise en Ligne (MEL) : XXX7'
+[2025-07-31 12:14:51] ✅ Replaced in table cell: 'Date Mise en Ligne (MEL) : XXX7' → 'Date Mise en Ligne (MEL) : 2025/07/16'
+[2025-07-31 12:14:51] Found XXX9 in table cell: 'Date Sortie Officielle : XXX9'
+[2025-07-31 12:14:51] ✅ Replaced in table cell: 'Date Sortie Officielle : XXX9' → 'Date Sortie Officielle : 2025/07/16'
+[2025-07-31 12:14:51] Found XXX1 in table cell: 'Dédicace : XXX11'
+[2025-07-31 12:14:51] ✅ Replaced in table cell: 'Dédicace : XXX11' → 'Dédicace : Test_Amanda1'
+[2025-07-31 12:14:51] Found XXX11 in table cell: 'Dédicace : XXX11'
+[2025-07-31 12:14:51] ✅ Replaced in table cell: 'Dédicace : XXX11' → 'Dédicace : NON'
+[2025-07-31 12:14:51] Found XXX1 in table cell: 'DÉMARRAGE DU PROJET :  XXX14	'
+[2025-07-31 12:14:51] ✅ Replaced in table cell: 'DÉMARRAGE DU PROJET :  XXX14	' → 'DÉMARRAGE DU PROJET :  Test_Amanda4	'
+[2025-07-31 12:14:51] Found XXX14 in table cell: 'DÉMARRAGE DU PROJET :  XXX14	'
+[2025-07-31 12:14:51] ✅ Replaced in table cell: 'DÉMARRAGE DU PROJET :  XXX14	' → 'DÉMARRAGE DU PROJET :  2025/07/16	'
+[2025-07-31 12:14:51] Found XXX1 in table cell: 'DÉMARRAGE DU PROJET XXX14	'
+[2025-07-31 12:14:51] ✅ Replaced in table cell: 'DÉMARRAGE DU PROJET XXX14	' → 'DÉMARRAGE DU PROJET Test_Amanda4	'
+[2025-07-31 12:14:51] Found XXX14 in table cell: 'DÉMARRAGE DU PROJET XXX14	'
+[2025-07-31 12:14:51] ✅ Replaced in table cell: 'DÉMARRAGE DU PROJET XXX14	' → 'DÉMARRAGE DU PROJET 2025/07/16	'
+[2025-07-31 12:14:51] Starting strikethrough application...
+[2025-07-31 12:14:51] [XML] Replaced XXX10 -> 'OUI' (1 occurrence(s)) in word/document.xml
+[2025-07-31 12:14:51] [XML] Replaced XXX12 -> 'OUI' (1 occurrence(s)) in word/document.xml
+[2025-07-31 12:14:51] [XML] Replaced XXX13 -> 'Amanda Doe' (1 occurrence(s)) in word/document.xml
+[2025-07-31 12:14:51] [XML] Replaced XXX15 -> 'achrafbayi@icloud.com' (1 occurrence(s)) in word/document.xml
+[2025-07-31 12:14:51] [XML] Replaced XXX1 -> 'Test_Amanda' (1 occurrence(s)) in word/document.xml
+[2025-07-31 12:14:51] [XML] Replaced XXX4 -> 'TsT' (1 occurrence(s)) in word/document.xml
+[2025-07-31 12:14:51] [XML] Replaced XXX5 -> '887459' (1 occurrence(s)) in word/document.xml
+[2025-07-31 12:14:51] [XML] Replaced XXX8 -> '2025/07/16' (1 occurrence(s)) in word/document.xml
+[2025-07-31 12:14:51] XML-level placeholder replacement completed.
+[2025-07-31 12:14:51] Document processing completed successfully
+[2025-07-31 12:14:51] Document processing completed successfully

@@ -239,6 +239,27 @@ app.get('/api/rate-limit-status', (req, res) => {
   });
 });
 
+// Session debugging endpoint (development only)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/session-debug', (req, res) => {
+    res.json({
+      success: true,
+      session: {
+        hasSession: !!req.session,
+        sessionId: req.sessionID,
+        sessionKeys: req.session ? Object.keys(req.session) : [],
+        userInfo: req.session?.userInfo || null,
+        internalUserInfo: req.session?.internalUserInfo || null,
+        adminUserInfo: req.session?.adminUserInfo || null,
+        isAuthenticated: req.session?.isAuthenticated || false,
+        isFirstLogin: req.session?.isFirstLogin || false
+      },
+      cookies: req.headers.cookie,
+      userAgent: req.headers['user-agent']
+    });
+  });
+}
+
 // Development: Add option to disable rate limiting for debugging
 if (process.env.NODE_ENV !== 'production' && process.env.DISABLE_RATE_LIMIT === 'true') {
   console.log('[DEV] Rate limiting disabled for development');
@@ -277,7 +298,7 @@ app.use('/api/', (req, res, next) => {
 // File upload middleware for image uploads
 const fileUpload = require('express-fileupload');
 app.use(fileUpload({
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit (increased for convenience)
   abortOnLimit: true,
   useTempFiles: true,
   tempFileDir: '/tmp/',
@@ -290,13 +311,20 @@ app.use(fileUpload({
 
 // Middleware to require client authentication
 const requireClientAuth = (req, res, next) => {
+    console.log('[AUTH DEBUG] Checking client auth for path:', req.originalUrl, {
+        hasSession: !!req.session,
+        hasUserInfo: !!req.session?.userInfo,
+        sessionKeys: req.session ? Object.keys(req.session) : [],
+        userEmail: req.session?.userInfo?.email
+    });
+    
     if (!req.session.userInfo) {
-    console.log('[AUTH] Client access denied. Redirecting to / for path:', req.originalUrl);
-    // Redirect to the frontend login page, not a backend route directly if it's just serving HTML
-    return res.redirect('/'); // Or specific client login page like /client-login-page
-  }
-  console.log('[AUTH] Client access granted for path:', req.originalUrl);
-  next();
+        console.log('[AUTH] Client access denied. Redirecting to /client/login for path:', req.originalUrl);
+        // Redirect to the client login page for better UX
+        return res.redirect('/client/login');
+    }
+    console.log('[AUTH] Client access granted for path:', req.originalUrl);
+    next();
 };
 
 // Middleware to require internal personnel authentication
@@ -892,7 +920,7 @@ app.get('/logout-internal', (req, res) => {
         }
         
         // Redirect directly to internal login page for better UX
-        res.redirect('/internal-login');
+        res.redirect('/internal/login');
     });
     
     // Background token revocation for enhanced security
@@ -1026,7 +1054,7 @@ app.get('/logout-admin', (req, res) => {
         }
         
         // Redirect directly to admin login page for better UX
-        res.redirect('/admin-login');
+        res.redirect('/admin/login');
     });
     
     // Background token revocation for enhanced security
@@ -1171,6 +1199,13 @@ app.post('/complete-new-password-client', async (req, res) => {
 
             console.log('[/complete-new-password-client] New password set and client login successful for:', username);
             console.log('[/complete-new-password-client] Marked as first login - will show welcome form');
+            console.log('[/complete-new-password-client] Session created:', {
+                userId: userInfo.sub,
+                email: userInfo.email,
+                isAuthenticated: req.session.isAuthenticated,
+                isFirstLogin: req.session.isFirstLogin
+            });
+            
             return res.json({ 
                 success: true, 
                 redirectUrl: '/client/compte', // Redirect to account page to show welcome form

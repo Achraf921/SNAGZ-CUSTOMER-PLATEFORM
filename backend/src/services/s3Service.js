@@ -67,7 +67,7 @@ const createShopUpload = (folder) => {
       }
     },
     limits: {
-      fileSize: 5 * 1024 * 1024 // 5MB limit
+      fileSize: 10 * 1024 * 1024 // 10MB limit (increased for convenience)
     }
   });
 };
@@ -88,7 +88,7 @@ const createProductUpload = () => {
       }
     },
     limits: {
-      fileSize: 5 * 1024 * 1024 // 5MB limit
+      fileSize: 10 * 1024 * 1024 // 10MB limit (increased for convenience)
     }
   });
 };
@@ -108,7 +108,7 @@ const productImagesUpload = multer({
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 10 * 1024 * 1024 // 10MB limit (increased for convenience)
   }
 }).array('productImages', 5);
 

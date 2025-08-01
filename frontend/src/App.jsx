@@ -1,61 +1,174 @@
-import React from "react";
+import React, { Suspense, useEffect, lazy } from "react";
 import Header from "./components/Header.jsx";
-import Footer from "./components/Footer.jsx"; // Assuming you have a Footer
+import Footer from "./components/Footer.jsx";
 import MainPage from "./pages/MainPage.jsx";
-// ClientLogin, InternalLogin, AdminLogin are now used in MainPage.jsx, not directly here.
-// import ClientLogin from "./components/ClientLogin.jsx";
-// import InternalLogin from "./components/InternalLogin.jsx";
-// import AdminLogin from "./components/admin/AdminLogin.jsx";
+import componentPreloader from "./utils/componentPreloader.js";
 
-// Customer components
+// Lazy load components for better code splitting
+// Core layouts - load immediately since they're needed often
 import ClientLayout from "./components/customer/ClientLayout.jsx";
-import CustomerDashboard from "./components/customer/CustomerDashboard.jsx";
-import MesBoutiques from "./components/customer/MesBoutiques.jsx";
-import CreateShop from "./components/customer/CreateShop.jsx";
-import EditShop from "./components/customer/EditShop.jsx"; // Assuming this component exists
-import CreateProduct from "./components/customer/CreateProduct.jsx"; // Import CreateProduct component
-import MesProduits from "./components/customer/MesProduits.jsx"; // Import MesProduits component
-import FeatureUnderConstruction from "./components/customer/FeatureUnderConstruction.jsx"; // Import new component
-import ManageAccount from "./components/customer/ManageAccount.jsx"; // Import ManageAccount component
-import ClientsAValider from "./components/internal/ClientsAValider.jsx"; // Import ClientsAValider component
-import Statistics from "./components/internal/Statistics.jsx"; // Import Statistics component
-import InternalProfile from "./components/internal/InternalProfile.jsx"; // Import InternalProfile component
-
-// Auth components
-import ResetPasswordPage from "./components/auth/ResetPasswordPage.jsx"; // Import ResetPasswordPage component
-import ConditionsGenerales from "./components/pages/ConditionsGenerales.jsx"; // Import ConditionsGenerales component
-import QuiNousSommes from "./components/pages/QuiNousSommes.jsx"; // Import QuiNousSommes component
-
-// Internal components
 import InternalLayout from "./components/internal/InternalLayout.jsx";
-import ClientsList from "./components/internal/ClientsList.jsx";
-import ClientDetails from "./components/internal/ClientDetails.jsx";
-import ClientShops from "./components/internal/ClientShops.jsx";
-import ShopDetails from "./components/internal/ShopDetails.jsx";
-import AllShops from "./components/internal/AllShops.jsx";
-import BoutiquesAValider from "./components/internal/BoutiquesAValider.jsx"; // Import BoutiquesAValider component
-import ProduitsAValider from "./components/internal/ProduitsAValider.jsx"; // Import ProduitsAValider component
-import Produits from "./components/internal/Produits.jsx"; // Import Produits component
-import DocumentationSection from "./components/internal/DocumentationSection.jsx"; // Import DocumentationSection component
-import ShopifyBoutiques from "./pages/internal/ShopifyBoutiques.jsx"; // Import ShopifyBoutiques component
-import ShopifyConfiguration from "./components/internal/shopify/ShopifyConfiguration.jsx";
-import FicheProduitsShopify from "./components/internal/shopify/FicheProduitsShopify.jsx";
-import GenerationEC from "./components/internal/shopify/GenerationEC.jsx";
-// import ClientForm from "./components/internal/ClientForm.jsx"; // If used as a standalone page
-
-// Admin components
 import AdminLayout from "./components/admin/AdminLayout.jsx";
-import AdminClientAccounts from "./components/admin/AdminClientAccounts.jsx";
-import AdminInternalAccounts from "./components/admin/AdminInternalAccounts.jsx";
-import AdminAccounts from "./components/admin/AdminAccounts.jsx";
-import AdminProfile from "./components/admin/AdminProfile.jsx";
+
+// Customer components - lazy loaded
+const CustomerDashboard = lazy(
+  () => import("./components/customer/CustomerDashboard.jsx")
+);
+const MesBoutiques = lazy(
+  () => import("./components/customer/MesBoutiques.jsx")
+);
+const CreateShop = lazy(() => import("./components/customer/CreateShop.jsx"));
+const EditShop = lazy(() => import("./components/customer/EditShop.jsx"));
+const CreateProduct = lazy(
+  () => import("./components/customer/CreateProduct.jsx")
+);
+const MesProduits = lazy(() => import("./components/customer/MesProduits.jsx"));
+const FeatureUnderConstruction = lazy(
+  () => import("./components/customer/FeatureUnderConstruction.jsx")
+);
+const ManageAccount = lazy(
+  () => import("./components/customer/ManageAccount.jsx")
+);
+
+// Auth components - lazy loaded
+const ResetPasswordPage = lazy(
+  () => import("./components/auth/ResetPasswordPage.jsx")
+);
+
+// Public pages - lazy loaded
+const ConditionsGenerales = lazy(
+  () => import("./components/pages/ConditionsGenerales.jsx")
+);
+const QuiNousSommes = lazy(
+  () => import("./components/pages/QuiNousSommes.jsx")
+);
+
+// Internal components - lazy loaded by category
+const ClientsList = lazy(() => import("./components/internal/ClientsList.jsx"));
+const ClientDetails = lazy(
+  () => import("./components/internal/ClientDetails.jsx")
+);
+const ClientShops = lazy(() => import("./components/internal/ClientShops.jsx"));
+const ShopDetails = lazy(() => import("./components/internal/ShopDetails.jsx"));
+const AllShops = lazy(() => import("./components/internal/AllShops.jsx"));
+const BoutiquesAValider = lazy(
+  () => import("./components/internal/BoutiquesAValider.jsx")
+);
+const ProduitsAValider = lazy(
+  () => import("./components/internal/ProduitsAValider.jsx")
+);
+const Produits = lazy(() => import("./components/internal/Produits.jsx"));
+const DocumentationSection = lazy(
+  () => import("./components/internal/DocumentationSection.jsx")
+);
+const ClientsAValider = lazy(
+  () => import("./components/internal/ClientsAValider.jsx")
+);
+const Statistics = lazy(() => import("./components/internal/Statistics.jsx"));
+const InternalProfile = lazy(
+  () => import("./components/internal/InternalProfile.jsx")
+);
+
+// Shopify components - separate chunk for specialized functionality
+const ShopifyBoutiques = lazy(
+  () => import("./pages/internal/ShopifyBoutiques.jsx")
+);
+const ShopifyConfiguration = lazy(
+  () => import("./components/internal/shopify/ShopifyConfiguration.jsx")
+);
+const FicheProduitsShopify = lazy(
+  () => import("./components/internal/shopify/FicheProduitsShopify.jsx")
+);
+const GenerationEC = lazy(
+  () => import("./components/internal/shopify/GenerationEC.jsx")
+);
+
+// Admin components - lazy loaded
+const AdminClientAccounts = lazy(
+  () => import("./components/admin/AdminClientAccounts.jsx")
+);
+const AdminInternalAccounts = lazy(
+  () => import("./components/admin/AdminInternalAccounts.jsx")
+);
+const AdminAccounts = lazy(
+  () => import("./components/admin/AdminAccounts.jsx")
+);
+const AdminProfile = lazy(() => import("./components/admin/AdminProfile.jsx"));
+
+// Loading component for Suspense fallback
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-64">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <span className="ml-3 text-gray-600">Chargement...</span>
+  </div>
+);
+
+// Error boundary for lazy loaded components
+class LazyErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Lazy loading error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-64 p-8">
+          <div className="text-red-600 text-xl mb-4">Erreur de chargement</div>
+          <p className="text-gray-600 mb-4">
+            Une erreur s'est produite lors du chargement de cette page.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Recharger la page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Enhanced Suspense wrapper with error boundary
+const LazyComponentWrapper = ({ children, fallback = <LoadingSpinner /> }) => (
+  <LazyErrorBoundary>
+    <Suspense fallback={fallback}>{children}</Suspense>
+  </LazyErrorBoundary>
+);
 
 const App = () => {
   const { pathname } = window.location;
 
+  // Initialize component preloading
+  useEffect(() => {
+    // Preload components based on current route
+    componentPreloader.preloadByRoute(pathname);
+
+    // Set up navigation change detection for future preloading
+    const handlePopState = () => {
+      const newPath = window.location.pathname;
+      componentPreloader.preloadByRoute(newPath);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [pathname]);
+
   let ComponentToRender = MainPage; // Default to MainPage
   let LayoutComponent = ({ children }) => <>{children}</>; // Default no layout
   let pageProps = {}; // To pass props like IDs from path
+  let requiresLazyLoading = false; // Flag to determine if component needs lazy loading
 
   // Helper to extract ID from path, e.g., /path/to/123 -> 123
   // Or /path/to/123/subpath/456 -> {id1: 123, id2: 456}
@@ -77,39 +190,62 @@ const App = () => {
   // Auth Routes
   else if (pathname === "/reset-password") {
     ComponentToRender = ResetPasswordPage;
+    requiresLazyLoading = true;
   }
   // Public Pages
   else if (pathname === "/conditions-generales") {
     ComponentToRender = ConditionsGenerales;
+    requiresLazyLoading = true;
   } else if (pathname === "/qui-nous-sommes") {
     ComponentToRender = QuiNousSommes;
+    requiresLazyLoading = true;
   }
   // Customer Routes
   else if (pathname === "/client/dashboard") {
     LayoutComponent = ClientLayout;
     ComponentToRender = CustomerDashboard;
+    requiresLazyLoading = true;
   } else if (pathname === "/client/boutiques") {
     LayoutComponent = ClientLayout;
     ComponentToRender = MesBoutiques;
     pageProps = {};
+    requiresLazyLoading = true;
   } else if (pathname === "/client/boutiques/create") {
     LayoutComponent = ClientLayout;
     ComponentToRender = CreateShop;
+    requiresLazyLoading = true;
   } else if (pathname === "/client/produits") {
     LayoutComponent = ClientLayout;
     ComponentToRender = MesProduits;
+    requiresLazyLoading = true;
   } else if (pathname === "/client/produits/create") {
     LayoutComponent = ClientLayout;
     ComponentToRender = CreateProduct;
+    requiresLazyLoading = true;
   } else if (pathname.startsWith("/client/boutiques/edit/")) {
     LayoutComponent = ClientLayout;
     ComponentToRender = EditShop;
     const params = extractParams("/client/boutiques/edit/:shopId", pathname);
     pageProps = { shopId: params.shopId, returnPath: "/client/boutiques" };
+    requiresLazyLoading = true;
   } else if (pathname === "/client/compte") {
     LayoutComponent = ClientLayout;
     ComponentToRender = ManageAccount;
     pageProps = { returnPath: "/client/dashboard" };
+    requiresLazyLoading = true;
+  } else if (pathname === "/client/login") {
+    // Redirect authenticated users to compte, unauthenticated to main page
+    const userInfo =
+      sessionStorage.getItem("userInfo") || localStorage.getItem("userInfo");
+    const isFirstLogin = sessionStorage.getItem("isFirstLogin") === "true";
+
+    if (userInfo || isFirstLogin) {
+      window.location.replace("/client/compte");
+      return null;
+    } else {
+      window.location.replace("/");
+      return null;
+    }
   }
   // Internal Routes
   else if (pathname === "/internal/dashboard") {
@@ -119,9 +255,11 @@ const App = () => {
   } else if (pathname === "/internal/clients") {
     LayoutComponent = InternalLayout;
     ComponentToRender = ClientsList;
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/documentation") {
     LayoutComponent = InternalLayout;
     ComponentToRender = DocumentationSection;
+    requiresLazyLoading = true;
   } else if (
     pathname.startsWith("/internal/clients/") &&
     pathname.endsWith("/boutiques") &&
@@ -134,6 +272,7 @@ const App = () => {
       pathname
     );
     pageProps = { clientId: params.clientId };
+    requiresLazyLoading = true;
   } else if (
     pathname.startsWith("/internal/clients/") &&
     pathname.split("/").length === 6 &&
@@ -146,6 +285,7 @@ const App = () => {
       pathname
     );
     pageProps = { clientId: params.clientId, shopId: params.shopId };
+    requiresLazyLoading = true;
   } else if (
     pathname.startsWith("/internal/clients/") &&
     (pathname.split("/").length === 4 ||
@@ -158,82 +298,105 @@ const App = () => {
     const cleanPath = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
     const params = extractParams("/internal/clients/:clientId", cleanPath);
     pageProps = { clientId: params.clientId };
+    requiresLazyLoading = true;
+  } else if (pathname === "/internal/boutiques/nouvelle") {
+    LayoutComponent = InternalLayout;
+    ComponentToRender = CreateShop;
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/boutiques") {
     LayoutComponent = InternalLayout;
     ComponentToRender = AllShops;
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/produits") {
     LayoutComponent = InternalLayout;
     ComponentToRender = Produits;
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/boutiques-a-valider") {
     LayoutComponent = InternalLayout;
     ComponentToRender = BoutiquesAValider;
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/produits-a-valider") {
     LayoutComponent = InternalLayout;
     ComponentToRender = ProduitsAValider;
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/clients-a-valider") {
     LayoutComponent = InternalLayout;
     ComponentToRender = ClientsAValider;
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/profile") {
     LayoutComponent = InternalLayout;
     ComponentToRender = InternalProfile;
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/statistiques") {
     LayoutComponent = InternalLayout;
     ComponentToRender = Statistics;
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/shopify") {
     LayoutComponent = InternalLayout;
     ComponentToRender = ShopifyBoutiques;
     pageProps = { returnPath: "/internal/shopify" };
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/configuration-shopify") {
     LayoutComponent = InternalLayout;
     ComponentToRender = ShopifyConfiguration;
     pageProps = { returnPath: "/internal/configuration-shopify" };
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/fiche-produits-shopify") {
     LayoutComponent = InternalLayout;
     ComponentToRender = FicheProduitsShopify;
     pageProps = { returnPath: "/internal/fiche-produits-shopify" };
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/generation-ec") {
     LayoutComponent = InternalLayout;
     ComponentToRender = GenerationEC;
     pageProps = { returnPath: "/internal/generation-ec" };
+    requiresLazyLoading = true;
   } else if (pathname === "/internal/creation-comptes-client") {
     LayoutComponent = InternalLayout;
     ComponentToRender = AdminClientAccounts;
     pageProps = {};
+    requiresLazyLoading = true;
   }
   // Admin Routes
   else if (pathname === "/admin" || pathname === "/admin/") {
     LayoutComponent = AdminLayout;
     ComponentToRender = AdminClientAccounts;
+    requiresLazyLoading = true;
   } else if (pathname === "/admin/client-accounts") {
     LayoutComponent = AdminLayout;
     ComponentToRender = AdminClientAccounts;
+    requiresLazyLoading = true;
   } else if (pathname === "/admin/internal-accounts") {
     LayoutComponent = AdminLayout;
     ComponentToRender = AdminInternalAccounts;
+    requiresLazyLoading = true;
   } else if (pathname === "/admin/admin-accounts") {
     LayoutComponent = AdminLayout;
     ComponentToRender = AdminAccounts;
+    requiresLazyLoading = true;
   } else if (pathname === "/admin/profile") {
     LayoutComponent = AdminLayout;
     ComponentToRender = AdminProfile;
+    requiresLazyLoading = true;
   }
-  // Add more routes as needed
-  // else {
-  //   ComponentToRender = NotFoundPage; // Optional: a 404 component
-  // }
 
-  // For components that were expecting props from react-router (like useParams),
-  // they will need to be refactored to accept these props directly or get them from window.location.
-  // For example, ClientDetails, ClientShops, ShopDetails used useParams.
-  // They now get clientId/shopId via pageProps.
+  // Render component with or without lazy loading
+  const renderComponent = () => {
+    if (requiresLazyLoading) {
+      return (
+        <LazyComponentWrapper>
+          <ComponentToRender {...pageProps} />
+        </LazyComponentWrapper>
+      );
+    }
+    return <ComponentToRender {...pageProps} />;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <main className="flex-1 pt-20">
-        <LayoutComponent>
-          <ComponentToRender {...pageProps} />
-        </LayoutComponent>
+        <LayoutComponent>{renderComponent()}</LayoutComponent>
       </main>
       <Footer />
     </div>

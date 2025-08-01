@@ -36,11 +36,21 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+
+    "build:analyze": "vite build --mode analyze",
+    "build:production": "NODE_ENV=production vite build --mode production",
+    "build:fast": "vite build --mode development",
+    "build:simple": "vite build --minify=false --sourcemap=false",
     "preview": "vite preview",
+    "preview:build": "npm run build && npm run preview",
     "test": "vitest",
     "lint": "eslint . --ext .js,.jsx",
+    "lint:fix": "eslint . --ext .js,.jsx --fix",
     "format": "prettier --write \"**/*.{js,jsx,json,md}\"",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "clean": "rm -rf build dist node_modules/.vite",
+    "clean:build": "rm -rf build dist",
+    "bundle-analyzer": "npx vite-bundle-analyzer build"
   },
   "browserslist": {
     "production": [

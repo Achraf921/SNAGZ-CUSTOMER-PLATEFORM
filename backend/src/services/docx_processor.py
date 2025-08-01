@@ -100,6 +100,7 @@ def replace_placeholders_and_format(docx_path, shop_data, output_path):
         "XXX13": shop_data.get("chefProjet", ""),  # XXX13: prenomChefProjet + ' ' + nomChefProjet
         "XXX14": shop_data.get("demarrageProjet", ""),  # XXX14: demarrageProjet (YYYY/MM/DD)
         "XXX15": shop_data.get("contactsClient", ""),  # XXX15: contactsClient (client email)
+        "XXX69": shop_data.get("pourcentageSNA", ""),  # XXX69: pourcentageSNA value
         "COMPTENUM": shop_data.get("compteClientRef", ""),  # COMPTENUM: customer CompteClientNumber
     }
 

@@ -92,7 +92,7 @@ router.post(
       
       // SECURITY: Validate file types and sizes
       const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
-      const maxFileSize = 5 * 1024 * 1024; // 5MB
+      const maxFileSize = 10 * 1024 * 1024; // 10MB (increased for convenience)
       
       for (const file of req.files) {
         // Validate file type
@@ -110,7 +110,7 @@ router.post(
           console.error('🔒 [SECURITY] File too large:', file.size, 'bytes for', file.originalname);
           return res.status(400).json({ 
             success: false, 
-            message: 'File too large. Maximum size is 5MB.',
+            message: 'File too large. Maximum size is 10MB.',
             securityAlert: 'FILE_TOO_LARGE'
           });
         }

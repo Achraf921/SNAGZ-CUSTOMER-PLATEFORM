@@ -1,0 +1,395 @@
+[2025-07-31 12:03:22] Merchandising XLSX processor script started
+[2025-07-31 12:03:22] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 12:03:22] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 12:03:22] Decoding base64 data...
+[2025-07-31 12:03:22] Successfully decoded base64 data
+[2025-07-31 12:03:22] Parsing JSON data...
+[2025-07-31 12:03:22] Successfully parsed JSON data
+[2025-07-31 12:03:22] Starting merchandising XLSX processing...
+[2025-07-31 12:03:22] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 12:03:22] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 12:03:22] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 12:03:22] Shop data keys: ['nomProjet', 'shopifyDomain', 'products']
+[2025-07-31 12:03:22] Extracted dates - Sortie: '', Commercialisation: '', Mise en ligne DD/MM/YYYY: ''
+[2025-07-31 12:03:22] Extracted raison sociale: ''
+[2025-07-31 12:03:22] Combined dates field: ''
+[2025-07-31 12:03:22] Combined dates DD/MM/YYYY: ''
+[2025-07-31 12:03:22] Total shop stock calculated: 41241473915518
+[2025-07-31 12:03:22] Processing 8 products for shop: Test_Amanda
+[2025-07-31 12:03:22] Processing worksheet: Catalogue en ligne
+[2025-07-31 12:03:22] Replaced 'CLIENT' with 'Test_Amanda' in cell A2
+[2025-07-31 12:03:22] Replaced 'nomProjet' with 'Test_Amanda' in cell B2
+[2025-07-31 12:03:22] Replaced 'shopifyDomain' with 'test-amanda-store' in cell C2
+[2025-07-31 12:03:22] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-31 12:03:22] Will start inserting product data at row: 5
+[2025-07-31 12:03:22] Starting to add 8 products at row 5
+[2025-07-31 12:03:22] Processing product 1/8: Tee White
+[2025-07-31 12:03:22] Product 1 total stock: 1511 from stock_dict: {'XS-Noir': '321', 'S-Noir': 299, 'M-Noir': 298, 'L-Noir': 297, 'XL-Noir': 296}
+[2025-07-31 12:03:22] Product 1 size stocks: {'XS': 321, 'S': 299, 'M': 298, 'L': 297, 'XL': 296}
+[2025-07-31 12:03:22] Product 1 colors: ['Noir'] -> 'Noir'
+[2025-07-31 12:03:22] Product 1 sizes: ['XS', 'S', 'M', 'L', 'XL'] -> 'XS, S, M, L, XL'
+[2025-07-31 12:03:22] Product 1 images: 1 images -> ''
+[2025-07-31 12:03:22] Successfully added product 1 data at row 5: Tee White
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: 'Noir'
+[2025-07-31 12:03:22] Sizes field content: 'XS, S, M, L, XL'
+[2025-07-31 12:03:22] Data written: ['POD', 'Tee White', 'ngai\n', '2421442142142', 1511, 321, 299, 298, 297, 296, 400, 19.99, '', '', '', 'OUI', 'NON', '', '', '', '', '', 'Noir', 'XS, S, M, L, XL', '']
+[2025-07-31 12:03:22] Processing product 2/8: BMF
+[2025-07-31 12:03:22] Product 2 total stock: 1260 from stock_dict: {'S-Blanc': '1212', 'XS-Blanc': 12, 'M-Blanc': 12, 'L-Blanc': 12, 'XL-Blanc': 12}
+[2025-07-31 12:03:22] Product 2 size stocks: {'XS': 12, 'S': 1212, 'M': 12, 'L': 12, 'XL': 12}
+[2025-07-31 12:03:22] Product 2 colors: ['Blanc'] -> 'Blanc'
+[2025-07-31 12:03:22] Product 2 sizes: ['S', 'XS', 'M', 'L', 'XL'] -> 'S, XS, M, L, XL'
+[2025-07-31 12:03:22] Product 2 images: 5 images -> ''
+[2025-07-31 12:03:22] Successfully added product 2 data at row 6: BMF
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: 'Blanc'
+[2025-07-31 12:03:22] Sizes field content: 'S, XS, M, L, XL'
+[2025-07-31 12:03:22] Data written: ['POD', 'BMF', 'test tee', '2112231333323', 1260, 12, 1212, 12, 12, 12, 300, 12, '', '', '', 'OUI', 'NON', '', '', '', '', '', 'Blanc', 'S, XS, M, L, XL', '']
+[2025-07-31 12:03:22] Processing product 3/8: TestUploadNewImages
+[2025-07-31 12:03:22] Product 3 total stock: 200 from stock_dict: {'default': 200}
+[2025-07-31 12:03:22] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 3 colors: [] -> ''
+[2025-07-31 12:03:22] Product 3 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 3 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 3 data at row 7: TestUploadNewImages
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'TestUploadNewImages', 'Testing new image upload', '1283428448142', 200, 0, 0, 0, 0, 0, 297, 12, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 4/8: ItemImage
+[2025-07-31 12:03:22] Product 4 total stock: 213 from stock_dict: {'default': 213}
+[2025-07-31 12:03:22] Product 4 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 4 colors: [] -> ''
+[2025-07-31 12:03:22] Product 4 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 4 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 4 data at row 8: ItemImage
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'ItemImage', 'Testing', '2142844010824', 213, 0, 0, 0, 0, 0, 300, 300, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 5/8: Bin22
+[2025-07-31 12:03:22] Product 5 total stock: 448370 from stock_dict: {'XS': 321, 'S': 4214, 'M': 421421, 'L': 22414}
+[2025-07-31 12:03:22] Product 5 size stocks: {'XS': 321, 'S': 4214, 'M': 421421, 'L': 22414, 'XL': 0}
+[2025-07-31 12:03:22] Product 5 colors: [] -> ''
+[2025-07-31 12:03:22] Product 5 sizes: ['XS', 'S', 'M', 'L'] -> 'XS, S, M, L'
+[2025-07-31 12:03:22] Product 5 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 5 data at row 9: Bin22
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: 'XS, S, M, L'
+[2025-07-31 12:03:22] Data written: ['Merch', 'Bin22', 'Testing', '4214214821498', 448370, 321, 4214, 421421, 22414, 0, 2131, 23, '', '', '', 'NON', 'NON', '', '', '', '', '', '', 'XS, S, M, L', '']
+[2025-07-31 12:03:22] Processing product 6/8: TestTestTest
+[2025-07-31 12:03:22] Product 6 total stock: 231 from stock_dict: {'default': 231}
+[2025-07-31 12:03:22] Product 6 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 6 colors: [] -> ''
+[2025-07-31 12:03:22] Product 6 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 6 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 6 data at row 10: TestTestTest
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'TestTestTest', 'TestTestTestTestTest', '4124214215215', 231, 0, 0, 0, 0, 0, 400, 23, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 7/8: wqfqf
+[2025-07-31 12:03:22] Product 7 total stock: 242142421 from stock_dict: {'default': 242142421}
+[2025-07-31 12:03:22] Product 7 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 7 colors: [] -> ''
+[2025-07-31 12:03:22] Product 7 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 7 images: 1 images -> ''
+[2025-07-31 12:03:22] Successfully added product 7 data at row 11: wqfqf
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'wqfqf', 'fwqwfqfwwqf', '4214214244214', 242142421, 0, 0, 0, 0, 0, 211, '312', '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 8/8: ff
+[2025-07-31 12:03:22] Product 8 total stock: 41241231321312 from stock_dict: {'default': 41241231321312}
+[2025-07-31 12:03:22] Product 8 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 8 colors: [] -> ''
+[2025-07-31 12:03:22] Product 8 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 8 images: 4 images -> ''
+[2025-07-31 12:03:22] Successfully added product 8 data at row 12: ff
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'ff', 'ebfebfeqbiuf32bi', '2414214412412', 41241231321312, 0, 0, 0, 0, 0, 24140, '32', '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Finished processing all products. Final row: 12
+[2025-07-31 12:03:22] Processing worksheet: POD
+[2025-07-31 12:03:22] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 12:03:22] Will start inserting product data at row: 6
+[2025-07-31 12:03:22] Starting to add 8 products at row 6
+[2025-07-31 12:03:22] Processing product 1/8: Tee White
+[2025-07-31 12:03:22] Product 1 total stock: 1511 from stock_dict: {'XS-Noir': '321', 'S-Noir': 299, 'M-Noir': 298, 'L-Noir': 297, 'XL-Noir': 296}
+[2025-07-31 12:03:22] Product 1 size stocks: {'XS': 321, 'S': 299, 'M': 298, 'L': 297, 'XL': 296}
+[2025-07-31 12:03:22] Product 1 colors: ['Noir'] -> 'Noir'
+[2025-07-31 12:03:22] Product 1 sizes: ['XS', 'S', 'M', 'L', 'XL'] -> 'XS, S, M, L, XL'
+[2025-07-31 12:03:22] Product 1 images: 1 images -> ''
+[2025-07-31 12:03:22] Successfully added product 1 data at row 6: Tee White
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: 'Noir'
+[2025-07-31 12:03:22] Sizes field content: 'XS, S, M, L, XL'
+[2025-07-31 12:03:22] Data written: ['POD', 'Tee White', 'ngai\n', '2421442142142', 1511, 321, 299, 298, 297, 296, 400, 19.99, '', '', '', 'OUI', 'NON', '', '', '', '', '', 'Noir', 'XS, S, M, L, XL', '']
+[2025-07-31 12:03:22] Processing product 2/8: BMF
+[2025-07-31 12:03:22] Product 2 total stock: 1260 from stock_dict: {'S-Blanc': '1212', 'XS-Blanc': 12, 'M-Blanc': 12, 'L-Blanc': 12, 'XL-Blanc': 12}
+[2025-07-31 12:03:22] Product 2 size stocks: {'XS': 12, 'S': 1212, 'M': 12, 'L': 12, 'XL': 12}
+[2025-07-31 12:03:22] Product 2 colors: ['Blanc'] -> 'Blanc'
+[2025-07-31 12:03:22] Product 2 sizes: ['S', 'XS', 'M', 'L', 'XL'] -> 'S, XS, M, L, XL'
+[2025-07-31 12:03:22] Product 2 images: 5 images -> ''
+[2025-07-31 12:03:22] Successfully added product 2 data at row 7: BMF
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: 'Blanc'
+[2025-07-31 12:03:22] Sizes field content: 'S, XS, M, L, XL'
+[2025-07-31 12:03:22] Data written: ['POD', 'BMF', 'test tee', '2112231333323', 1260, 12, 1212, 12, 12, 12, 300, 12, '', '', '', 'OUI', 'NON', '', '', '', '', '', 'Blanc', 'S, XS, M, L, XL', '']
+[2025-07-31 12:03:22] Processing product 3/8: TestUploadNewImages
+[2025-07-31 12:03:22] Product 3 total stock: 200 from stock_dict: {'default': 200}
+[2025-07-31 12:03:22] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 3 colors: [] -> ''
+[2025-07-31 12:03:22] Product 3 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 3 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 3 data at row 8: TestUploadNewImages
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'TestUploadNewImages', 'Testing new image upload', '1283428448142', 200, 0, 0, 0, 0, 0, 297, 12, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 4/8: ItemImage
+[2025-07-31 12:03:22] Product 4 total stock: 213 from stock_dict: {'default': 213}
+[2025-07-31 12:03:22] Product 4 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 4 colors: [] -> ''
+[2025-07-31 12:03:22] Product 4 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 4 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 4 data at row 9: ItemImage
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'ItemImage', 'Testing', '2142844010824', 213, 0, 0, 0, 0, 0, 300, 300, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 5/8: Bin22
+[2025-07-31 12:03:22] Product 5 total stock: 448370 from stock_dict: {'XS': 321, 'S': 4214, 'M': 421421, 'L': 22414}
+[2025-07-31 12:03:22] Product 5 size stocks: {'XS': 321, 'S': 4214, 'M': 421421, 'L': 22414, 'XL': 0}
+[2025-07-31 12:03:22] Product 5 colors: [] -> ''
+[2025-07-31 12:03:22] Product 5 sizes: ['XS', 'S', 'M', 'L'] -> 'XS, S, M, L'
+[2025-07-31 12:03:22] Product 5 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 5 data at row 10: Bin22
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: 'XS, S, M, L'
+[2025-07-31 12:03:22] Data written: ['Merch', 'Bin22', 'Testing', '4214214821498', 448370, 321, 4214, 421421, 22414, 0, 2131, 23, '', '', '', 'NON', 'NON', '', '', '', '', '', '', 'XS, S, M, L', '']
+[2025-07-31 12:03:22] Processing product 6/8: TestTestTest
+[2025-07-31 12:03:22] Product 6 total stock: 231 from stock_dict: {'default': 231}
+[2025-07-31 12:03:22] Product 6 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 6 colors: [] -> ''
+[2025-07-31 12:03:22] Product 6 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 6 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 6 data at row 11: TestTestTest
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'TestTestTest', 'TestTestTestTestTest', '4124214215215', 231, 0, 0, 0, 0, 0, 400, 23, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 7/8: wqfqf
+[2025-07-31 12:03:22] Product 7 total stock: 242142421 from stock_dict: {'default': 242142421}
+[2025-07-31 12:03:22] Product 7 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 7 colors: [] -> ''
+[2025-07-31 12:03:22] Product 7 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 7 images: 1 images -> ''
+[2025-07-31 12:03:22] Successfully added product 7 data at row 12: wqfqf
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'wqfqf', 'fwqwfqfwwqf', '4214214244214', 242142421, 0, 0, 0, 0, 0, 211, '312', '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 8/8: ff
+[2025-07-31 12:03:22] Product 8 total stock: 41241231321312 from stock_dict: {'default': 41241231321312}
+[2025-07-31 12:03:22] Product 8 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 8 colors: [] -> ''
+[2025-07-31 12:03:22] Product 8 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 8 images: 4 images -> ''
+[2025-07-31 12:03:22] Successfully added product 8 data at row 13: ff
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'ff', 'ebfebfeqbiuf32bi', '2414214412412', 41241231321312, 0, 0, 0, 0, 0, 24140, '32', '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Finished processing all products. Final row: 13
+[2025-07-31 12:03:22] Processing worksheet: Feuil1
+[2025-07-31 12:03:22] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 12:03:22] Will start inserting product data at row: 6
+[2025-07-31 12:03:22] Starting to add 8 products at row 6
+[2025-07-31 12:03:22] Processing product 1/8: Tee White
+[2025-07-31 12:03:22] Product 1 total stock: 1511 from stock_dict: {'XS-Noir': '321', 'S-Noir': 299, 'M-Noir': 298, 'L-Noir': 297, 'XL-Noir': 296}
+[2025-07-31 12:03:22] Product 1 size stocks: {'XS': 321, 'S': 299, 'M': 298, 'L': 297, 'XL': 296}
+[2025-07-31 12:03:22] Product 1 colors: ['Noir'] -> 'Noir'
+[2025-07-31 12:03:22] Product 1 sizes: ['XS', 'S', 'M', 'L', 'XL'] -> 'XS, S, M, L, XL'
+[2025-07-31 12:03:22] Product 1 images: 1 images -> ''
+[2025-07-31 12:03:22] Successfully added product 1 data at row 6: Tee White
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: 'Noir'
+[2025-07-31 12:03:22] Sizes field content: 'XS, S, M, L, XL'
+[2025-07-31 12:03:22] Data written: ['POD', 'Tee White', 'ngai\n', '2421442142142', 1511, 321, 299, 298, 297, 296, 400, 19.99, '', '', '', 'OUI', 'NON', '', '', '', '', '', 'Noir', 'XS, S, M, L, XL', '']
+[2025-07-31 12:03:22] Processing product 2/8: BMF
+[2025-07-31 12:03:22] Product 2 total stock: 1260 from stock_dict: {'S-Blanc': '1212', 'XS-Blanc': 12, 'M-Blanc': 12, 'L-Blanc': 12, 'XL-Blanc': 12}
+[2025-07-31 12:03:22] Product 2 size stocks: {'XS': 12, 'S': 1212, 'M': 12, 'L': 12, 'XL': 12}
+[2025-07-31 12:03:22] Product 2 colors: ['Blanc'] -> 'Blanc'
+[2025-07-31 12:03:22] Product 2 sizes: ['S', 'XS', 'M', 'L', 'XL'] -> 'S, XS, M, L, XL'
+[2025-07-31 12:03:22] Product 2 images: 5 images -> ''
+[2025-07-31 12:03:22] Successfully added product 2 data at row 7: BMF
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: 'Blanc'
+[2025-07-31 12:03:22] Sizes field content: 'S, XS, M, L, XL'
+[2025-07-31 12:03:22] Data written: ['POD', 'BMF', 'test tee', '2112231333323', 1260, 12, 1212, 12, 12, 12, 300, 12, '', '', '', 'OUI', 'NON', '', '', '', '', '', 'Blanc', 'S, XS, M, L, XL', '']
+[2025-07-31 12:03:22] Processing product 3/8: TestUploadNewImages
+[2025-07-31 12:03:22] Product 3 total stock: 200 from stock_dict: {'default': 200}
+[2025-07-31 12:03:22] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 3 colors: [] -> ''
+[2025-07-31 12:03:22] Product 3 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 3 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 3 data at row 8: TestUploadNewImages
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'TestUploadNewImages', 'Testing new image upload', '1283428448142', 200, 0, 0, 0, 0, 0, 297, 12, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 4/8: ItemImage
+[2025-07-31 12:03:22] Product 4 total stock: 213 from stock_dict: {'default': 213}
+[2025-07-31 12:03:22] Product 4 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 4 colors: [] -> ''
+[2025-07-31 12:03:22] Product 4 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 4 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 4 data at row 9: ItemImage
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'ItemImage', 'Testing', '2142844010824', 213, 0, 0, 0, 0, 0, 300, 300, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 5/8: Bin22
+[2025-07-31 12:03:22] Product 5 total stock: 448370 from stock_dict: {'XS': 321, 'S': 4214, 'M': 421421, 'L': 22414}
+[2025-07-31 12:03:22] Product 5 size stocks: {'XS': 321, 'S': 4214, 'M': 421421, 'L': 22414, 'XL': 0}
+[2025-07-31 12:03:22] Product 5 colors: [] -> ''
+[2025-07-31 12:03:22] Product 5 sizes: ['XS', 'S', 'M', 'L'] -> 'XS, S, M, L'
+[2025-07-31 12:03:22] Product 5 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 5 data at row 10: Bin22
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: 'XS, S, M, L'
+[2025-07-31 12:03:22] Data written: ['Merch', 'Bin22', 'Testing', '4214214821498', 448370, 321, 4214, 421421, 22414, 0, 2131, 23, '', '', '', 'NON', 'NON', '', '', '', '', '', '', 'XS, S, M, L', '']
+[2025-07-31 12:03:22] Processing product 6/8: TestTestTest
+[2025-07-31 12:03:22] Product 6 total stock: 231 from stock_dict: {'default': 231}
+[2025-07-31 12:03:22] Product 6 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 6 colors: [] -> ''
+[2025-07-31 12:03:22] Product 6 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 6 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 6 data at row 11: TestTestTest
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'TestTestTest', 'TestTestTestTestTest', '4124214215215', 231, 0, 0, 0, 0, 0, 400, 23, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 7/8: wqfqf
+[2025-07-31 12:03:22] Product 7 total stock: 242142421 from stock_dict: {'default': 242142421}
+[2025-07-31 12:03:22] Product 7 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 7 colors: [] -> ''
+[2025-07-31 12:03:22] Product 7 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 7 images: 1 images -> ''
+[2025-07-31 12:03:22] Successfully added product 7 data at row 12: wqfqf
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'wqfqf', 'fwqwfqfwwqf', '4214214244214', 242142421, 0, 0, 0, 0, 0, 211, '312', '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 8/8: ff
+[2025-07-31 12:03:22] Product 8 total stock: 41241231321312 from stock_dict: {'default': 41241231321312}
+[2025-07-31 12:03:22] Product 8 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 8 colors: [] -> ''
+[2025-07-31 12:03:22] Product 8 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 8 images: 4 images -> ''
+[2025-07-31 12:03:22] Successfully added product 8 data at row 13: ff
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'ff', 'ebfebfeqbiuf32bi', '2414214412412', 41241231321312, 0, 0, 0, 0, 0, 24140, '32', '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Finished processing all products. Final row: 13
+[2025-07-31 12:03:22] Processing worksheet: NE PAS MODIFIER
+[2025-07-31 12:03:22] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 12:03:22] Will start inserting product data at row: 6
+[2025-07-31 12:03:22] Starting to add 8 products at row 6
+[2025-07-31 12:03:22] Processing product 1/8: Tee White
+[2025-07-31 12:03:22] Product 1 total stock: 1511 from stock_dict: {'XS-Noir': '321', 'S-Noir': 299, 'M-Noir': 298, 'L-Noir': 297, 'XL-Noir': 296}
+[2025-07-31 12:03:22] Product 1 size stocks: {'XS': 321, 'S': 299, 'M': 298, 'L': 297, 'XL': 296}
+[2025-07-31 12:03:22] Product 1 colors: ['Noir'] -> 'Noir'
+[2025-07-31 12:03:22] Product 1 sizes: ['XS', 'S', 'M', 'L', 'XL'] -> 'XS, S, M, L, XL'
+[2025-07-31 12:03:22] Product 1 images: 1 images -> ''
+[2025-07-31 12:03:22] Successfully added product 1 data at row 6: Tee White
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: 'Noir'
+[2025-07-31 12:03:22] Sizes field content: 'XS, S, M, L, XL'
+[2025-07-31 12:03:22] Data written: ['POD', 'Tee White', 'ngai\n', '2421442142142', 1511, 321, 299, 298, 297, 296, 400, 19.99, '', '', '', 'OUI', 'NON', '', '', '', '', '', 'Noir', 'XS, S, M, L, XL', '']
+[2025-07-31 12:03:22] Processing product 2/8: BMF
+[2025-07-31 12:03:22] Product 2 total stock: 1260 from stock_dict: {'S-Blanc': '1212', 'XS-Blanc': 12, 'M-Blanc': 12, 'L-Blanc': 12, 'XL-Blanc': 12}
+[2025-07-31 12:03:22] Product 2 size stocks: {'XS': 12, 'S': 1212, 'M': 12, 'L': 12, 'XL': 12}
+[2025-07-31 12:03:22] Product 2 colors: ['Blanc'] -> 'Blanc'
+[2025-07-31 12:03:22] Product 2 sizes: ['S', 'XS', 'M', 'L', 'XL'] -> 'S, XS, M, L, XL'
+[2025-07-31 12:03:22] Product 2 images: 5 images -> ''
+[2025-07-31 12:03:22] Successfully added product 2 data at row 7: BMF
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: 'Blanc'
+[2025-07-31 12:03:22] Sizes field content: 'S, XS, M, L, XL'
+[2025-07-31 12:03:22] Data written: ['POD', 'BMF', 'test tee', '2112231333323', 1260, 12, 1212, 12, 12, 12, 300, 12, '', '', '', 'OUI', 'NON', '', '', '', '', '', 'Blanc', 'S, XS, M, L, XL', '']
+[2025-07-31 12:03:22] Processing product 3/8: TestUploadNewImages
+[2025-07-31 12:03:22] Product 3 total stock: 200 from stock_dict: {'default': 200}
+[2025-07-31 12:03:22] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 3 colors: [] -> ''
+[2025-07-31 12:03:22] Product 3 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 3 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 3 data at row 8: TestUploadNewImages
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'TestUploadNewImages', 'Testing new image upload', '1283428448142', 200, 0, 0, 0, 0, 0, 297, 12, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 4/8: ItemImage
+[2025-07-31 12:03:22] Product 4 total stock: 213 from stock_dict: {'default': 213}
+[2025-07-31 12:03:22] Product 4 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 4 colors: [] -> ''
+[2025-07-31 12:03:22] Product 4 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 4 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 4 data at row 9: ItemImage
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'ItemImage', 'Testing', '2142844010824', 213, 0, 0, 0, 0, 0, 300, 300, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 5/8: Bin22
+[2025-07-31 12:03:22] Product 5 total stock: 448370 from stock_dict: {'XS': 321, 'S': 4214, 'M': 421421, 'L': 22414}
+[2025-07-31 12:03:22] Product 5 size stocks: {'XS': 321, 'S': 4214, 'M': 421421, 'L': 22414, 'XL': 0}
+[2025-07-31 12:03:22] Product 5 colors: [] -> ''
+[2025-07-31 12:03:22] Product 5 sizes: ['XS', 'S', 'M', 'L'] -> 'XS, S, M, L'
+[2025-07-31 12:03:22] Product 5 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 5 data at row 10: Bin22
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: 'XS, S, M, L'
+[2025-07-31 12:03:22] Data written: ['Merch', 'Bin22', 'Testing', '4214214821498', 448370, 321, 4214, 421421, 22414, 0, 2131, 23, '', '', '', 'NON', 'NON', '', '', '', '', '', '', 'XS, S, M, L', '']
+[2025-07-31 12:03:22] Processing product 6/8: TestTestTest
+[2025-07-31 12:03:22] Product 6 total stock: 231 from stock_dict: {'default': 231}
+[2025-07-31 12:03:22] Product 6 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 6 colors: [] -> ''
+[2025-07-31 12:03:22] Product 6 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 6 images: 0 images -> ''
+[2025-07-31 12:03:22] Successfully added product 6 data at row 11: TestTestTest
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'TestTestTest', 'TestTestTestTestTest', '4124214215215', 231, 0, 0, 0, 0, 0, 400, 23, '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 7/8: wqfqf
+[2025-07-31 12:03:22] Product 7 total stock: 242142421 from stock_dict: {'default': 242142421}
+[2025-07-31 12:03:22] Product 7 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 7 colors: [] -> ''
+[2025-07-31 12:03:22] Product 7 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 7 images: 1 images -> ''
+[2025-07-31 12:03:22] Successfully added product 7 data at row 12: wqfqf
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'wqfqf', 'fwqwfqfwwqf', '4214214244214', 242142421, 0, 0, 0, 0, 0, 211, '312', '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Processing product 8/8: ff
+[2025-07-31 12:03:22] Product 8 total stock: 41241231321312 from stock_dict: {'default': 41241231321312}
+[2025-07-31 12:03:22] Product 8 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 12:03:22] Product 8 colors: [] -> ''
+[2025-07-31 12:03:22] Product 8 sizes: [] -> ''
+[2025-07-31 12:03:22] Product 8 images: 4 images -> ''
+[2025-07-31 12:03:22] Successfully added product 8 data at row 13: ff
+[2025-07-31 12:03:22] Combined dates field content: ''
+[2025-07-31 12:03:22] Colors field content: ''
+[2025-07-31 12:03:22] Sizes field content: ''
+[2025-07-31 12:03:22] Data written: ['Phono', 'ff', 'ebfebfeqbiuf32bi', '2414214412412', 41241231321312, 0, 0, 0, 0, 0, 24140, '32', '', '', '', 'NON', 'OUI', '', '', '', '', '', '', '', '']
+[2025-07-31 12:03:22] Finished processing all products. Final row: 13
+[2025-07-31 12:03:22] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FichesProduitTemplate/PROCESSED_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 12:03:22] Merchandising XLSX processing completed successfully

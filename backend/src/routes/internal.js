@@ -496,45 +496,70 @@ router.get('/all-shops', requireInternalAPIAuth, async (req, res) => {
 
       if (Array.isArray(customer.shops)) {
         for (const shop of customer.shops) {
-          // Generate signed URLs for all image types if they exist
+          // Generate signed URLs from S3 keys (new system) and fallback to old URLs
           let logoUrl = null;
           let desktopBannerUrl = null;
           let mobileBannerUrl = null;
           let faviconUrl = null;
 
-          if (shop.logoUrl) {
+          // Try S3 keys first (new system), fallback to old URLs
+          if (shop.logoS3Key) {
+            try {
+              logoUrl = await getSignedUrl(shop.logoS3Key);
+            } catch (e) {
+              console.error(`Error generating signed URL for logo S3 key: ${shop.logoS3Key}`, e);
+            }
+          } else if (shop.logoUrl) {
             try {
               const key = new URL(shop.logoUrl).pathname.substring(1);
               logoUrl = await getSignedUrl(decodeURIComponent(key));
             } catch (e) {
-              console.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
+              console.error(`Error generating signed URL for logo URL: ${shop.logoUrl}`, e);
             }
           }
 
-          if (shop.desktopBannerUrl) {
+          if (shop.desktopBannerS3Key) {
+            try {
+              desktopBannerUrl = await getSignedUrl(shop.desktopBannerS3Key);
+            } catch (e) {
+              console.error(`Error generating signed URL for desktop banner S3 key: ${shop.desktopBannerS3Key}`, e);
+            }
+          } else if (shop.desktopBannerUrl) {
             try {
               const key = new URL(shop.desktopBannerUrl).pathname.substring(1);
               desktopBannerUrl = await getSignedUrl(decodeURIComponent(key));
             } catch (e) {
-              console.error(`Error generating signed URL for desktop banner: ${shop.desktopBannerUrl}`, e);
+              console.error(`Error generating signed URL for desktop banner URL: ${shop.desktopBannerUrl}`, e);
             }
           }
 
-          if (shop.mobileBannerUrl) {
+          if (shop.mobileBannerS3Key) {
+            try {
+              mobileBannerUrl = await getSignedUrl(shop.mobileBannerS3Key);
+            } catch (e) {
+              console.error(`Error generating signed URL for mobile banner S3 key: ${shop.mobileBannerS3Key}`, e);
+            }
+          } else if (shop.mobileBannerUrl) {
             try {
               const key = new URL(shop.mobileBannerUrl).pathname.substring(1);
               mobileBannerUrl = await getSignedUrl(decodeURIComponent(key));
             } catch (e) {
-              console.error(`Error generating signed URL for mobile banner: ${shop.mobileBannerUrl}`, e);
+              console.error(`Error generating signed URL for mobile banner URL: ${shop.mobileBannerUrl}`, e);
             }
           }
 
-          if (shop.faviconUrl) {
+          if (shop.faviconS3Key) {
+            try {
+              faviconUrl = await getSignedUrl(shop.faviconS3Key);
+            } catch (e) {
+              console.error(`Error generating signed URL for favicon S3 key: ${shop.faviconS3Key}`, e);
+            }
+          } else if (shop.faviconUrl) {
             try {
               const key = new URL(shop.faviconUrl).pathname.substring(1);
               faviconUrl = await getSignedUrl(decodeURIComponent(key));
             } catch (e) {
-              console.error(`Error generating signed URL for favicon: ${shop.faviconUrl}`, e);
+              console.error(`Error generating signed URL for favicon URL: ${shop.faviconUrl}`, e);
             }
           }
 
@@ -857,13 +882,15 @@ router.get('/shop/:shopId/products', requireInternalAPIAuth, async (req, res) =>
       });
     }
     
-    const products = shop.products || [];
+    // Filter products to only show validated/active ones for documentation
+    const allProducts = shop.products || [];
+    const validatedProducts = allProducts.filter(product => product.active === true);
     
-    console.log(`[INTERNAL] Found ${products.length} products for shop ${shopId}`);
+    console.log(`[INTERNAL] Found ${allProducts.length} total products, ${validatedProducts.length} validated for shop ${shopId}`);
     
     res.status(200).json({
       success: true,
-      products
+      products: validatedProducts
     });
   } catch (error) {
     console.error('[INTERNAL] Error fetching shop products:', error);
@@ -893,22 +920,289 @@ router.get('/shop/:shopId/product/:productId/documentation', requireInternalAPIA
   res.redirect(`/api/customer/shop/${shopId}/product/${productId}/documentation`);
 });
 
+// Route for bulk product documentation
+router.post('/shop/:shopId/products/bulk-documentation', requireInternalAPIAuth, async (req, res) => {
+  try {
+    const { shopId } = req.params;
+    const { action, productIds } = req.body;
+    
+    console.log(`[INTERNAL] Bulk product documentation action for shop: ${shopId}, action: ${action}, products: ${productIds?.length}`);
+    
+    if (!['document', 'mark_documented'].includes(action)) {
+      return res.status(400).json({ success: false, message: 'Invalid action' });
+    }
+    
+    if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Product IDs array is required' });
+    }
+    
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document that contains the shop
+    const customer = await customersCollection.findOne({
+      'shops.shopId': shopId
+    });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Find specific shop object
+    const shop = customer.shops.find(s => s.shopId === shopId);
+    if (!shop) {
+      return res.status(404).json({ success: false, message: 'Shop not found in customer document' });
+    }
+    
+    // Handle different actions
+    if (action === 'document') {
+      // For bulk documentation, append products to existing Fiches Produits or create new one
+      const sharepointService = require('../services/sharepointService');
+      
+      try {
+        // Filter products to only document the selected ones
+        const selectedProducts = shop.products?.filter(p => productIds.includes(p.productId)) || [];
+        
+        if (selectedProducts.length === 0) {
+          return res.status(400).json({ success: false, message: 'No valid products found for documentation' });
+        }
+        
+        // Create a temporary shop object with only selected products for SharePoint generation
+        const tempShop = {
+          ...shop,
+          products: selectedProducts
+        };
+        
+        console.log(`[INTERNAL] Generating SharePoint documentation for ${selectedProducts.length} selected products`);
+        
+        // Generate/append to Fiches Produits document
+        await sharepointService.appendToFichesProduitsOrCreate(customer, tempShop);
+        
+        // Mark the selected products as documented in the database
+        const updateResult = await customersCollection.updateOne(
+          { 
+            'shops.shopId': shopId,
+            'shops.products.productId': { $in: productIds }
+          },
+          { 
+            $set: { 
+              'shops.$[shop].products.$[product].documented': true 
+            }
+          },
+          {
+            arrayFilters: [
+              { 'shop.shopId': shopId },
+              { 'product.productId': { $in: productIds } }
+            ]
+          }
+        );
+        
+        console.log(`[INTERNAL] Updated ${updateResult.modifiedCount} products as documented`);
+        
+        return res.json({
+          success: true,
+          message: `${selectedProducts.length} produit(s) documenté(s) avec succès et ajouté(s) aux Fiches Produits`,
+          documented: true
+        });
+        
+      } catch (error) {
+        console.error('[INTERNAL] Error during bulk SharePoint documentation:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Erreur lors de la génération de la documentation SharePoint: ' + error.message
+        });
+      }
+      
+    } else if (action === 'mark_documented') {
+      // Mark products as documented without generating SharePoint documentation
+      const updateResult = await customersCollection.updateOne(
+        { 
+          'shops.shopId': shopId,
+          'shops.products.productId': { $in: productIds }
+        },
+        { 
+          $set: { 
+            'shops.$[shop].products.$[product].documented': true 
+          }
+        },
+        {
+          arrayFilters: [
+            { 'shop.shopId': shopId },
+            { 'product.productId': { $in: productIds } }
+          ]
+        }
+      );
+      
+      console.log(`[INTERNAL] Marked ${updateResult.modifiedCount} products as documented`);
+      
+      return res.json({
+        success: true,
+        message: `${productIds.length} produit(s) marqué(s) comme documenté(s)`,
+        documented: true
+      });
+    }
+    
+  } catch (error) {
+    console.error('[INTERNAL] Error in bulk product documentation:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'action sur les produits: ' + error.message
+    });
+  }
+});
+
 // Route to post shop documentation (for internal portal)
 router.post('/shop/:shopId/documentation', requireInternalAPIAuth, async (req, res) => {
-  const { shopId } = req.params;
-  console.log(`[INTERNAL] Creating shop documentation for: ${shopId}`);
-  
-  // Forward the request to the customer route with all headers and body
   try {
-    const customerRoutes = require('./customer');
-    // This requires some refactoring to properly forward the request
-    // For now, just redirect with a 307 (temporary redirect with method preservation)
-    res.redirect(307, `/api/customer/shop/${shopId}/documentation`);
+    const { shopId } = req.params;
+    const { action, forceOverwrite } = req.body;
+    
+    console.log(`[INTERNAL] Shop documentation action for shop: ${shopId}, action: ${action}`);
+    
+    if (!['document', 'mark_documented', 'undocument'].includes(action)) {
+      return res.status(400).json({ success: false, message: 'Invalid action' });
+    }
+    
+    const customersCollection = await getCustomersCollection();
+    
+    // Find the customer document that contains the shop
+    const customer = await customersCollection.findOne({
+      'shops.shopId': shopId
+    });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shop not found'
+      });
+    }
+    
+    // Find specific shop object
+    const shop = customer.shops.find(s => s.shopId === shopId);
+    if (!shop) {
+      return res.status(404).json({ success: false, message: 'Shop not found' });
+    }
+    
+    // For mark_documented and undocument actions (simple status updates)
+    if (action === 'mark_documented' || action === 'undocument') {
+      const newDocumentedStatus = action === 'mark_documented';
+      const shopStatus = action === 'mark_documented' ? 'documented' : 'undocumented';
+      
+      // Get products count for update operations
+      const productsCount = shop.products?.length || 0;
+      
+      // Build update operations for shop and all products
+      const updateOperations = {
+        'shops.$.documented': shopStatus,
+        'shops.$.updatedAt': new Date()
+      };
+      
+      // Update all products' documented status
+      if (productsCount > 0) {
+        for (let i = 0; i < productsCount; i++) {
+          updateOperations[`shops.$.products.${i}.documented`] = newDocumentedStatus;
+          updateOperations[`shops.$.products.${i}.updatedAt`] = new Date();
+        }
+      }
+      
+      const updateResult = await customersCollection.updateOne(
+        { 'shops.shopId': shopId },
+        { $set: updateOperations }
+      );
+      
+      if (updateResult.modifiedCount === 0) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to update shop documentation status'
+        });
+      }
+      
+      res.status(200).json({
+        success: true,
+        message: action === 'mark_documented' 
+          ? `Boutique et ${productsCount} produits marqués comme documentés`
+          : `Documentation supprimée avec succès pour la boutique et ${productsCount} produits`,
+        shopId: shopId,
+        documented: shopStatus
+      });
+         } else if (action === 'document') {
+       // For SharePoint documentation generation - simplified version for internal portal
+       // This generates documentation and updates all shop products to documented status
+       try {
+         console.log(`[INTERNAL] Starting SharePoint documentation generation for shop: ${shopId}`);
+         
+         // Import required modules for documentation generation
+         const { generateDocumentation } = require('../services/sharepointService');
+         
+         // Generate SharePoint documentation
+         await generateDocumentation(customer, shop, forceOverwrite);
+         
+         // Update shop status to documented
+         const productsCount = shop.products?.length || 0;
+         const updateOperations = {
+           'shops.$.documented': 'documented',
+           'shops.$.updatedAt': new Date()
+         };
+         
+         // Update all products to documented status
+         if (productsCount > 0) {
+           for (let i = 0; i < productsCount; i++) {
+             updateOperations[`shops.$.products.${i}.documented`] = true;
+             updateOperations[`shops.$.products.${i}.updatedAt`] = new Date();
+           }
+         }
+         
+         const updateResult = await customersCollection.updateOne(
+           { 'shops.shopId': shopId },
+           { $set: updateOperations }
+         );
+         
+         if (updateResult.modifiedCount === 0) {
+           throw new Error('Failed to update shop documentation status');
+         }
+         
+         console.log(`[INTERNAL] SharePoint documentation generated successfully for shop: ${shopId}`);
+         
+         res.status(200).json({
+           success: true,
+           message: `Documentation SharePoint générée avec succès pour la boutique et ${productsCount} produits`,
+           shopId: shopId,
+           documented: 'documented'
+         });
+         
+       } catch (docError) {
+         console.error('[INTERNAL] Error generating SharePoint documentation:', docError);
+         
+         // Handle specific SharePoint errors
+         if (docError.message === 'DOCUMENTATION_EXISTS') {
+           return res.status(409).json({
+             success: false,
+             message: 'DOCUMENTATION_EXISTS',
+             shopId: shopId,
+             error: 'Documentation already exists for this shop'
+           });
+         }
+         
+         res.status(500).json({
+           success: false,
+           message: 'Erreur lors de la génération de la documentation SharePoint',
+           error: docError.message
+         });
+       }
+     } else {
+       return res.status(400).json({
+         success: false,
+         message: 'Unknown action'
+       });
+     }
+    
   } catch (error) {
-    console.error('[INTERNAL] Error forwarding documentation request:', error);
+    console.error('[INTERNAL] Error updating shop documentation:', error);
     res.status(500).json({
       success: false,
-      message: 'Error processing documentation request',
+      message: 'An error occurred while updating shop documentation',
       error: error.message
     });
   }
@@ -982,13 +1276,56 @@ router.post('/shop/:shopId/product/:productId/documentation', requireInternalAPI
         productId: productId,
         documented: newDocumentedStatus
       });
-    } else {
-      // For 'document' action, we would need to implement the full documentation generation
-      // For now, forward to customer route or implement here if needed
-      return res.status(501).json({
-        success: false,
-        message: 'Document generation not implemented in internal API'
-      });
+    } else if (action === 'document') {
+      // For 'document' action, generate SharePoint documentation
+      const sharepointService = require('../services/sharepointService');
+      
+      try {
+        // Create a temporary shop object with only the selected product for SharePoint generation
+        const tempShop = {
+          ...shop,
+          products: [product]
+        };
+        
+        console.log(`[INTERNAL] Generating SharePoint documentation for single product: ${product.titre}`);
+        
+        // Generate/append to Fiches Produits document
+        await sharepointService.appendToFichesProduitsOrCreate(customer, tempShop);
+        
+        // Mark the product as documented in the database
+        const updateResult = await customersCollection.updateOne(
+          { 'shops.shopId': shopId },
+          { 
+            $set: { 
+              [`shops.$.products.${productIndex}.documented`]: true,
+              [`shops.$.products.${productIndex}.updatedAt`]: new Date()
+            }
+          }
+        );
+        
+        if (updateResult.modifiedCount === 0) {
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to update product documentation status'
+          });
+        }
+        
+        console.log(`[INTERNAL] Successfully documented single product: ${product.titre}`);
+        
+        return res.json({
+          success: true,
+          message: `Produit "${product.titre}" documenté avec succès et ajouté aux Fiches Produits`,
+          productId: productId,
+          documented: true
+        });
+        
+      } catch (error) {
+        console.error('[INTERNAL] Error during individual product SharePoint documentation:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Erreur lors de la génération de la documentation SharePoint: ' + error.message
+        });
+      }
     }
     
   } catch (error) {
@@ -2618,6 +2955,156 @@ router.put('/products/:clientId/:shopId/:productId/set-shopify-status', requireI
   }
 });
 
+// Simple rate limiting for EC status updates (per user)
+const ecStatusUpdateLimiter = new Map();
+const EC_STATUS_RATE_LIMIT = 10; // Max 10 updates per minute per user
+const EC_STATUS_RATE_WINDOW = 60000; // 1 minute
+
+// Cleanup old rate limit entries every 5 minutes to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, data] of ecStatusUpdateLimiter.entries()) {
+    if (now - data.windowStart > EC_STATUS_RATE_WINDOW * 2) {
+      ecStatusUpdateLimiter.delete(userId);
+    }
+  }
+}, 300000); // 5 minutes
+
+// Route to specifically update the hasEC status of a product
+router.put('/products/:clientId/:shopId/:productId/set-ec-status', requireInternalAPIAuth, async (req, res) => {
+  try {
+    // Rate limiting check
+    const userId = req.session.internalUserInfo?.email || req.session.internalUserInfo?.sub;
+    const now = Date.now();
+    const userRateData = ecStatusUpdateLimiter.get(userId) || { count: 0, windowStart: now };
+    
+    // Reset window if expired
+    if (now - userRateData.windowStart > EC_STATUS_RATE_WINDOW) {
+      userRateData.count = 0;
+      userRateData.windowStart = now;
+    }
+    
+    // Check rate limit
+    if (userRateData.count >= EC_STATUS_RATE_LIMIT) {
+      console.log(`🚨 [SECURITY] Rate limit exceeded for EC status updates:`, {
+        userId,
+        count: userRateData.count,
+        limit: EC_STATUS_RATE_LIMIT,
+        ip: req.ip,
+        timestamp: new Date().toISOString()
+      });
+      return res.status(429).json({ 
+        success: false, 
+        message: 'Trop de tentatives. Veuillez patienter avant de réessayer.',
+        retryAfter: Math.ceil((EC_STATUS_RATE_WINDOW - (now - userRateData.windowStart)) / 1000)
+      });
+    }
+    
+    // Increment counter
+    userRateData.count++;
+    ecStatusUpdateLimiter.set(userId, userRateData);
+    const { clientId, shopId, productId } = req.params;
+    const { hasEC } = req.body;
+
+    // Enhanced input validation and security
+    if (!clientId || !shopId || !productId) {
+      console.log(`🚨 [SECURITY] Missing required parameters in EC status update:`, { clientId, shopId, productId, userEmail: req.session.internalUserInfo?.email });
+      return res.status(400).json({ success: false, message: 'Tous les paramètres (clientId, shopId, productId) sont requis.' });
+    }
+
+    if (!ObjectId.isValid(clientId)) {
+      console.log(`🚨 [SECURITY] Invalid clientId format in EC status update:`, { clientId, userEmail: req.session.internalUserInfo?.email });
+      return res.status(400).json({ success: false, message: 'Format clientId invalide.' });
+    }
+
+    if (typeof hasEC !== 'boolean') {
+      console.log(`🚨 [SECURITY] Invalid hasEC type in EC status update:`, { hasEC, type: typeof hasEC, userEmail: req.session.internalUserInfo?.email });
+      return res.status(400).json({ success: false, message: 'Le statut hasEC (boolean) est requis.' });
+    }
+
+    // Log the security-sensitive operation
+    console.log(`🔐 [SECURITY] EC status update requested:`, {
+      clientId,
+      shopId,
+      productId,
+      hasEC,
+      requestedBy: req.session.internalUserInfo?.email || req.session.internalUserInfo?.sub,
+      timestamp: new Date().toISOString(),
+      ip: req.ip
+    });
+
+    const customersCollection = await getCustomersCollection();
+
+    const customer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Client non trouvé.' });
+    }
+
+    const shopIndex = customer.shops?.findIndex(s => s.shopId === shopId);
+    if (shopIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Boutique non trouvée.' });
+    }
+
+    const productIndex = customer.shops[shopIndex].products?.findIndex(p => p.productId === productId);
+    if (productIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Produit non trouvé.' });
+    }
+
+    const result = await customersCollection.updateOne(
+      { _id: new ObjectId(clientId), 'shops.shopId': shopId },
+      {
+        $set: {
+          [`shops.$.products.${productIndex}.hasEC`]: hasEC,
+          [`shops.$.products.${productIndex}.updatedAt`]: new Date(),
+        }
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      console.log(`⚠️ [SECURITY] EC status update failed - no modification:`, {
+        clientId,
+        shopId,
+        productId,
+        hasEC,
+        requestedBy: req.session.internalUserInfo?.email || req.session.internalUserInfo?.sub,
+        reason: 'No documents modified - product may not exist or status already set'
+      });
+      return res.status(400).json({ success: false, message: 'Le statut du produit n\'a pas été modifié (il était peut-être déjà à jour).' });
+    }
+
+    // Log successful security-sensitive operation
+    console.log(`✅ [SECURITY] EC status updated successfully:`, {
+      clientId,
+      shopId,
+      productId,
+      hasEC,
+      requestedBy: req.session.internalUserInfo?.email || req.session.internalUserInfo?.sub,
+      timestamp: new Date().toISOString(),
+      modifiedCount: result.modifiedCount
+    });
+
+    // Add additional security headers for this sensitive operation
+    res.setHeader('X-Operation-Log-Id', `EC_STATUS_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    
+    res.status(200).json({ success: true, message: 'Statut EC du produit mis à jour avec succès.' });
+
+  } catch (error) {
+    console.error(`🚨 [SECURITY ERROR] EC status update failed:`, {
+      error: error.message,
+      stack: error.stack,
+      clientId,
+      shopId,
+      productId,
+      hasEC,
+      requestedBy: req.session.internalUserInfo?.email || req.session.internalUserInfo?.sub,
+      timestamp: new Date().toISOString(),
+      ip: req.ip
+    });
+    res.status(500).json({ success: false, message: 'Erreur serveur lors de la mise à jour du statut EC.' });
+  }
+});
+
 // NEW: Route to delete a product (for internal portal)
 router.delete('/products/:clientId/:shopId/:productId', requireInternalAPIAuth, async (req, res) => {
   try {
@@ -2678,17 +3165,37 @@ router.get('/clients/:clientId/shops/:shopId', requireInternalAPIAuth, async (re
     }
 
     // Generate pre-signed URLs for shop images if they exist
-    if (shop.logoUrl) {
-      const key = decodeURIComponent(new URL(shop.logoUrl).pathname.substring(1));
-      shop.logoUrl = await getSignedUrl(key);
+    if (shop.logoS3Key) {
+      try {
+        shop.logoUrl = await getSignedUrl(shop.logoS3Key);
+      } catch (error) {
+        console.error('Error generating signed URL for logo:', error);
+        shop.logoUrl = null;
+      }
     }
-    if (shop.desktopBannerUrl) {
-      const key = decodeURIComponent(new URL(shop.desktopBannerUrl).pathname.substring(1));
-      shop.desktopBannerUrl = await getSignedUrl(key);
+    if (shop.desktopBannerS3Key) {
+      try {
+        shop.desktopBannerUrl = await getSignedUrl(shop.desktopBannerS3Key);
+      } catch (error) {
+        console.error('Error generating signed URL for desktop banner:', error);
+        shop.desktopBannerUrl = null;
+      }
     }
-    if (shop.mobileBannerUrl) {
-      const key = decodeURIComponent(new URL(shop.mobileBannerUrl).pathname.substring(1));
-      shop.mobileBannerUrl = await getSignedUrl(key);
+    if (shop.mobileBannerS3Key) {
+      try {
+        shop.mobileBannerUrl = await getSignedUrl(shop.mobileBannerS3Key);
+      } catch (error) {
+        console.error('Error generating signed URL for mobile banner:', error);
+        shop.mobileBannerUrl = null;
+      }
+    }
+    if (shop.faviconS3Key) {
+      try {
+        shop.faviconUrl = await getSignedUrl(shop.faviconS3Key);
+      } catch (error) {
+        console.error('Error generating signed URL for favicon:', error);
+        shop.faviconUrl = null;
+      }
     }
     
     res.status(200).json({
@@ -3228,33 +3735,142 @@ router.post('/shops/:shopId/save-credentials-and-configure-theme', requireIntern
   }
 });
 
-// NEW: Route to delete a shop (for internal portal)
+// NEW: Route to delete a shop (for internal portal) with S3 cleanup
 router.delete('/clients/:clientId/shops/:shopId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId, shopId } = req.params;
 
+    // Input validation
     if (!ObjectId.isValid(clientId)) {
+      console.error('🔒 [SECURITY] Invalid client ID in shop deletion:', { clientId, shopId, ip: req.ip });
       return res.status(400).json({ success: false, message: 'Invalid client ID' });
     }
 
+    console.log(`🗑️ [SHOP DELETE] Starting deletion process for shop ${shopId} of client ${clientId}`);
+
     const customersCollection = await getCustomersCollection();
 
+    // First, find the shop to get image URLs for S3 cleanup
+    const customer = await customersCollection.findOne(
+      { _id: new ObjectId(clientId), 'shops.shopId': shopId }
+    );
+
+    if (!customer) {
+      console.log(`❌ [SHOP DELETE] Customer or shop not found: clientId=${clientId}, shopId=${shopId}`);
+      return res.status(404).json({ success: false, message: 'Customer or shop not found' });
+    }
+
+    const shop = customer.shops.find(s => s.shopId === shopId);
+    if (!shop) {
+      console.log(`❌ [SHOP DELETE] Shop not found in customer data: shopId=${shopId}`);
+      return res.status(404).json({ success: false, message: 'Shop not found' });
+    }
+
+    console.log(`📊 [SHOP DELETE] Found shop: ${shop.nomProjet || 'Unnamed'}`);
+
+    // Collect all image URLs that need to be deleted from S3
+    const imagesToDelete = [];
+    
+    // Shop images
+    if (shop.logoUrl && shop.logoUrl.includes(process.env.AWS_S3_BUCKET_NAME)) {
+      imagesToDelete.push(shop.logoUrl);
+    }
+    if (shop.desktopBannerUrl && shop.desktopBannerUrl.includes(process.env.AWS_S3_BUCKET_NAME)) {
+      imagesToDelete.push(shop.desktopBannerUrl);
+    }
+    if (shop.mobileBannerUrl && shop.mobileBannerUrl.includes(process.env.AWS_S3_BUCKET_NAME)) {
+      imagesToDelete.push(shop.mobileBannerUrl);
+    }
+    if (shop.faviconUrl && shop.faviconUrl.includes(process.env.AWS_S3_BUCKET_NAME)) {
+      imagesToDelete.push(shop.faviconUrl);
+    }
+    if (shop.bannerUrl && shop.bannerUrl.includes(process.env.AWS_S3_BUCKET_NAME)) {
+      imagesToDelete.push(shop.bannerUrl);
+    }
+
+    // Product images
+    if (shop.products && Array.isArray(shop.products)) {
+      shop.products.forEach(product => {
+        if (product.imageUrls && Array.isArray(product.imageUrls)) {
+          product.imageUrls.forEach(imageUrl => {
+            if (imageUrl && imageUrl.includes(process.env.AWS_S3_BUCKET_NAME)) {
+              imagesToDelete.push(imageUrl);
+            }
+          });
+        }
+      });
+    }
+
+    console.log(`🖼️ [SHOP DELETE] Found ${imagesToDelete.length} images to delete from S3`);
+
+    // Delete images from S3
+    const { deleteImage } = require('../services/s3Service');
+    const deletionResults = [];
+    
+    for (const imageUrl of imagesToDelete) {
+      try {
+        console.log(`🗑️ [S3 DELETE] Deleting image: ${imageUrl}`);
+        const result = await deleteImage(imageUrl);
+        deletionResults.push({ url: imageUrl, success: result.success, error: result.error });
+        
+        if (result.success) {
+          console.log(`✅ [S3 DELETE] Successfully deleted: ${imageUrl}`);
+        } else {
+          console.error(`❌ [S3 DELETE] Failed to delete: ${imageUrl}`, result.error);
+        }
+      } catch (error) {
+        console.error(`❌ [S3 DELETE] Exception deleting: ${imageUrl}`, error);
+        deletionResults.push({ url: imageUrl, success: false, error: error.message });
+      }
+    }
+
+    // Count successful deletions
+    const successfulDeletions = deletionResults.filter(r => r.success).length;
+    const failedDeletions = deletionResults.filter(r => !r.success).length;
+    
+    console.log(`📊 [S3 DELETE] Results: ${successfulDeletions} successful, ${failedDeletions} failed`);
+
+    // Delete the shop from the database
     const result = await customersCollection.updateOne(
       { _id: new ObjectId(clientId) },
       { $pull: { shops: { shopId: shopId } } }
     );
 
     if (result.matchedCount === 0) {
+      console.error(`❌ [SHOP DELETE] Customer not found during deletion: clientId=${clientId}`);
       return res.status(404).json({ success: false, message: 'Client not found' });
     }
 
     if (result.modifiedCount === 0) {
+      console.error(`❌ [SHOP DELETE] Shop not found or already deleted: shopId=${shopId}`);
       return res.status(404).json({ success: false, message: 'Shop not found or already deleted' });
     }
 
-    res.status(200).json({ success: true, message: 'Shop deleted successfully' });
+    console.log(`✅ [SHOP DELETE] Successfully deleted shop ${shopId} from database`);
+
+    // Security and audit logging
+    console.log(`🔐 [AUDIT] Shop deleted by internal user:`, {
+      clientId,
+      shopId,
+      shopName: shop.nomProjet || 'Unnamed',
+      imagesDeleted: successfulDeletions,
+      imagesFailed: failedDeletions,
+      userSession: req.session.internalUserInfo?.email || 'Unknown',
+      timestamp: new Date().toISOString(),
+      ip: req.ip
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Shop deleted successfully',
+      details: {
+        imagesDeleted: successfulDeletions,
+        imagesFailed: failedDeletions,
+        totalImages: imagesToDelete.length
+      }
+    });
   } catch (error) {
-    console.error('Error deleting shop:', error);
+    console.error('❌ [SHOP DELETE] Error deleting shop:', error);
     res.status(500).json({ success: false, message: 'An internal server error occurred' });
   }
 });
@@ -4926,10 +5542,10 @@ router.put('/shops/:clientId/:shopId/images/replace', requireInternalAPIAuth, as
       });
     }
     
-    if (!['logo', 'desktopBanner', 'mobileBanner'].includes(imageType)) {
+    if (!['logo', 'desktopBanner', 'mobileBanner', 'favicon'].includes(imageType)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid image type. Must be logo, desktopBanner, or mobileBanner'
+        message: 'Invalid image type. Must be logo, desktopBanner, mobileBanner, or favicon'
       });
     }
     
@@ -4959,8 +5575,35 @@ router.put('/shops/:clientId/:shopId/images/replace', requireInternalAPIAuth, as
       });
     }
     
-    // Update the shop with the new image URL
-    const updateField = `${imageType}Url`;
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Found shop:`, {
+      shopId: shop.shopId,
+      hasLogoS3Key: !!shop.logoS3Key,
+      hasDesktopBannerS3Key: !!shop.desktopBannerS3Key,
+      hasMobileBannerS3Key: !!shop.mobileBannerS3Key,
+      hasFaviconS3Key: !!shop.faviconS3Key
+    });
+    
+    // Extract S3 key from the signed URL
+    let s3Key;
+    try {
+      const urlParts = new URL(newImageUrl);
+      // Extract the S3 key from the signed URL path
+      s3Key = urlParts.pathname.substring(1); // Remove leading slash
+    } catch (urlError) {
+      console.error('[INTERNAL SHOP IMAGE REPLACE] Failed to extract S3 key from URL:', urlError);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image URL format'
+      });
+    }
+    
+    // Update the shop with the S3 key (not the signed URL)
+    const updateField = `${imageType}S3Key`;
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Updating database with field: ${updateField}`);
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] S3 key to store: ${s3Key}`);
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Customer ID: ${customer._id}`);
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Shop ID: ${shopId}`);
+    
     const updateResult = await customersCollection.updateOne(
       { 
         _id: customer._id,
@@ -4968,11 +5611,17 @@ router.put('/shops/:clientId/:shopId/images/replace', requireInternalAPIAuth, as
       },
       { 
         $set: { 
-          [`shops.$.${updateField}`]: newImageUrl,
+          [`shops.$.${updateField}`]: s3Key,
           'shops.$.lastModified': new Date()
         } 
       }
     );
+    
+    console.log(`[INTERNAL SHOP IMAGE REPLACE] Update result:`, {
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount,
+      upsertedCount: updateResult.upsertedCount
+    });
     
     if (updateResult.matchedCount === 0) {
       return res.status(404).json({

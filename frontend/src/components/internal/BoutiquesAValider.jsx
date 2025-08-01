@@ -37,10 +37,6 @@ export default function BoutiquesAValider() {
     "snaResponsableDesign",
     "moduleDelivengo",
     "moduleMondialRelay",
-    "logoUrl",
-    "desktopBannerUrl",
-    "mobileBannerUrl",
-    "faviconUrl",
     "pourcentageSNA",
   ];
 

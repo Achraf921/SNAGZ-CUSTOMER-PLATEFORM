@@ -1,0 +1,124 @@
+[2025-07-31 13:51:12] Merchandising XLSX processor script started
+[2025-07-31 13:51:12] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 13:51:12] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 13:51:12] Decoding base64 data...
+[2025-07-31 13:51:12] Successfully decoded base64 data
+[2025-07-31 13:51:12] Parsing JSON data...
+[2025-07-31 13:51:12] Successfully parsed JSON data
+[2025-07-31 13:51:12] Starting merchandising XLSX processing...
+[2025-07-31 13:51:12] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 13:51:12] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 13:51:12] Append mode: False
+[2025-07-31 13:51:12] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 13:51:12] Shop data keys: ['nomProjet', 'shopifyDomain', 'raisonSociale', 'dateSortieOfficielle', 'dateCommercialisation', 'dateMiseEnLigne', 'products', 'appendMode']
+[2025-07-31 13:51:12] Found date-related field: 'dateSortieOfficielle' = '2025-07-16'
+[2025-07-31 13:51:12] Found date-related field: 'dateCommercialisation' = '2025-07-16'
+[2025-07-31 13:51:12] Found date-related field: 'dateMiseEnLigne' = '2025-07-16'
+[2025-07-31 13:51:12] Found customer-related field: 'raisonSociale' = 'TsT'
+[2025-07-31 13:51:12] 🔍 DEBUG: All shop_data keys: ['nomProjet', 'shopifyDomain', 'raisonSociale', 'dateSortieOfficielle', 'dateCommercialisation', 'dateMiseEnLigne', 'products', 'appendMode']
+[2025-07-31 13:51:12] 🔍 DEBUG: Date fields found - dateSortie: 'NOT_FOUND', dateSortieOfficielle: '2025-07-16', dateCommercialisation: '2025-07-16'
+[2025-07-31 13:51:12] 🔍 DEBUG: Full shop_data content: {'nomProjet': 'Test_Amanda', 'shopifyDomain': 'test-amanda-store', 'raisonSociale': 'TsT', 'dateSortieOfficielle': '2025-07-16', 'dateCommercialisation': '2025-07-16', 'dateMiseEnLigne': '2025-07-16', 'products': [{'titre': 'TestAppendNumber2', 'description': 'Testing again', 'prix': 32, 'poids': 2132, 'eans': {'default': '2184219442479'}, 'typeProduit': 'Merch', 'produit': 'Chemise', 'OCC': False, 'tailles': [], 'couleurs': [], 'stock': {'default': 123}, 'shopId': '6877a8dbd94f83fadc5ec607', 'skus': {'default': 'CHEMISE-TESTAPPENDNUMBER2'}, 'productId': '688b552649ca05f4e46ab748', 'createdAt': '2025-07-31T11:36:06.860Z', 'updatedAt': '2025-07-31T11:51:04.817Z', 'active': True, 'documented': False, 'hasShopify': False, 'hasEC': False, 'imageUrls': ['https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-688b552649ca05f4e46ab748/1753961766928-c7pvp5dosn5.png'], 'validatedAt': '2025-07-31T11:37:29.935Z'}], 'appendMode': False}
+[2025-07-31 13:51:12] 🔍 DEBUG: Final extracted - date_sortie: '2025-07-16', date_commercialisation: '2025-07-16'
+[2025-07-31 13:51:12] Extracted dates - Sortie: '2025-07-16', Commercialisation: '2025-07-16', Mise en ligne DD/MM/YYYY: ''
+[2025-07-31 13:51:12] Extracted raison sociale: 'TsT'
+[2025-07-31 13:51:12] 🔍 DEBUG: Primary date for column N: '2025-07-16' (from date_sortie: '2025-07-16' or date_commercialisation: '2025-07-16')
+[2025-07-31 13:51:12] 🔍 DEBUG: Converted YYYY-MM-DD '2025-07-16' to DD/MM/YYYY '16/07/2025'
+[2025-07-31 13:51:12] Combined dates field: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:51:12] Combined dates DD/MM/YYYY: '16/07/2025'
+[2025-07-31 13:51:12] Total shop stock calculated: 123
+[2025-07-31 13:51:12] Processing 1 products for shop: Test_Amanda
+[2025-07-31 13:51:12] Processing worksheet: Catalogue en ligne
+[2025-07-31 13:51:12] 🎯 SPECIAL CELL A2: Set to 'CLIENT : TsT' (was: 'CLIENT : 111112')
+[2025-07-31 13:51:12] 🎯 SPECIAL CELL F2: Replaced formula/#### with total stock 123 (was: '=SUM(E5:E199)', now: '123')
+[2025-07-31 13:51:12] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-31 13:51:12] Will start inserting product data at row: 5
+[2025-07-31 13:51:12] Normal mode: Clearing existing product data...
+[2025-07-31 13:51:12] Starting to add 1 products at row 5
+[2025-07-31 13:51:12] Processing product 1/1: TestAppendNumber2
+[2025-07-31 13:51:12] Product 1 total stock: 123 from stock_dict: {'default': 123}
+[2025-07-31 13:51:12] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 13:51:12] Product 1 colors: [] -> ''
+[2025-07-31 13:51:12] Product 1 sizes: [] -> ''
+[2025-07-31 13:51:12] Product 1 images: 1 images -> ''
+[2025-07-31 13:51:12] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 13:51:12] Product 1 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 13:51:12] Product 1 - Total shop stock: 123
+[2025-07-31 13:51:12] 🎯 COLUMN N DEBUG: Row 5, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 13:51:12] Successfully added product 1 data at row 5: TestAppendNumber2
+[2025-07-31 13:51:12] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:51:12] Colors field content: ''
+[2025-07-31 13:51:12] Sizes field content: ''
+[2025-07-31 13:51:12] Data written: ['Merch', 'TestAppendNumber2', 'Testing again', '2184219442479', 123, 0, 0, 0, 0, 0, 2132, 32, 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 13:51:12] Finished processing all products. Final row: 5
+[2025-07-31 13:51:12] Processing worksheet: POD
+[2025-07-31 13:51:12] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 13:51:12] Will start inserting product data at row: 6
+[2025-07-31 13:51:12] Normal mode: Clearing existing product data...
+[2025-07-31 13:51:12] Starting to add 1 products at row 6
+[2025-07-31 13:51:12] Processing product 1/1: TestAppendNumber2
+[2025-07-31 13:51:12] Product 1 total stock: 123 from stock_dict: {'default': 123}
+[2025-07-31 13:51:12] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 13:51:12] Product 1 colors: [] -> ''
+[2025-07-31 13:51:12] Product 1 sizes: [] -> ''
+[2025-07-31 13:51:12] Product 1 images: 1 images -> ''
+[2025-07-31 13:51:12] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 13:51:12] Product 1 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 13:51:12] Product 1 - Total shop stock: 123
+[2025-07-31 13:51:12] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 13:51:12] Successfully added product 1 data at row 6: TestAppendNumber2
+[2025-07-31 13:51:12] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:51:12] Colors field content: ''
+[2025-07-31 13:51:12] Sizes field content: ''
+[2025-07-31 13:51:12] Data written: ['Merch', 'TestAppendNumber2', 'Testing again', '2184219442479', 123, 0, 0, 0, 0, 0, 2132, 32, 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 13:51:12] Finished processing all products. Final row: 6
+[2025-07-31 13:51:12] Processing worksheet: Feuil1
+[2025-07-31 13:51:12] 🎯 SPECIAL CELL F2: No formula/#### found (value: 'ROCKER')
+[2025-07-31 13:51:12] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 13:51:12] Will start inserting product data at row: 6
+[2025-07-31 13:51:12] Normal mode: Clearing existing product data...
+[2025-07-31 13:51:12] Starting to add 1 products at row 6
+[2025-07-31 13:51:12] Processing product 1/1: TestAppendNumber2
+[2025-07-31 13:51:12] Product 1 total stock: 123 from stock_dict: {'default': 123}
+[2025-07-31 13:51:12] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 13:51:12] Product 1 colors: [] -> ''
+[2025-07-31 13:51:12] Product 1 sizes: [] -> ''
+[2025-07-31 13:51:12] Product 1 images: 1 images -> ''
+[2025-07-31 13:51:12] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 13:51:12] Product 1 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 13:51:12] Product 1 - Total shop stock: 123
+[2025-07-31 13:51:12] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 13:51:12] Successfully added product 1 data at row 6: TestAppendNumber2
+[2025-07-31 13:51:12] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:51:12] Colors field content: ''
+[2025-07-31 13:51:12] Sizes field content: ''
+[2025-07-31 13:51:12] Data written: ['Merch', 'TestAppendNumber2', 'Testing again', '2184219442479', 123, 0, 0, 0, 0, 0, 2132, 32, 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 13:51:12] Finished processing all products. Final row: 6
+[2025-07-31 13:51:12] Processing worksheet: NE PAS MODIFIER
+[2025-07-31 13:51:12] 🎯 SPECIAL CELL A2: Set to 'CLIENT : TsT' (was: 'CD')
+[2025-07-31 13:51:12] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 13:51:12] Will start inserting product data at row: 6
+[2025-07-31 13:51:12] Normal mode: Clearing existing product data...
+[2025-07-31 13:51:12] Starting to add 1 products at row 6
+[2025-07-31 13:51:12] Processing product 1/1: TestAppendNumber2
+[2025-07-31 13:51:12] Product 1 total stock: 123 from stock_dict: {'default': 123}
+[2025-07-31 13:51:12] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 13:51:12] Product 1 colors: [] -> ''
+[2025-07-31 13:51:12] Product 1 sizes: [] -> ''
+[2025-07-31 13:51:12] Product 1 images: 1 images -> ''
+[2025-07-31 13:51:12] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 13:51:12] Product 1 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 13:51:12] Product 1 - Total shop stock: 123
+[2025-07-31 13:51:12] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 13:51:12] Successfully added product 1 data at row 6: TestAppendNumber2
+[2025-07-31 13:51:12] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:51:12] Colors field content: ''
+[2025-07-31 13:51:12] Sizes field content: ''
+[2025-07-31 13:51:12] Data written: ['Merch', 'TestAppendNumber2', 'Testing again', '2184219442479', 123, 0, 0, 0, 0, 0, 2132, 32, 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 13:51:12] Finished processing all products. Final row: 6
+[2025-07-31 13:51:12] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 13:51:12] Merchandising XLSX processing completed successfully

@@ -11,6 +11,8 @@ import {
   FaTrash,
   FaUpload,
   FaGripVertical,
+  FaSave,
+  FaTimes,
 } from "react-icons/fa";
 
 const MesProduits = () => {
@@ -272,9 +274,34 @@ const MesProduits = () => {
 
       const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}`;
 
-      // If saving stock, also include EAN changes
+      // Special handling for different field types
       let updateData = { [fieldName]: newValue };
-      if (fieldName === "stock" && editingField[productId]?.eans) {
+
+      if (fieldName === "ean") {
+        // Validate EAN
+        if (newValue && !validateEAN(newValue)) {
+          throw new Error("L'EAN doit contenir exactement 13 chiffres");
+        }
+
+        // Apply master EAN to all variants
+        const masterEan = newValue || "";
+        const eansData = { default: masterEan };
+
+        // Find the current product to get its stock combinations
+        const currentProduct = products.find((p) => p.productId === productId);
+        if (
+          currentProduct &&
+          currentProduct.stock &&
+          typeof currentProduct.stock === "object"
+        ) {
+          // Apply master EAN to all existing stock combinations
+          Object.keys(currentProduct.stock).forEach((combination) => {
+            eansData[combination] = masterEan;
+          });
+        }
+
+        updateData = { eans: eansData };
+      } else if (fieldName === "stock" && editingField[productId]?.eans) {
         // Clean EANs before saving
         const cleanedEANs = {};
         Object.entries(editingField[productId].eans).forEach(([key, ean]) => {
@@ -356,6 +383,7 @@ const MesProduits = () => {
   // EAN validation functions
   const validateEAN = (ean) => {
     if (!ean || ean.trim() === "") return true; // Allow empty EANs
+    if (ean === "0000000000000") return true; // Allow "no EAN" value
     const digitsOnly = ean.replace(/\D/g, "");
     return digitsOnly.length === 13;
   };
@@ -396,6 +424,31 @@ const MesProduits = () => {
     });
 
     return invalidEANs;
+  };
+
+  // Handle master EAN changes - applies to all variants
+  const handleMasterEANChange = (productId, value) => {
+    // Keep only digits and limit to 13 characters
+    const sanitized = value.replace(/\D/g, "").slice(0, 13);
+
+    // Get current product to determine all variants
+    const product = products.find((p) => p.productId === productId);
+    if (!product) return;
+
+    // Update all variant EANs with the master EAN
+    const newEans = { ...editingField[productId]?.eans };
+
+    // Set master EAN for default
+    newEans.default = sanitized;
+
+    // Set master EAN for all stock combinations
+    if (product.stock && typeof product.stock === "object") {
+      Object.keys(product.stock).forEach((combination) => {
+        newEans[combination] = sanitized;
+      });
+    }
+
+    handleFieldChange(productId, "eans", newEans);
   };
 
   const handleEANChange = (productId, combination, value) => {
@@ -716,9 +769,28 @@ const MesProduits = () => {
   };
 
   const handleEditProduct = (product) => {
+    // Extract master EAN from the product's EAN data structure
+    let masterEan = "";
+    if (product.eans && typeof product.eans === "object") {
+      // Try to get EAN from default or first available variant
+      masterEan =
+        product.eans.default ||
+        product.eans[Object.keys(product.eans)[0]] ||
+        "";
+    } else if (product.ean) {
+      // Handle simple EAN string or object
+      masterEan =
+        typeof product.ean === "object"
+          ? product.ean.default ||
+            product.ean[Object.keys(product.ean)[0]] ||
+            ""
+          : product.ean;
+    }
+
     setEditingProduct(product.productId);
     setEditForm({
       ...product,
+      ean: masterEan, // Set the master EAN for the form
       hasSizes: product.sizes && product.sizes.length > 0,
       hasColors: product.colors && product.colors.length > 0,
       stock: product.stock || {},
@@ -825,10 +897,38 @@ const MesProduits = () => {
       setIsSubmitting(true);
       setError(null);
 
+      // Validate EAN before saving
+      if (editForm.ean && !validateEAN(editForm.ean)) {
+        throw new Error("L'EAN doit contenir exactement 13 chiffres");
+      }
+
+      // Prepare EAN data - apply master EAN to all variants
+      const masterEan = editForm.ean || "";
+      const eansData = {};
+
+      // Set master EAN for default
+      eansData.default = masterEan;
+
+      // Find the current product to get its stock combinations
+      const currentProduct = products.find(
+        (p) => p.productId === editingProduct
+      );
+      if (
+        currentProduct &&
+        currentProduct.stock &&
+        typeof currentProduct.stock === "object"
+      ) {
+        // Apply master EAN to all existing stock combinations
+        Object.keys(currentProduct.stock).forEach((combination) => {
+          eansData[combination] = masterEan;
+        });
+      }
+
       const productData = {
         ...editForm,
         price: parseFloat(editForm.price),
         weight: editForm.weight ? parseFloat(editForm.weight) : null,
+        eans: eansData,
       };
 
       const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${editingProduct}`;
@@ -1235,16 +1335,30 @@ const MesProduits = () => {
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  EAN
+                                  EAN (appliqué à toutes les variantes)
                                 </label>
                                 <input
                                   type="text"
                                   value={editForm.ean || ""}
-                                  onChange={(e) =>
-                                    handleFormChange("ean", e.target.value)
-                                  }
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    // Allow empty string or sanitize to digits only (max 13)
+                                    const sanitized =
+                                      value === ""
+                                        ? ""
+                                        : value.replace(/\D/g, "").slice(0, 13);
+                                    handleFormChange("ean", sanitized);
+                                  }}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
+                                  pattern="^\d{13}$"
+                                  inputMode="numeric"
+                                  placeholder="1234567890123"
+                                  title="L'EAN doit contenir exactement 13 chiffres"
                                 />
+                                <p className="mt-1 text-xs text-gray-500">
+                                  13 chiffres exactement. Ce code sera utilisé
+                                  pour toutes les variantes du produit.
+                                </p>
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1874,18 +1988,20 @@ const MesProduits = () => {
                                               "description"
                                             )
                                           }
-                                          className="text-green-600 hover:text-green-800 text-sm"
+                                          className="text-green-600 hover:text-green-800 text-sm p-1"
                                           disabled={isSubmitting}
+                                          title="Sauvegarder"
                                         >
-                                          Sauvegarder
+                                          <FaSave className="w-3 h-3" />
                                         </button>
                                         <button
                                           onClick={() =>
                                             handleCancelEdit(product.productId)
                                           }
-                                          className="text-red-600 hover:text-red-800 text-sm"
+                                          className="text-red-600 hover:text-red-800 text-sm p-1"
+                                          title="Annuler"
                                         >
-                                          Annuler
+                                          <FaTimes className="w-3 h-3" />
                                         </button>
                                       </div>
                                     ) : (
@@ -2020,7 +2136,8 @@ const MesProduits = () => {
                                         </div>
                                       )}
 
-                                    {product.ean && (
+                                    {/* EAN Section - Always show */}
+                                    {true && (
                                       <div>
                                         <div className="flex items-center justify-between">
                                           <span className="font-medium text-gray-700">
@@ -2037,10 +2154,11 @@ const MesProduits = () => {
                                                     "ean"
                                                   )
                                                 }
-                                                className="text-green-600 hover:text-green-800 text-sm"
+                                                className="text-green-600 hover:text-green-800 text-sm p-1"
                                                 disabled={isSubmitting}
+                                                title="Sauvegarder"
                                               >
-                                                Sauvegarder
+                                                <FaSave className="w-3 h-3" />
                                               </button>
                                               <button
                                                 onClick={() =>
@@ -2048,20 +2166,51 @@ const MesProduits = () => {
                                                     product.productId
                                                   )
                                                 }
-                                                className="text-red-600 hover:text-red-800 text-sm"
+                                                className="text-red-600 hover:text-red-800 text-sm p-1"
+                                                title="Annuler"
                                               >
-                                                Annuler
+                                                <FaTimes className="w-3 h-3" />
                                               </button>
                                             </div>
                                           ) : (
                                             <button
-                                              onClick={() =>
+                                              onClick={() => {
+                                                // Extract current master EAN for editing
+                                                const currentEan = (() => {
+                                                  if (
+                                                    product.eans &&
+                                                    typeof product.eans ===
+                                                      "object"
+                                                  ) {
+                                                    return (
+                                                      product.eans.default ||
+                                                      product.eans[
+                                                        Object.keys(
+                                                          product.eans
+                                                        )[0]
+                                                      ] ||
+                                                      ""
+                                                    );
+                                                  } else if (product.ean) {
+                                                    return typeof product.ean ===
+                                                      "object"
+                                                      ? product.ean.default ||
+                                                          product.ean[
+                                                            Object.keys(
+                                                              product.ean
+                                                            )[0]
+                                                          ] ||
+                                                          ""
+                                                      : product.ean;
+                                                  }
+                                                  return "";
+                                                })();
                                                 handleEditField(
                                                   product.productId,
                                                   "ean",
-                                                  product.ean
-                                                )
-                                              }
+                                                  currentEan
+                                                );
+                                              }}
                                               className="text-blue-600 hover:text-blue-800 text-sm"
                                             >
                                               <FaEdit className="w-3 h-3" />
@@ -2074,23 +2223,92 @@ const MesProduits = () => {
                                             type="text"
                                             value={
                                               editingField[product.productId]
-                                                ?.ean || product.ean
+                                                ?.ean !== undefined
+                                                ? editingField[
+                                                    product.productId
+                                                  ].ean
+                                                : (() => {
+                                                    // Extract current master EAN for editing
+                                                    if (
+                                                      product.eans &&
+                                                      typeof product.eans ===
+                                                        "object"
+                                                    ) {
+                                                      return (
+                                                        product.eans.default ||
+                                                        product.eans[
+                                                          Object.keys(
+                                                            product.eans
+                                                          )[0]
+                                                        ] ||
+                                                        ""
+                                                      );
+                                                    } else if (product.ean) {
+                                                      return typeof product.ean ===
+                                                        "object"
+                                                        ? product.ean.default ||
+                                                            product.ean[
+                                                              Object.keys(
+                                                                product.ean
+                                                              )[0]
+                                                            ] ||
+                                                            ""
+                                                        : product.ean;
+                                                    }
+                                                    return "";
+                                                  })()
                                             }
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                              const value = e.target.value;
+                                              // Allow empty string or sanitize to digits only (max 13)
+                                              const sanitized =
+                                                value === ""
+                                                  ? ""
+                                                  : value
+                                                      .replace(/\D/g, "")
+                                                      .slice(0, 13);
                                               handleFieldChange(
                                                 product.productId,
                                                 "ean",
-                                                e.target.value
-                                              )
-                                            }
+                                                sanitized
+                                              );
+                                            }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary text-sm mt-1"
+                                            pattern="^\d{13}$"
+                                            inputMode="numeric"
+                                            placeholder="1234567890123"
+                                            title="L'EAN doit contenir exactement 13 chiffres"
                                             autoFocus
                                           />
                                         ) : (
                                           <div className="text-gray-600 mt-1">
-                                            {typeof product.ean === "object"
-                                              ? JSON.stringify(product.ean)
-                                              : product.ean}
+                                            {(() => {
+                                              // Extract master EAN for display
+                                              if (
+                                                product.eans &&
+                                                typeof product.eans === "object"
+                                              ) {
+                                                return (
+                                                  product.eans.default ||
+                                                  product.eans[
+                                                    Object.keys(product.eans)[0]
+                                                  ] ||
+                                                  "Non défini"
+                                                );
+                                              } else if (product.ean) {
+                                                return typeof product.ean ===
+                                                  "object"
+                                                  ? product.ean.default ||
+                                                      product.ean[
+                                                        Object.keys(
+                                                          product.ean
+                                                        )[0]
+                                                      ] ||
+                                                      "Non défini"
+                                                  : product.ean;
+                                              }
+                                              return "Non défini";
+                                            })()}
                                           </div>
                                         )}
                                       </div>
@@ -2116,10 +2334,11 @@ const MesProduits = () => {
                                                     "stock"
                                                   )
                                                 }
-                                                className="text-green-600 hover:text-green-800 text-sm"
+                                                className="text-green-600 hover:text-green-800 text-sm p-1"
                                                 disabled={isSubmitting}
+                                                title="Sauvegarder"
                                               >
-                                                Sauvegarder
+                                                <FaSave className="w-3 h-3" />
                                               </button>
                                               <button
                                                 onClick={() =>
@@ -2127,9 +2346,10 @@ const MesProduits = () => {
                                                     product.productId
                                                   )
                                                 }
-                                                className="text-red-600 hover:text-red-800 text-sm"
+                                                className="text-red-600 hover:text-red-800 text-sm p-1"
+                                                title="Annuler"
                                               >
-                                                Annuler
+                                                <FaTimes className="w-3 h-3" />
                                               </button>
                                             </div>
                                           ) : (
@@ -2191,45 +2411,6 @@ const MesProduits = () => {
                                                     {product.stock.default}
                                                   </span>{" "}
                                                   unités
-                                                </div>
-                                              )}
-                                              {/* EAN for simple stock */}
-                                              {editingFieldName[
-                                                product.productId
-                                              ] === "stock" && (
-                                                <div className="mt-2 text-xs text-gray-500">
-                                                  <div className="flex items-center">
-                                                    <span className="mr-1">
-                                                      EAN:
-                                                    </span>
-                                                    <input
-                                                      type="text"
-                                                      value={
-                                                        editingField[
-                                                          product.productId
-                                                        ]?.eans?.default !==
-                                                        undefined
-                                                          ? editingField[
-                                                              product.productId
-                                                            ].eans.default
-                                                          : product.ean
-                                                              ?.default ||
-                                                            product.eans
-                                                              ?.default ||
-                                                            product.ean ||
-                                                            ""
-                                                      }
-                                                      onChange={(e) =>
-                                                        handleEANChange(
-                                                          product.productId,
-                                                          "default",
-                                                          e.target.value
-                                                        )
-                                                      }
-                                                      className="w-20 px-1 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-sna-primary text-gray-900"
-                                                      placeholder="EAN"
-                                                    />
-                                                  </div>
                                                 </div>
                                               )}
                                             </div>
@@ -2326,53 +2507,6 @@ const MesProduits = () => {
 
                                                         return (
                                                           <>
-                                                            <div className="flex items-center">
-                                                              <span className="mr-1">
-                                                                EAN:
-                                                              </span>
-                                                              {editingFieldName[
-                                                                product
-                                                                  .productId
-                                                              ] === "stock" ? (
-                                                                <input
-                                                                  type="text"
-                                                                  value={
-                                                                    editingField[
-                                                                      product
-                                                                        .productId
-                                                                    ]?.eans?.[
-                                                                      combination
-                                                                    ] !==
-                                                                    undefined
-                                                                      ? editingField[
-                                                                          product
-                                                                            .productId
-                                                                        ].eans[
-                                                                          combination
-                                                                        ]
-                                                                      : ean ||
-                                                                        ""
-                                                                  }
-                                                                  onChange={(
-                                                                    e
-                                                                  ) =>
-                                                                    handleEANChange(
-                                                                      product.productId,
-                                                                      combination,
-                                                                      e.target
-                                                                        .value
-                                                                    )
-                                                                  }
-                                                                  className="w-20 px-1 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-sna-primary text-gray-900"
-                                                                  placeholder="EAN"
-                                                                />
-                                                              ) : (
-                                                                <span>
-                                                                  {ean ||
-                                                                    "Non défini"}
-                                                                </span>
-                                                              )}
-                                                            </div>
                                                             {sku && (
                                                               <div className="flex items-center">
                                                                 <span

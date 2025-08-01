@@ -213,7 +213,16 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
   const handleImageReplace = async (imageType, file) => {
     try {
       setUploadingImage(true);
-      console.log(`🔄 [SHOP IMAGE REPLACE] Starting ${imageType} replacement`);
+      console.log(
+        `🔄 [SHOP IMAGE REPLACE v2.0] Starting ${imageType} replacement - TIMESTAMP: ${Date.now()}`
+      );
+
+      console.log(`🔍 [SHOP IMAGE REPLACE] Function parameters:`, {
+        imageType,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+      });
 
       console.log("📁 [SHOP DEBUG] File details:", {
         name: file.name,
@@ -290,14 +299,26 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
       const uploadResult = await uploadResponse.json();
       console.log(
         `✅ [SHOP IMAGE REPLACE] New ${imageType} uploaded:`,
-        uploadResult.imageUrl
+        uploadResult
       );
 
-      // Step 2: Update the shop data in the database
+      // IMMEDIATE REPLACE CALL - Skip all validation for now
+      console.log(
+        `🚀 [SHOP IMAGE REPLACE] IMMEDIATE REPLACE CALL - NO VALIDATION`
+      );
+
       const oldImageUrl = shop[`${imageType}Url`];
-      const updateResponse = await fetch(
-        `/api/internal/shops/${clientId}/${shopId}/images/replace`,
-        {
+      const replaceUrl = `/api/internal/shops/${clientId}/${shopId}/images/replace`;
+
+      console.log(`📞 [SHOP IMAGE REPLACE] Calling replace immediately:`, {
+        replaceUrl,
+        imageType,
+        newImageUrl: uploadResult.imageUrl,
+        oldImageUrl,
+      });
+
+      try {
+        const updateResponse = await fetch(replaceUrl, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -306,27 +327,39 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
             oldImageUrl: oldImageUrl,
           }),
           credentials: "include",
+        });
+
+        console.log(
+          `📥 [SHOP IMAGE REPLACE] Replace response status:`,
+          updateResponse.status
+        );
+
+        if (updateResponse.ok) {
+          const updateResult = await updateResponse.json();
+          console.log(
+            `✅ [SHOP IMAGE REPLACE] Replace successful:`,
+            updateResult
+          );
+
+          // Update local state
+          setShop((prevShop) => ({
+            ...prevShop,
+            [`${imageType}Url`]: uploadResult.imageUrl,
+            [`${imageType}S3Key`]: uploadResult.s3Key,
+          }));
+
+          setError(null);
+          console.log(`🎉 [SHOP IMAGE REPLACE] Complete success!`);
+          return; // Early return on success
+        } else {
+          const errorText = await updateResponse.text();
+          console.error(`❌ [SHOP IMAGE REPLACE] Replace failed:`, errorText);
+          throw new Error(`Replace failed: ${errorText}`);
         }
-      );
-
-      if (!updateResponse.ok) {
-        const errorData = await updateResponse.json();
-        throw new Error(errorData.message || `Failed to replace ${imageType}`);
+      } catch (replaceError) {
+        console.error(`❌ [SHOP IMAGE REPLACE] Replace error:`, replaceError);
+        throw replaceError;
       }
-
-      const updateResult = await updateResponse.json();
-      console.log(`✅ [SHOP IMAGE REPLACE] ${imageType} replaced successfully`);
-
-      // Step 3: Update local state
-      setShop((prevShop) => ({
-        ...prevShop,
-        [`${imageType}Url`]: uploadResult.imageUrl,
-      }));
-
-      setError(null);
-      console.log(
-        `🎉 [SHOP IMAGE REPLACE] ${imageType} replacement completed successfully`
-      );
     } catch (error) {
       console.error(
         `❌ [SHOP IMAGE REPLACE] Error replacing ${imageType}:`,
@@ -469,12 +502,15 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
       />
 
       {/* Shop Images */}
-      {(shop.logoUrl || shop.desktopBannerUrl || shop.mobileBannerUrl) && (
+      {(shop.logoUrl ||
+        shop.desktopBannerUrl ||
+        shop.mobileBannerUrl ||
+        shop.faviconUrl) && (
         <div className="space-y-3 border-b border-gray-200 pb-4">
           <h3 className="text-lg font-semibold text-gray-800">
             Images de la boutique
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {shop.logoUrl && (
               <div className="relative group">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Logo</h4>
@@ -483,7 +519,13 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
                     src={shop.logoUrl}
                     alt="Logo de la boutique"
                     className="h-full w-full object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
-                    onClick={() => window.open(shop.logoUrl, "_blank")}
+                    onClick={() =>
+                      shop.logoUrl && window.open(shop.logoUrl, "_blank")
+                    }
+                    onError={(e) => {
+                      console.error("Failed to load logo image:", shop.logoUrl);
+                      e.target.style.display = "none";
+                    }}
                   />
 
                   {/* Action buttons overlay */}
@@ -556,7 +598,17 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
                     src={shop.desktopBannerUrl}
                     alt="Bannière desktop"
                     className="h-full w-full object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
-                    onClick={() => window.open(shop.desktopBannerUrl, "_blank")}
+                    onClick={() =>
+                      shop.desktopBannerUrl &&
+                      window.open(shop.desktopBannerUrl, "_blank")
+                    }
+                    onError={(e) => {
+                      console.error(
+                        "Failed to load desktop banner image:",
+                        shop.desktopBannerUrl
+                      );
+                      e.target.style.display = "none";
+                    }}
                   />
 
                   {/* Action buttons overlay */}
@@ -635,7 +687,17 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
                     src={shop.mobileBannerUrl}
                     alt="Bannière mobile"
                     className="h-full w-full object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
-                    onClick={() => window.open(shop.mobileBannerUrl, "_blank")}
+                    onClick={() =>
+                      shop.mobileBannerUrl &&
+                      window.open(shop.mobileBannerUrl, "_blank")
+                    }
+                    onError={(e) => {
+                      console.error(
+                        "Failed to load mobile banner image:",
+                        shop.mobileBannerUrl
+                      );
+                      e.target.style.display = "none";
+                    }}
                   />
 
                   {/* Action buttons overlay */}
@@ -681,6 +743,90 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
                         }
                       >
                         {uploadingImage && replacingImage === "mobileBanner" ? (
+                          <div className="animate-spin w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full"></div>
+                        ) : (
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {shop.faviconUrl && (
+              <div className="relative group">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Favicon
+                </h4>
+                <div className="relative h-20 w-20">
+                  <img
+                    src={shop.faviconUrl}
+                    alt="Favicon de la boutique"
+                    className="h-full w-full object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
+                    onClick={() =>
+                      shop.faviconUrl && window.open(shop.faviconUrl, "_blank")
+                    }
+                    onError={(e) => {
+                      console.error(
+                        "Failed to load favicon image:",
+                        shop.faviconUrl
+                      );
+                      e.target.style.display = "none";
+                    }}
+                  />
+
+                  {/* Action buttons overlay */}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center rounded-lg overflow-hidden">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-2">
+                      {/* Download button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadImage(shop.faviconUrl, "favicon");
+                        }}
+                        className="bg-white text-gray-800 p-1.5 rounded hover:bg-gray-100 transition-colors"
+                        title="Télécharger le favicon"
+                      >
+                        <svg
+                          className="w-3 h-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </button>
+
+                      {/* Replace button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReplaceImage("favicon");
+                        }}
+                        className="bg-white text-gray-800 p-1.5 rounded hover:bg-gray-100 transition-colors"
+                        title="Remplacer le favicon"
+                        disabled={
+                          uploadingImage && replacingImage === "favicon"
+                        }
+                      >
+                        {uploadingImage && replacingImage === "favicon" ? (
                           <div className="animate-spin w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full"></div>
                         ) : (
                           <svg

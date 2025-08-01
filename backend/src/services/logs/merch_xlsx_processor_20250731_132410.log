@@ -1,0 +1,124 @@
+[2025-07-31 13:24:10] Merchandising XLSX processor script started
+[2025-07-31 13:24:10] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 13:24:10] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 13:24:10] Decoding base64 data...
+[2025-07-31 13:24:10] Successfully decoded base64 data
+[2025-07-31 13:24:10] Parsing JSON data...
+[2025-07-31 13:24:10] Successfully parsed JSON data
+[2025-07-31 13:24:10] Starting merchandising XLSX processing...
+[2025-07-31 13:24:10] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 13:24:10] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 13:24:10] Append mode: False
+[2025-07-31 13:24:10] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 13:24:10] Shop data keys: ['nomProjet', 'shopifyDomain', 'raisonSociale', 'dateSortieOfficielle', 'dateCommercialisation', 'dateMiseEnLigne', 'products']
+[2025-07-31 13:24:10] Found date-related field: 'dateSortieOfficielle' = '2025-07-16'
+[2025-07-31 13:24:10] Found date-related field: 'dateCommercialisation' = '2025-07-16'
+[2025-07-31 13:24:10] Found date-related field: 'dateMiseEnLigne' = '2025-07-16'
+[2025-07-31 13:24:10] Found customer-related field: 'raisonSociale' = 'TsT'
+[2025-07-31 13:24:10] 🔍 DEBUG: All shop_data keys: ['nomProjet', 'shopifyDomain', 'raisonSociale', 'dateSortieOfficielle', 'dateCommercialisation', 'dateMiseEnLigne', 'products']
+[2025-07-31 13:24:10] 🔍 DEBUG: Date fields found - dateSortie: 'NOT_FOUND', dateSortieOfficielle: '2025-07-16', dateCommercialisation: '2025-07-16'
+[2025-07-31 13:24:10] 🔍 DEBUG: Full shop_data content: {'nomProjet': 'Test_Amanda', 'shopifyDomain': 'test-amanda-store', 'raisonSociale': 'TsT', 'dateSortieOfficielle': '2025-07-16', 'dateCommercialisation': '2025-07-16', 'dateMiseEnLigne': '2025-07-16', 'products': [{'titre': 'TestAppend', 'description': 'testing appending feature sharepoint', 'prix': 22, 'poids': 200, 'eans': {'default': '8218948219421'}, 'typeProduit': 'Phono', 'produit': 'DVD', 'OCC': True, 'tailles': [], 'couleurs': [], 'stock': {'default': 243}, 'shopId': '6877a8dbd94f83fadc5ec607', 'skus': {'default': 'DVD-TESTAPPEND-TESTAMANDA-OCC'}, 'productId': '688b521e0b03271ef820e6a9', 'createdAt': '2025-07-31T11:23:10.638Z', 'updatedAt': '2025-07-31T11:23:10.638Z', 'active': True, 'documented': False, 'hasShopify': False, 'hasEC': False, 'validatedAt': '2025-07-31T11:23:57.639Z'}]}
+[2025-07-31 13:24:10] 🔍 DEBUG: Final extracted - date_sortie: '2025-07-16', date_commercialisation: '2025-07-16'
+[2025-07-31 13:24:10] Extracted dates - Sortie: '2025-07-16', Commercialisation: '2025-07-16', Mise en ligne DD/MM/YYYY: ''
+[2025-07-31 13:24:10] Extracted raison sociale: 'TsT'
+[2025-07-31 13:24:10] 🔍 DEBUG: Primary date for column N: '2025-07-16' (from date_sortie: '2025-07-16' or date_commercialisation: '2025-07-16')
+[2025-07-31 13:24:10] 🔍 DEBUG: Converted YYYY-MM-DD '2025-07-16' to DD/MM/YYYY '16/07/2025'
+[2025-07-31 13:24:10] Combined dates field: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:24:10] Combined dates DD/MM/YYYY: '16/07/2025'
+[2025-07-31 13:24:10] Total shop stock calculated: 243
+[2025-07-31 13:24:10] Processing 1 products for shop: Test_Amanda
+[2025-07-31 13:24:10] Processing worksheet: Catalogue en ligne
+[2025-07-31 13:24:10] 🎯 SPECIAL CELL A2: Set to 'CLIENT : TsT' (was: 'CLIENT : 111112')
+[2025-07-31 13:24:10] 🎯 SPECIAL CELL F2: Replaced formula/#### with total stock 243 (was: '=SUM(E5:E199)', now: '243')
+[2025-07-31 13:24:10] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-31 13:24:10] Will start inserting product data at row: 5
+[2025-07-31 13:24:10] Normal mode: Clearing existing product data...
+[2025-07-31 13:24:10] Starting to add 1 products at row 5
+[2025-07-31 13:24:10] Processing product 1/1: TestAppend
+[2025-07-31 13:24:10] Product 1 total stock: 243 from stock_dict: {'default': 243}
+[2025-07-31 13:24:10] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 13:24:10] Product 1 colors: [] -> ''
+[2025-07-31 13:24:10] Product 1 sizes: [] -> ''
+[2025-07-31 13:24:10] Product 1 images: 0 images -> ''
+[2025-07-31 13:24:10] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 13:24:10] Product 1 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 13:24:10] Product 1 - Total shop stock: 243
+[2025-07-31 13:24:10] 🎯 COLUMN N DEBUG: Row 5, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 13:24:10] Successfully added product 1 data at row 5: TestAppend
+[2025-07-31 13:24:10] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:24:10] Colors field content: ''
+[2025-07-31 13:24:10] Sizes field content: ''
+[2025-07-31 13:24:10] Data written: ['Phono', 'TestAppend', 'testing appending feature sharepoint', '8218948219421', 243, 0, 0, 0, 0, 0, 200, 22, 'OUI', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 13:24:10] Finished processing all products. Final row: 5
+[2025-07-31 13:24:10] Processing worksheet: POD
+[2025-07-31 13:24:10] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 13:24:10] Will start inserting product data at row: 6
+[2025-07-31 13:24:10] Normal mode: Clearing existing product data...
+[2025-07-31 13:24:10] Starting to add 1 products at row 6
+[2025-07-31 13:24:10] Processing product 1/1: TestAppend
+[2025-07-31 13:24:10] Product 1 total stock: 243 from stock_dict: {'default': 243}
+[2025-07-31 13:24:10] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 13:24:10] Product 1 colors: [] -> ''
+[2025-07-31 13:24:10] Product 1 sizes: [] -> ''
+[2025-07-31 13:24:10] Product 1 images: 0 images -> ''
+[2025-07-31 13:24:10] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 13:24:10] Product 1 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 13:24:10] Product 1 - Total shop stock: 243
+[2025-07-31 13:24:10] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 13:24:10] Successfully added product 1 data at row 6: TestAppend
+[2025-07-31 13:24:10] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:24:10] Colors field content: ''
+[2025-07-31 13:24:10] Sizes field content: ''
+[2025-07-31 13:24:10] Data written: ['Phono', 'TestAppend', 'testing appending feature sharepoint', '8218948219421', 243, 0, 0, 0, 0, 0, 200, 22, 'OUI', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 13:24:10] Finished processing all products. Final row: 6
+[2025-07-31 13:24:10] Processing worksheet: Feuil1
+[2025-07-31 13:24:10] 🎯 SPECIAL CELL F2: No formula/#### found (value: 'ROCKER')
+[2025-07-31 13:24:10] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 13:24:10] Will start inserting product data at row: 6
+[2025-07-31 13:24:10] Normal mode: Clearing existing product data...
+[2025-07-31 13:24:10] Starting to add 1 products at row 6
+[2025-07-31 13:24:10] Processing product 1/1: TestAppend
+[2025-07-31 13:24:10] Product 1 total stock: 243 from stock_dict: {'default': 243}
+[2025-07-31 13:24:10] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 13:24:10] Product 1 colors: [] -> ''
+[2025-07-31 13:24:10] Product 1 sizes: [] -> ''
+[2025-07-31 13:24:10] Product 1 images: 0 images -> ''
+[2025-07-31 13:24:10] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 13:24:10] Product 1 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 13:24:10] Product 1 - Total shop stock: 243
+[2025-07-31 13:24:10] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 13:24:10] Successfully added product 1 data at row 6: TestAppend
+[2025-07-31 13:24:10] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:24:10] Colors field content: ''
+[2025-07-31 13:24:10] Sizes field content: ''
+[2025-07-31 13:24:10] Data written: ['Phono', 'TestAppend', 'testing appending feature sharepoint', '8218948219421', 243, 0, 0, 0, 0, 0, 200, 22, 'OUI', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 13:24:10] Finished processing all products. Final row: 6
+[2025-07-31 13:24:10] Processing worksheet: NE PAS MODIFIER
+[2025-07-31 13:24:10] 🎯 SPECIAL CELL A2: Set to 'CLIENT : TsT' (was: 'CD')
+[2025-07-31 13:24:10] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 13:24:10] Will start inserting product data at row: 6
+[2025-07-31 13:24:10] Normal mode: Clearing existing product data...
+[2025-07-31 13:24:10] Starting to add 1 products at row 6
+[2025-07-31 13:24:10] Processing product 1/1: TestAppend
+[2025-07-31 13:24:10] Product 1 total stock: 243 from stock_dict: {'default': 243}
+[2025-07-31 13:24:10] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 13:24:10] Product 1 colors: [] -> ''
+[2025-07-31 13:24:10] Product 1 sizes: [] -> ''
+[2025-07-31 13:24:10] Product 1 images: 0 images -> ''
+[2025-07-31 13:24:10] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 13:24:10] Product 1 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 13:24:10] Product 1 - Total shop stock: 243
+[2025-07-31 13:24:10] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 13:24:10] Successfully added product 1 data at row 6: TestAppend
+[2025-07-31 13:24:10] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 13:24:10] Colors field content: ''
+[2025-07-31 13:24:10] Sizes field content: ''
+[2025-07-31 13:24:10] Data written: ['Phono', 'TestAppend', 'testing appending feature sharepoint', '8218948219421', 243, 0, 0, 0, 0, 0, 200, 22, 'OUI', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 13:24:10] Finished processing all products. Final row: 6
+[2025-07-31 13:24:10] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 13:24:10] Merchandising XLSX processing completed successfully

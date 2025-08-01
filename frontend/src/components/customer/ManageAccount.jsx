@@ -32,36 +32,27 @@ const ManageAccount = () => {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
-    console.log("🔒 SECURITY: Starting manage account security check...");
-
-    // CRITICAL: Validate user identity first before any processing
-    const identityCheck = validateUserIdentity();
-
-    if (!identityCheck.valid) {
-      console.error(
-        "🚨 SECURITY: User identity validation failed in ManageAccount:",
-        identityCheck.reason
-      );
-      clearAllAuthData();
-      window.location.href = "/client/login";
-      return;
-    }
-
-    console.log("✅ SECURITY: User identity validated for account management");
-
-    // Check if this is a first-time login (after password change)
+    // Check if this is a first-time login (after password change) - CHECK THIS FIRST
     const isFirstLogin = sessionStorage.getItem("isFirstLogin") === "true";
 
     if (isFirstLogin) {
-      console.log(
-        "🎉 First-time login detected - automatically showing welcome form"
-      );
       setShowWelcomeForm(true);
       setLoading(false);
       // Clear the first login flag
       sessionStorage.removeItem("isFirstLogin");
       return;
     }
+
+    // CRITICAL: Validate user identity only if not first-time login
+    const identityCheck = validateUserIdentity();
+
+    if (!identityCheck.valid) {
+      clearAllAuthData();
+      window.location.href = "/client/login";
+      return;
+    }
+
+    console.log("✅ SECURITY: User identity validated for account management");
 
     // Try to get userInfo from session or local storage
     let userInfoStr =

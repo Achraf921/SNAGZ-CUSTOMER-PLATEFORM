@@ -1,0 +1,59 @@
+[2025-07-31 12:42:28] Script started
+[2025-07-31 12:42:28] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/Intro - Textes _ CLIENT _ PROJET.docx
+[2025-07-31 12:42:28] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/PROCESSED_Intro - Textes _ TST _ TEST_AMANDA.docx
+[2025-07-31 12:42:28] Encoded data length: 752 characters
+[2025-07-31 12:42:28] Decoding base64 data...
+[2025-07-31 12:42:28] Successfully decoded base64 data
+[2025-07-31 12:42:28] [DEBUG] Type of shop_data_string after decode: <class 'str'>
+[2025-07-31 12:42:28] [DEBUG] First 100 chars of shop_data_string: {"nomProjet":"Test_Amanda","typeProjet":"Test","contactsClient":"achrafbayi@icloud.com","nomClient":...
+[2025-07-31 12:42:28] Parsing JSON data...
+[2025-07-31 12:42:28] Successfully parsed JSON data
+[2025-07-31 12:42:28] [DEBUG] Type of shop_data after json.loads: <class 'dict'>
+[2025-07-31 12:42:28] [DEBUG] shop_data keys: ['nomProjet', 'typeProjet', 'contactsClient', 'nomClient', 'compteClientRef', 'dateMiseEnLigne', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicaceEnvisagee', 'estBoutiqueEnLigne', 'chefProjet', 'demarrageProjet', 'commercial', 'raisonSociale', 'shopifyPlanMonthlySelected', 'shopifyPlanYearlySelected', 'typeAbonnementShopify', 'moduleMondialRelay', 'moduleDelivengo']
+[2025-07-31 12:42:28] Starting document processing...
+[2025-07-31 12:42:28] Starting document processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/Intro - Textes _ CLIENT _ PROJET.docx
+[2025-07-31 12:42:28] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/PROCESSED_Intro - Textes _ TST _ TEST_AMANDA.docx
+[2025-07-31 12:42:28] Successfully loaded document: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebDesign/Intro - Textes _ CLIENT _ PROJET.docx
+[2025-07-31 12:42:28] [DEBUG - Inside replace_placeholders_and_format] Type of shop_data: <class 'dict'>
+[2025-07-31 12:42:28] [DEBUG - Inside replace_placeholders_and_format] Content of shop_data: {'nomProjet': 'Test_Amanda', 'typeProjet': 'Test', 'contactsClient': 'achrafbayi@icloud.com', 'nomClient': 'TsT', 'compteClientRef': '887459', 'dateMiseEnLigne': '2025/07/16', 'dateCommercialisation': '2025/07/16', 'dateSortieOfficielle': '2025/07/16', 'precommande': 'OUI', 'dedicaceEnvisagee': 'NON', 'estBoutiqueEnLigne': 'OUI', 'chefProjet': 'Amanda Doe', 'demarrageProjet': '2025/07/16', 'commercial': 'Achraf', 'raisonSociale': 'TsT', 'shopifyPlanMonthlySelected': False, 'shopifyPlanYearlySelected': True, 'typeAbonnementShopify': 'annuel', 'moduleMondialRelay': True, 'moduleDelivengo': False}
+[2025-07-31 12:42:28] Starting global placeholder replacement...
+[2025-07-31 12:42:28] Total runs to process: 0
+[2025-07-31 12:42:28] Runs with non-empty text: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX1 (value: 'Test_Amanda')
+[2025-07-31 12:42:28] Total replacements made for XXX1: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX2 (value: 'Test')
+[2025-07-31 12:42:28] Total replacements made for XXX2: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX3 (value: 'Achraf')
+[2025-07-31 12:42:28] Total replacements made for XXX3: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX4 (value: 'TsT')
+[2025-07-31 12:42:28] Total replacements made for XXX4: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX5 (value: '887459')
+[2025-07-31 12:42:28] Total replacements made for XXX5: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX7 (value: '2025/07/16')
+[2025-07-31 12:42:28] Total replacements made for XXX7: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX8 (value: '2025/07/16')
+[2025-07-31 12:42:28] Total replacements made for XXX8: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX9 (value: '2025/07/16')
+[2025-07-31 12:42:28] Total replacements made for XXX9: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX10 (value: 'OUI')
+[2025-07-31 12:42:28] Total replacements made for XXX10: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX11 (value: 'NON')
+[2025-07-31 12:42:28] Total replacements made for XXX11: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX12 (value: 'OUI')
+[2025-07-31 12:42:28] Total replacements made for XXX12: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX13 (value: 'Amanda Doe')
+[2025-07-31 12:42:28] Total replacements made for XXX13: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX14 (value: '2025/07/16')
+[2025-07-31 12:42:28] Total replacements made for XXX14: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX15 (value: 'achrafbayi@icloud.com')
+[2025-07-31 12:42:28] Total replacements made for XXX15: 0
+[2025-07-31 12:42:28] Looking for placeholder: XXX69 (value: '')
+[2025-07-31 12:42:28] Total replacements made for XXX69: 0
+[2025-07-31 12:42:28] Looking for placeholder: COMPTENUM (value: '887459')
+[2025-07-31 12:42:28] Total replacements made for COMPTENUM: 0
+[2025-07-31 12:42:28] Attempting direct paragraph text replacement...
+[2025-07-31 12:42:28] Attempting direct table cell text replacement...
+[2025-07-31 12:42:28] Starting strikethrough application...
+[2025-07-31 12:42:28] XML-level placeholder replacement completed.
+[2025-07-31 12:42:28] Document processing completed successfully
+[2025-07-31 12:42:28] Document processing completed successfully

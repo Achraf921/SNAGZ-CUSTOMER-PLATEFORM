@@ -32,6 +32,8 @@ const CreateProduct = () => {
     price: "", // EN field equivalent
     weight: "", // EN field equivalent
     eans: {}, // EAN per combination
+    masterEan: "", // Master EAN for all variants
+    noEan: false, // "Pas d'EAN" option
     hasColors: false,
     colors: [],
     hasSizes: false,
@@ -370,17 +372,61 @@ const CreateProduct = () => {
     }));
   };
 
-  // Handle EAN input changes per variant
-  const handleEANChange = (combinationKey, value) => {
+  // Handle master EAN changes
+  const handleMasterEanChange = (value) => {
     // Keep only digits and limit to 13 characters
     const sanitized = value.replace(/\D/g, "").slice(0, 13);
-    setProductForm((prev) => ({
-      ...prev,
-      eans: {
-        ...prev.eans,
-        [combinationKey]: sanitized,
-      },
-    }));
+
+    setProductForm((prev) => {
+      // Clear no EAN flag if user is entering EAN
+      const newNoEan = sanitized === "" ? prev.noEan : false;
+
+      // Update all variant EANs with the master EAN
+      const combinations = generateStockCombinations();
+      const newEans = { ...prev.eans };
+
+      // Set master EAN for all combinations and default
+      newEans.default = sanitized;
+      combinations.forEach((combo) => {
+        newEans[combo.key] = sanitized;
+      });
+
+      return {
+        ...prev,
+        masterEan: sanitized,
+        noEan: newNoEan,
+        eans: newEans,
+      };
+    });
+  };
+
+  // Handle "pas d'EAN" toggle
+  const handleNoEanToggle = (checked) => {
+    setProductForm((prev) => {
+      const combinations = generateStockCombinations();
+      const newEans = { ...prev.eans };
+
+      if (checked) {
+        // Set all EANs to the default "no EAN" value
+        newEans.default = "0000000000000";
+        combinations.forEach((combo) => {
+          newEans[combo.key] = "0000000000000";
+        });
+      } else {
+        // Clear all EANs
+        newEans.default = "";
+        combinations.forEach((combo) => {
+          newEans[combo.key] = "";
+        });
+      }
+
+      return {
+        ...prev,
+        noEan: checked,
+        masterEan: checked ? "0000000000000" : "",
+        eans: newEans,
+      };
+    });
   };
 
   // Clean up stock & eans when sizes/colors change
@@ -391,14 +437,24 @@ const CreateProduct = () => {
     setProductForm((prev) => {
       const cleanedStock = {};
       const cleanedEans = {};
+
+      // Always preserve the default EAN
+      if (prev.eans.default !== undefined) {
+        cleanedEans.default = prev.eans.default;
+      }
+
       validKeys.forEach((key) => {
         if (prev.stock[key] !== undefined) {
           cleanedStock[key] = prev.stock[key];
         }
         if (prev.eans[key] !== undefined) {
           cleanedEans[key] = prev.eans[key];
+        } else if (prev.masterEan) {
+          // If master EAN is set, apply it to new variants
+          cleanedEans[key] = prev.masterEan;
         }
       });
+
       return {
         ...prev,
         stock: cleanedStock,
@@ -407,9 +463,10 @@ const CreateProduct = () => {
     });
   };
 
-  const handleImageChange = (files) => {
+  const handleImageChange = (files, inputElement) => {
     const newFiles = Array.from(files);
 
+    // Check number of files limit
     if (images.length + newFiles.length > 5) {
       setNotification({
         show: true,
@@ -417,6 +474,50 @@ const CreateProduct = () => {
         title: "Limite d'images atteinte",
         type: "warning",
       });
+      // Clear the file input to allow reselection
+      if (inputElement) inputElement.value = "";
+      return;
+    }
+
+    // Check file size limit (10MB per file)
+    const maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
+    const oversizedFiles = newFiles.filter((file) => file.size > maxFileSize);
+
+    if (oversizedFiles.length > 0) {
+      const oversizedFileNames = oversizedFiles
+        .map((file) => file.name)
+        .join(", ");
+      const fileSizeInMB = (oversizedFiles[0].size / (1024 * 1024)).toFixed(1);
+
+      setNotification({
+        show: true,
+        message: `Les fichiers suivants sont trop volumineux: ${oversizedFileNames}. Taille maximum autorisée: 10MB. Taille du fichier: ${fileSizeInMB}MB`,
+        title: "Fichiers trop volumineux",
+        type: "error",
+      });
+      // Clear the file input to allow reselection
+      if (inputElement) inputElement.value = "";
+      return;
+    }
+
+    // Check if files are actually images
+    const nonImageFiles = newFiles.filter(
+      (file) => !file.type.startsWith("image/")
+    );
+
+    if (nonImageFiles.length > 0) {
+      const nonImageFileNames = nonImageFiles
+        .map((file) => file.name)
+        .join(", ");
+
+      setNotification({
+        show: true,
+        message: `Les fichiers suivants ne sont pas des images valides: ${nonImageFileNames}. Seuls les fichiers image sont autorisés.`,
+        title: "Format de fichier invalide",
+        type: "error",
+      });
+      // Clear the file input to allow reselection
+      if (inputElement) inputElement.value = "";
       return;
     }
 
@@ -569,6 +670,8 @@ const CreateProduct = () => {
     e.preventDefault();
     if (!selectedShop) return;
 
+    const combinations = generateStockCombinations();
+
     // Validation
     const baseInvalid =
       !productForm.titre ||
@@ -577,15 +680,17 @@ const CreateProduct = () => {
       !productForm.produit ||
       !productForm.description;
 
-    // Validate EANs: optional but if provided must have exactly 13 digits
-    const combinations = generateStockCombinations();
+    // Validate EAN: optional but if provided must have exactly 13 digits or be the "no EAN" value
     let invalidEAN = false;
-    combinations.forEach((combo) => {
-      const eanVal = productForm.eans[combo.key];
-      if (eanVal && !/^\d{13}$/.test(eanVal)) {
-        invalidEAN = true;
-      }
-    });
+
+    // Check master EAN if provided
+    if (
+      productForm.masterEan &&
+      productForm.masterEan !== "0000000000000" &&
+      !/^\d{13}$/.test(productForm.masterEan)
+    ) {
+      invalidEAN = true;
+    }
 
     // Validate SKUs: ensure no SKU is empty
     let invalidSKU = false;
@@ -617,7 +722,7 @@ const CreateProduct = () => {
 
     if (invalidEAN) {
       setError(
-        "Si fourni, l'EAN doit être composé de 13 chiffres sans espaces ni virgules pour chaque variante."
+        "Si fourni, l'EAN doit être composé de 13 chiffres sans espaces ni virgules."
       );
       return;
     }
@@ -703,6 +808,8 @@ const CreateProduct = () => {
         price: "",
         weight: "",
         eans: {},
+        masterEan: "",
+        noEan: false,
         hasColors: false,
         colors: [],
         hasSizes: false,
@@ -719,6 +826,14 @@ const CreateProduct = () => {
       });
       setImages([]);
       setImagePreviewUrls([]);
+
+      // Show success notification
+      setNotification({
+        show: true,
+        message: "Le produit a été créé avec succès.",
+        title: "Succès",
+        type: "success",
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -960,8 +1075,53 @@ const CreateProduct = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
                 />
               </div>
+            </div>
 
-              {/* EAN per variante: handled below */}
+            {/* Master EAN Section */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h4 className="text-lg font-medium text-gray-900 mb-4">
+                Code EAN (Code-barres)
+              </h4>
+
+              <div className="space-y-4">
+                {/* Pas d'EAN option */}
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={productForm.noEan}
+                      onChange={(e) => handleNoEanToggle(e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-sna-primary"
+                    />
+                    <span className="ml-2 text-sm font-medium text-gray-700">
+                      Pas d'EAN
+                    </span>
+                  </label>
+                </div>
+
+                {/* Master EAN input */}
+                {!productForm.noEan && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Code EAN (appliqué à toutes les variantes)
+                    </label>
+                    <input
+                      type="text"
+                      value={productForm.masterEan}
+                      onChange={(e) => handleMasterEanChange(e.target.value)}
+                      className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
+                      pattern="^\d{13}$"
+                      inputMode="numeric"
+                      placeholder="1234567890123"
+                      title="L'EAN doit contenir exactement 13 chiffres"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      13 chiffres exactement. Ce code sera utilisé pour toutes
+                      les variantes du produit.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Sizes Section - Hidden for Phono products */}
@@ -1130,17 +1290,6 @@ const CreateProduct = () => {
                               placeholder="0"
                               disabled={productForm.typeProduit === "POD"}
                             />
-                            <input
-                              type="text"
-                              value={productForm.eans[combo.key] || ""}
-                              onChange={(e) =>
-                                handleEANChange(combo.key, e.target.value)
-                              }
-                              className="w-28 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary text-sm"
-                              pattern="^\d{13}$"
-                              inputMode="numeric"
-                              placeholder="EAN"
-                            />
                           </div>
                         ))}
                       </div>
@@ -1179,17 +1328,6 @@ const CreateProduct = () => {
                                 }`}
                                 placeholder="0"
                                 disabled={productForm.typeProduit === "POD"}
-                              />
-                              <input
-                                type="text"
-                                value={productForm.eans[combo.key] || ""}
-                                onChange={(e) =>
-                                  handleEANChange(combo.key, e.target.value)
-                                }
-                                className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sna-primary"
-                                pattern="^\d{13}$"
-                                inputMode="numeric"
-                                placeholder="EAN"
                               />
                               <span className="text-sm text-gray-500">
                                 unités
@@ -1273,9 +1411,15 @@ const CreateProduct = () => {
                 type="file"
                 multiple
                 accept="image/*"
-                onChange={(e) => handleImageChange(e.target.files)}
+                onChange={(e) => handleImageChange(e.target.files, e.target)}
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sna-primary file:text-white hover:file:bg-sna-primary-dark"
               />
+
+              <p className="text-sm text-gray-500 mt-2">
+                📝 <strong>Formats acceptés:</strong> JPG, PNG, GIF, WebP |
+                <strong> Taille max:</strong> 10MB par image |
+                <strong> Limite:</strong> 5 images maximum
+              </p>
 
               {imagePreviewUrls.length > 0 && (
                 <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">

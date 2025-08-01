@@ -1,0 +1,1276 @@
+[2025-07-31 14:08:16] Merchandising XLSX processor script started
+[2025-07-31 14:08:16] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 14:08:16] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 14:08:16] Decoding base64 data...
+[2025-07-31 14:08:16] Successfully decoded base64 data
+[2025-07-31 14:08:16] Parsing JSON data...
+[2025-07-31 14:08:16] Successfully parsed JSON data
+[2025-07-31 14:08:16] Starting merchandising XLSX processing...
+[2025-07-31 14:08:16] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 14:08:16] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 14:08:16] Append mode: False
+[2025-07-31 14:08:16] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-07-31 14:08:16] Shop data keys: ['nomProjet', 'shopifyDomain', 'raisonSociale', 'dateSortieOfficielle', 'dateCommercialisation', 'dateMiseEnLigne', 'products', 'appendMode']
+[2025-07-31 14:08:16] Found date-related field: 'dateSortieOfficielle' = '2025-07-16'
+[2025-07-31 14:08:16] Found date-related field: 'dateCommercialisation' = '2025-07-16'
+[2025-07-31 14:08:16] Found date-related field: 'dateMiseEnLigne' = '2025-07-16'
+[2025-07-31 14:08:16] Found customer-related field: 'raisonSociale' = 'TsT'
+[2025-07-31 14:08:16] 🔍 DEBUG: All shop_data keys: ['nomProjet', 'shopifyDomain', 'raisonSociale', 'dateSortieOfficielle', 'dateCommercialisation', 'dateMiseEnLigne', 'products', 'appendMode']
+[2025-07-31 14:08:16] 🔍 DEBUG: Date fields found - dateSortie: 'NOT_FOUND', dateSortieOfficielle: '2025-07-16', dateCommercialisation: '2025-07-16'
+[2025-07-31 14:08:16] 🔍 DEBUG: Full shop_data content: {'nomProjet': 'Test_Amanda', 'shopifyDomain': 'test-amanda-store', 'raisonSociale': 'TsT', 'dateSortieOfficielle': '2025-07-16', 'dateCommercialisation': '2025-07-16', 'dateMiseEnLigne': '2025-07-16', 'products': [{'titre': 'ngai', 'description': '2421442142142', 'typeProduit': 'POD', 'eans': {'default': '2421442142142'}, 'extractedFromRow': 5, 'extractedFromSheet': 'Catalogue en ligne'}, {'titre': 'test tee', 'description': '2112231333323', 'typeProduit': 'POD', 'eans': {'default': '2112231333323'}, 'extractedFromRow': 6, 'extractedFromSheet': 'Catalogue en ligne'}, {'titre': 'Testing new image upload', 'description': '1283428448142', 'typeProduit': 'Phono', 'eans': {'default': '1283428448142'}, 'extractedFromRow': 7, 'extractedFromSheet': 'Catalogue en ligne'}, {'titre': 'Testing', 'description': '2142844010824', 'typeProduit': 'Phono', 'eans': {'default': '2142844010824'}, 'extractedFromRow': 8, 'extractedFromSheet': 'Catalogue en ligne'}, {'titre': 'Testing', 'description': '4214214821498', 'typeProduit': 'Merch', 'eans': {'default': '4214214821498'}, 'extractedFromRow': 9, 'extractedFromSheet': 'Catalogue en ligne'}, {'titre': 'TestTestTestTestTest', 'description': '4124214215215', 'typeProduit': 'Phono', 'eans': {'default': '4124214215215'}, 'extractedFromRow': 10, 'extractedFromSheet': 'Catalogue en ligne'}, {'titre': 'fwqwfqfwwqf', 'description': '4214214244214', 'typeProduit': 'Phono', 'eans': {'default': '4214214244214'}, 'extractedFromRow': 11, 'extractedFromSheet': 'Catalogue en ligne'}, {'titre': 'ebfebfeqbiuf32bi', 'description': '2414214412412', 'typeProduit': 'Phono', 'eans': {'default': '2414214412412'}, 'extractedFromRow': 12, 'extractedFromSheet': 'Catalogue en ligne'}, {'titre': 'testing appending feature sharepoint', 'description': '8218948219421', 'typeProduit': 'Phono', 'eans': {'default': '8218948219421'}, 'extractedFromRow': 13, 'extractedFromSheet': 'Catalogue en ligne'}, {'titre': 'ngai', 'description': '2421442142142', 'typeProduit': 'POD', 'eans': {'default': '2421442142142'}, 'extractedFromRow': 6, 'extractedFromSheet': 'POD'}, {'titre': 'test tee', 'description': '2112231333323', 'typeProduit': 'POD', 'eans': {'default': '2112231333323'}, 'extractedFromRow': 7, 'extractedFromSheet': 'POD'}, {'titre': 'Testing new image upload', 'description': '1283428448142', 'typeProduit': 'Phono', 'eans': {'default': '1283428448142'}, 'extractedFromRow': 8, 'extractedFromSheet': 'POD'}, {'titre': 'Testing', 'description': '2142844010824', 'typeProduit': 'Phono', 'eans': {'default': '2142844010824'}, 'extractedFromRow': 9, 'extractedFromSheet': 'POD'}, {'titre': 'Testing', 'description': '4214214821498', 'typeProduit': 'Merch', 'eans': {'default': '4214214821498'}, 'extractedFromRow': 10, 'extractedFromSheet': 'POD'}, {'titre': 'TestTestTestTestTest', 'description': '4124214215215', 'typeProduit': 'Phono', 'eans': {'default': '4124214215215'}, 'extractedFromRow': 11, 'extractedFromSheet': 'POD'}, {'titre': 'fwqwfqfwwqf', 'description': '4214214244214', 'typeProduit': 'Phono', 'eans': {'default': '4214214244214'}, 'extractedFromRow': 12, 'extractedFromSheet': 'POD'}, {'titre': 'ebfebfeqbiuf32bi', 'description': '2414214412412', 'typeProduit': 'Phono', 'eans': {'default': '2414214412412'}, 'extractedFromRow': 13, 'extractedFromSheet': 'POD'}, {'titre': 'testing appending feature sharepoint', 'description': '8218948219421', 'typeProduit': 'Phono', 'eans': {'default': '8218948219421'}, 'extractedFromRow': 14, 'extractedFromSheet': 'POD'}, {'titre': 'TestAppendNumber2', 'description': 'Testing again', 'prix': 32, 'poids': 2132, 'eans': {'default': '2184219442479'}, 'typeProduit': 'Merch', 'produit': 'Chemise', 'OCC': False, 'tailles': [], 'couleurs': [], 'stock': {'default': 123}, 'shopId': '6877a8dbd94f83fadc5ec607', 'skus': {'default': 'CHEMISE-TESTAPPENDNUMBER2'}, 'productId': '688b552649ca05f4e46ab748', 'createdAt': '2025-07-31T11:36:06.860Z', 'updatedAt': '2025-07-31T11:54:41.136Z', 'active': True, 'documented': False, 'hasShopify': False, 'hasEC': False, 'imageUrls': ['https://snagz.s3.eu-north-1.amazonaws.com/products/shop-6877a8dbd94f83fadc5ec607/product-688b552649ca05f4e46ab748/1753961766928-c7pvp5dosn5.png'], 'validatedAt': '2025-07-31T11:37:29.935Z'}], 'appendMode': False}
+[2025-07-31 14:08:16] 🔍 DEBUG: Final extracted - date_sortie: '2025-07-16', date_commercialisation: '2025-07-16'
+[2025-07-31 14:08:16] Extracted dates - Sortie: '2025-07-16', Commercialisation: '2025-07-16', Mise en ligne DD/MM/YYYY: ''
+[2025-07-31 14:08:16] Extracted raison sociale: 'TsT'
+[2025-07-31 14:08:16] 🔍 DEBUG: Primary date for column N: '2025-07-16' (from date_sortie: '2025-07-16' or date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] 🔍 DEBUG: Converted YYYY-MM-DD '2025-07-16' to DD/MM/YYYY '16/07/2025'
+[2025-07-31 14:08:16] Combined dates field: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Combined dates DD/MM/YYYY: '16/07/2025'
+[2025-07-31 14:08:16] Total shop stock calculated: 123
+[2025-07-31 14:08:16] Processing 19 products for shop: Test_Amanda
+[2025-07-31 14:08:16] Processing worksheet: Catalogue en ligne
+[2025-07-31 14:08:16] 🎯 SPECIAL CELL A2: Set to 'CLIENT : TsT' (was: 'CLIENT : 111112')
+[2025-07-31 14:08:16] 🎯 SPECIAL CELL F2: Replaced formula/#### with total stock 123 (was: '=SUM(E5:E199)', now: '123')
+[2025-07-31 14:08:16] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-07-31 14:08:16] Will start inserting product data at row: 5
+[2025-07-31 14:08:16] Normal mode: Clearing existing product data...
+[2025-07-31 14:08:16] Starting to add 19 products at row 5
+[2025-07-31 14:08:16] Processing product 1/19: ngai
+[2025-07-31 14:08:16] Product 1 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 1 colors: [] -> ''
+[2025-07-31 14:08:16] Product 1 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 1 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 1 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 1 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 5, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 1 data at row 5: ngai
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'ngai', '2421442142142', '2421442142142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 2/19: test tee
+[2025-07-31 14:08:16] Product 2 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 2 colors: [] -> ''
+[2025-07-31 14:08:16] Product 2 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 2 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 2 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 2 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 2 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 2 data at row 6: test tee
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'test tee', '2112231333323', '2112231333323', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 3/19: Testing new image upload
+[2025-07-31 14:08:16] Product 3 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 3 colors: [] -> ''
+[2025-07-31 14:08:16] Product 3 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 3 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 3 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 3 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 3 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 7, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 3 data at row 7: Testing new image upload
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing new image upload', '1283428448142', '1283428448142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 4/19: Testing
+[2025-07-31 14:08:16] Product 4 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 4 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 4 colors: [] -> ''
+[2025-07-31 14:08:16] Product 4 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 4 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 4 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 4 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 4 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 8, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 4 data at row 8: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing', '2142844010824', '2142844010824', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 5/19: Testing
+[2025-07-31 14:08:16] Product 5 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 5 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 5 colors: [] -> ''
+[2025-07-31 14:08:16] Product 5 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 5 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 5 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 5 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 5 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 9, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 5 data at row 9: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'Testing', '4214214821498', '4214214821498', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 6/19: TestTestTestTestTest
+[2025-07-31 14:08:16] Product 6 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 6 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 6 colors: [] -> ''
+[2025-07-31 14:08:16] Product 6 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 6 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 6 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 6 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 6 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 10, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 6 data at row 10: TestTestTestTestTest
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'TestTestTestTestTest', '4124214215215', '4124214215215', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 7/19: fwqwfqfwwqf
+[2025-07-31 14:08:16] Product 7 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 7 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 7 colors: [] -> ''
+[2025-07-31 14:08:16] Product 7 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 7 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 7 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 7 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 7 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 11, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 7 data at row 11: fwqwfqfwwqf
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'fwqwfqfwwqf', '4214214244214', '4214214244214', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 8/19: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Product 8 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 8 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 8 colors: [] -> ''
+[2025-07-31 14:08:16] Product 8 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 8 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 8 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 8 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 8 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 12, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 8 data at row 12: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'ebfebfeqbiuf32bi', '2414214412412', '2414214412412', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 9/19: testing appending feature sharepoint
+[2025-07-31 14:08:16] Product 9 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 9 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 9 colors: [] -> ''
+[2025-07-31 14:08:16] Product 9 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 9 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 9 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 9 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 9 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 13, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 9 data at row 13: testing appending feature sharepoint
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'testing appending feature sharepoint', '8218948219421', '8218948219421', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 10/19: ngai
+[2025-07-31 14:08:16] Product 10 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 10 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 10 colors: [] -> ''
+[2025-07-31 14:08:16] Product 10 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 10 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 10 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 10 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 10 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 14, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 10 data at row 14: ngai
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'ngai', '2421442142142', '2421442142142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 11/19: test tee
+[2025-07-31 14:08:16] Product 11 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 11 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 11 colors: [] -> ''
+[2025-07-31 14:08:16] Product 11 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 11 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 11 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 11 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 11 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 15, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 11 data at row 15: test tee
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'test tee', '2112231333323', '2112231333323', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 12/19: Testing new image upload
+[2025-07-31 14:08:16] Product 12 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 12 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 12 colors: [] -> ''
+[2025-07-31 14:08:16] Product 12 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 12 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 12 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 12 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 12 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 16, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 12 data at row 16: Testing new image upload
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing new image upload', '1283428448142', '1283428448142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 13/19: Testing
+[2025-07-31 14:08:16] Product 13 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 13 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 13 colors: [] -> ''
+[2025-07-31 14:08:16] Product 13 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 13 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 13 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 13 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 13 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 17, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 13 data at row 17: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing', '2142844010824', '2142844010824', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 14/19: Testing
+[2025-07-31 14:08:16] Product 14 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 14 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 14 colors: [] -> ''
+[2025-07-31 14:08:16] Product 14 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 14 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 14 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 14 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 14 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 18, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 14 data at row 18: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'Testing', '4214214821498', '4214214821498', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 15/19: TestTestTestTestTest
+[2025-07-31 14:08:16] Product 15 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 15 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 15 colors: [] -> ''
+[2025-07-31 14:08:16] Product 15 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 15 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 15 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 15 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 15 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 19, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 15 data at row 19: TestTestTestTestTest
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'TestTestTestTestTest', '4124214215215', '4124214215215', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 16/19: fwqwfqfwwqf
+[2025-07-31 14:08:16] Product 16 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 16 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 16 colors: [] -> ''
+[2025-07-31 14:08:16] Product 16 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 16 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 16 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 16 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 16 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 20, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 16 data at row 20: fwqwfqfwwqf
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'fwqwfqfwwqf', '4214214244214', '4214214244214', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 17/19: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Product 17 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 17 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 17 colors: [] -> ''
+[2025-07-31 14:08:16] Product 17 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 17 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 17 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 17 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 17 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 21, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 17 data at row 21: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'ebfebfeqbiuf32bi', '2414214412412', '2414214412412', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 18/19: testing appending feature sharepoint
+[2025-07-31 14:08:16] Product 18 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 18 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 18 colors: [] -> ''
+[2025-07-31 14:08:16] Product 18 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 18 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 18 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 18 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 18 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 22, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 18 data at row 22: testing appending feature sharepoint
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'testing appending feature sharepoint', '8218948219421', '8218948219421', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 19/19: TestAppendNumber2
+[2025-07-31 14:08:16] Product 19 total stock: 123 from stock_dict: {'default': 123}
+[2025-07-31 14:08:16] Product 19 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 19 colors: [] -> ''
+[2025-07-31 14:08:16] Product 19 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 19 images: 1 images -> ''
+[2025-07-31 14:08:16] Product 19 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 19 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 19 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 23, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 19 data at row 23: TestAppendNumber2
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'TestAppendNumber2', 'Testing again', '2184219442479', 123, 0, 0, 0, 0, 0, 2132, 32, 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Finished processing all products. Final row: 23
+[2025-07-31 14:08:16] Processing worksheet: POD
+[2025-07-31 14:08:16] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 14:08:16] Will start inserting product data at row: 6
+[2025-07-31 14:08:16] Normal mode: Clearing existing product data...
+[2025-07-31 14:08:16] Starting to add 19 products at row 6
+[2025-07-31 14:08:16] Processing product 1/19: ngai
+[2025-07-31 14:08:16] Product 1 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 1 colors: [] -> ''
+[2025-07-31 14:08:16] Product 1 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 1 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 1 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 1 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 1 data at row 6: ngai
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'ngai', '2421442142142', '2421442142142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 2/19: test tee
+[2025-07-31 14:08:16] Product 2 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 2 colors: [] -> ''
+[2025-07-31 14:08:16] Product 2 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 2 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 2 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 2 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 2 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 7, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 2 data at row 7: test tee
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'test tee', '2112231333323', '2112231333323', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 3/19: Testing new image upload
+[2025-07-31 14:08:16] Product 3 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 3 colors: [] -> ''
+[2025-07-31 14:08:16] Product 3 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 3 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 3 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 3 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 3 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 8, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 3 data at row 8: Testing new image upload
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing new image upload', '1283428448142', '1283428448142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 4/19: Testing
+[2025-07-31 14:08:16] Product 4 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 4 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 4 colors: [] -> ''
+[2025-07-31 14:08:16] Product 4 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 4 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 4 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 4 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 4 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 9, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 4 data at row 9: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing', '2142844010824', '2142844010824', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 5/19: Testing
+[2025-07-31 14:08:16] Product 5 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 5 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 5 colors: [] -> ''
+[2025-07-31 14:08:16] Product 5 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 5 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 5 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 5 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 5 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 10, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 5 data at row 10: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'Testing', '4214214821498', '4214214821498', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 6/19: TestTestTestTestTest
+[2025-07-31 14:08:16] Product 6 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 6 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 6 colors: [] -> ''
+[2025-07-31 14:08:16] Product 6 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 6 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 6 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 6 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 6 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 11, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 6 data at row 11: TestTestTestTestTest
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'TestTestTestTestTest', '4124214215215', '4124214215215', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 7/19: fwqwfqfwwqf
+[2025-07-31 14:08:16] Product 7 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 7 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 7 colors: [] -> ''
+[2025-07-31 14:08:16] Product 7 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 7 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 7 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 7 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 7 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 12, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 7 data at row 12: fwqwfqfwwqf
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'fwqwfqfwwqf', '4214214244214', '4214214244214', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 8/19: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Product 8 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 8 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 8 colors: [] -> ''
+[2025-07-31 14:08:16] Product 8 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 8 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 8 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 8 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 8 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 13, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 8 data at row 13: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'ebfebfeqbiuf32bi', '2414214412412', '2414214412412', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 9/19: testing appending feature sharepoint
+[2025-07-31 14:08:16] Product 9 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 9 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 9 colors: [] -> ''
+[2025-07-31 14:08:16] Product 9 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 9 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 9 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 9 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 9 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 14, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 9 data at row 14: testing appending feature sharepoint
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'testing appending feature sharepoint', '8218948219421', '8218948219421', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 10/19: ngai
+[2025-07-31 14:08:16] Product 10 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 10 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 10 colors: [] -> ''
+[2025-07-31 14:08:16] Product 10 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 10 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 10 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 10 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 10 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 15, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 10 data at row 15: ngai
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'ngai', '2421442142142', '2421442142142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 11/19: test tee
+[2025-07-31 14:08:16] Product 11 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 11 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 11 colors: [] -> ''
+[2025-07-31 14:08:16] Product 11 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 11 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 11 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 11 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 11 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 16, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 11 data at row 16: test tee
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'test tee', '2112231333323', '2112231333323', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 12/19: Testing new image upload
+[2025-07-31 14:08:16] Product 12 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 12 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 12 colors: [] -> ''
+[2025-07-31 14:08:16] Product 12 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 12 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 12 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 12 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 12 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 17, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 12 data at row 17: Testing new image upload
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing new image upload', '1283428448142', '1283428448142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 13/19: Testing
+[2025-07-31 14:08:16] Product 13 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 13 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 13 colors: [] -> ''
+[2025-07-31 14:08:16] Product 13 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 13 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 13 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 13 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 13 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 18, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 13 data at row 18: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing', '2142844010824', '2142844010824', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 14/19: Testing
+[2025-07-31 14:08:16] Product 14 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 14 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 14 colors: [] -> ''
+[2025-07-31 14:08:16] Product 14 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 14 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 14 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 14 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 14 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 19, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 14 data at row 19: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'Testing', '4214214821498', '4214214821498', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 15/19: TestTestTestTestTest
+[2025-07-31 14:08:16] Product 15 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 15 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 15 colors: [] -> ''
+[2025-07-31 14:08:16] Product 15 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 15 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 15 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 15 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 15 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 20, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 15 data at row 20: TestTestTestTestTest
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'TestTestTestTestTest', '4124214215215', '4124214215215', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 16/19: fwqwfqfwwqf
+[2025-07-31 14:08:16] Product 16 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 16 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 16 colors: [] -> ''
+[2025-07-31 14:08:16] Product 16 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 16 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 16 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 16 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 16 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 21, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 16 data at row 21: fwqwfqfwwqf
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'fwqwfqfwwqf', '4214214244214', '4214214244214', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 17/19: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Product 17 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 17 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 17 colors: [] -> ''
+[2025-07-31 14:08:16] Product 17 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 17 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 17 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 17 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 17 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 22, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 17 data at row 22: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'ebfebfeqbiuf32bi', '2414214412412', '2414214412412', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 18/19: testing appending feature sharepoint
+[2025-07-31 14:08:16] Product 18 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 18 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 18 colors: [] -> ''
+[2025-07-31 14:08:16] Product 18 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 18 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 18 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 18 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 18 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 23, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 18 data at row 23: testing appending feature sharepoint
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'testing appending feature sharepoint', '8218948219421', '8218948219421', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 19/19: TestAppendNumber2
+[2025-07-31 14:08:16] Product 19 total stock: 123 from stock_dict: {'default': 123}
+[2025-07-31 14:08:16] Product 19 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 19 colors: [] -> ''
+[2025-07-31 14:08:16] Product 19 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 19 images: 1 images -> ''
+[2025-07-31 14:08:16] Product 19 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 19 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 19 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 24, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 19 data at row 24: TestAppendNumber2
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'TestAppendNumber2', 'Testing again', '2184219442479', 123, 0, 0, 0, 0, 0, 2132, 32, 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Finished processing all products. Final row: 24
+[2025-07-31 14:08:16] Processing worksheet: Feuil1
+[2025-07-31 14:08:16] 🎯 SPECIAL CELL F2: No formula/#### found (value: 'ROCKER')
+[2025-07-31 14:08:16] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 14:08:16] Will start inserting product data at row: 6
+[2025-07-31 14:08:16] Normal mode: Clearing existing product data...
+[2025-07-31 14:08:16] Starting to add 19 products at row 6
+[2025-07-31 14:08:16] Processing product 1/19: ngai
+[2025-07-31 14:08:16] Product 1 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 1 colors: [] -> ''
+[2025-07-31 14:08:16] Product 1 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 1 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 1 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 1 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 1 data at row 6: ngai
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'ngai', '2421442142142', '2421442142142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 2/19: test tee
+[2025-07-31 14:08:16] Product 2 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 2 colors: [] -> ''
+[2025-07-31 14:08:16] Product 2 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 2 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 2 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 2 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 2 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 7, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 2 data at row 7: test tee
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'test tee', '2112231333323', '2112231333323', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 3/19: Testing new image upload
+[2025-07-31 14:08:16] Product 3 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 3 colors: [] -> ''
+[2025-07-31 14:08:16] Product 3 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 3 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 3 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 3 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 3 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 8, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 3 data at row 8: Testing new image upload
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing new image upload', '1283428448142', '1283428448142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 4/19: Testing
+[2025-07-31 14:08:16] Product 4 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 4 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 4 colors: [] -> ''
+[2025-07-31 14:08:16] Product 4 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 4 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 4 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 4 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 4 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 9, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 4 data at row 9: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing', '2142844010824', '2142844010824', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 5/19: Testing
+[2025-07-31 14:08:16] Product 5 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 5 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 5 colors: [] -> ''
+[2025-07-31 14:08:16] Product 5 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 5 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 5 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 5 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 5 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 10, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 5 data at row 10: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'Testing', '4214214821498', '4214214821498', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 6/19: TestTestTestTestTest
+[2025-07-31 14:08:16] Product 6 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 6 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 6 colors: [] -> ''
+[2025-07-31 14:08:16] Product 6 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 6 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 6 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 6 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 6 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 11, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 6 data at row 11: TestTestTestTestTest
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'TestTestTestTestTest', '4124214215215', '4124214215215', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 7/19: fwqwfqfwwqf
+[2025-07-31 14:08:16] Product 7 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 7 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 7 colors: [] -> ''
+[2025-07-31 14:08:16] Product 7 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 7 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 7 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 7 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 7 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 12, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 7 data at row 12: fwqwfqfwwqf
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'fwqwfqfwwqf', '4214214244214', '4214214244214', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 8/19: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Product 8 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 8 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 8 colors: [] -> ''
+[2025-07-31 14:08:16] Product 8 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 8 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 8 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 8 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 8 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 13, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 8 data at row 13: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'ebfebfeqbiuf32bi', '2414214412412', '2414214412412', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 9/19: testing appending feature sharepoint
+[2025-07-31 14:08:16] Product 9 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 9 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 9 colors: [] -> ''
+[2025-07-31 14:08:16] Product 9 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 9 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 9 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 9 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 9 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 14, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 9 data at row 14: testing appending feature sharepoint
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'testing appending feature sharepoint', '8218948219421', '8218948219421', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 10/19: ngai
+[2025-07-31 14:08:16] Product 10 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 10 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 10 colors: [] -> ''
+[2025-07-31 14:08:16] Product 10 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 10 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 10 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 10 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 10 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 15, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 10 data at row 15: ngai
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'ngai', '2421442142142', '2421442142142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 11/19: test tee
+[2025-07-31 14:08:16] Product 11 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 11 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 11 colors: [] -> ''
+[2025-07-31 14:08:16] Product 11 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 11 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 11 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 11 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 11 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 16, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 11 data at row 16: test tee
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'test tee', '2112231333323', '2112231333323', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 12/19: Testing new image upload
+[2025-07-31 14:08:16] Product 12 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 12 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 12 colors: [] -> ''
+[2025-07-31 14:08:16] Product 12 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 12 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 12 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 12 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 12 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 17, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 12 data at row 17: Testing new image upload
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing new image upload', '1283428448142', '1283428448142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 13/19: Testing
+[2025-07-31 14:08:16] Product 13 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 13 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 13 colors: [] -> ''
+[2025-07-31 14:08:16] Product 13 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 13 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 13 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 13 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 13 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 18, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 13 data at row 18: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing', '2142844010824', '2142844010824', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 14/19: Testing
+[2025-07-31 14:08:16] Product 14 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 14 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 14 colors: [] -> ''
+[2025-07-31 14:08:16] Product 14 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 14 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 14 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 14 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 14 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 19, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 14 data at row 19: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'Testing', '4214214821498', '4214214821498', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 15/19: TestTestTestTestTest
+[2025-07-31 14:08:16] Product 15 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 15 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 15 colors: [] -> ''
+[2025-07-31 14:08:16] Product 15 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 15 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 15 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 15 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 15 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 20, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 15 data at row 20: TestTestTestTestTest
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'TestTestTestTestTest', '4124214215215', '4124214215215', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 16/19: fwqwfqfwwqf
+[2025-07-31 14:08:16] Product 16 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 16 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 16 colors: [] -> ''
+[2025-07-31 14:08:16] Product 16 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 16 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 16 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 16 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 16 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 21, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 16 data at row 21: fwqwfqfwwqf
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'fwqwfqfwwqf', '4214214244214', '4214214244214', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 17/19: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Product 17 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 17 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 17 colors: [] -> ''
+[2025-07-31 14:08:16] Product 17 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 17 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 17 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 17 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 17 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 22, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 17 data at row 22: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'ebfebfeqbiuf32bi', '2414214412412', '2414214412412', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 18/19: testing appending feature sharepoint
+[2025-07-31 14:08:16] Product 18 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 18 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 18 colors: [] -> ''
+[2025-07-31 14:08:16] Product 18 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 18 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 18 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 18 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 18 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 23, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 18 data at row 23: testing appending feature sharepoint
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'testing appending feature sharepoint', '8218948219421', '8218948219421', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 19/19: TestAppendNumber2
+[2025-07-31 14:08:16] Product 19 total stock: 123 from stock_dict: {'default': 123}
+[2025-07-31 14:08:16] Product 19 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 19 colors: [] -> ''
+[2025-07-31 14:08:16] Product 19 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 19 images: 1 images -> ''
+[2025-07-31 14:08:16] Product 19 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 19 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 19 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 24, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 19 data at row 24: TestAppendNumber2
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'TestAppendNumber2', 'Testing again', '2184219442479', 123, 0, 0, 0, 0, 0, 2132, 32, 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Finished processing all products. Final row: 24
+[2025-07-31 14:08:16] Processing worksheet: NE PAS MODIFIER
+[2025-07-31 14:08:16] 🎯 SPECIAL CELL A2: Set to 'CLIENT : TsT' (was: 'CD')
+[2025-07-31 14:08:16] Could not find header rows - using default row 6 with safety buffer
+[2025-07-31 14:08:16] Will start inserting product data at row: 6
+[2025-07-31 14:08:16] Normal mode: Clearing existing product data...
+[2025-07-31 14:08:16] Starting to add 19 products at row 6
+[2025-07-31 14:08:16] Processing product 1/19: ngai
+[2025-07-31 14:08:16] Product 1 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 1 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 1 colors: [] -> ''
+[2025-07-31 14:08:16] Product 1 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 1 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 1 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 1 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 1 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 1 data at row 6: ngai
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'ngai', '2421442142142', '2421442142142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 2/19: test tee
+[2025-07-31 14:08:16] Product 2 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 2 colors: [] -> ''
+[2025-07-31 14:08:16] Product 2 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 2 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 2 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 2 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 2 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 7, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 2 data at row 7: test tee
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'test tee', '2112231333323', '2112231333323', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 3/19: Testing new image upload
+[2025-07-31 14:08:16] Product 3 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 3 colors: [] -> ''
+[2025-07-31 14:08:16] Product 3 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 3 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 3 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 3 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 3 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 8, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 3 data at row 8: Testing new image upload
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing new image upload', '1283428448142', '1283428448142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 4/19: Testing
+[2025-07-31 14:08:16] Product 4 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 4 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 4 colors: [] -> ''
+[2025-07-31 14:08:16] Product 4 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 4 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 4 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 4 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 4 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 9, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 4 data at row 9: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing', '2142844010824', '2142844010824', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 5/19: Testing
+[2025-07-31 14:08:16] Product 5 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 5 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 5 colors: [] -> ''
+[2025-07-31 14:08:16] Product 5 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 5 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 5 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 5 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 5 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 10, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 5 data at row 10: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'Testing', '4214214821498', '4214214821498', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 6/19: TestTestTestTestTest
+[2025-07-31 14:08:16] Product 6 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 6 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 6 colors: [] -> ''
+[2025-07-31 14:08:16] Product 6 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 6 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 6 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 6 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 6 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 11, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 6 data at row 11: TestTestTestTestTest
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'TestTestTestTestTest', '4124214215215', '4124214215215', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 7/19: fwqwfqfwwqf
+[2025-07-31 14:08:16] Product 7 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 7 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 7 colors: [] -> ''
+[2025-07-31 14:08:16] Product 7 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 7 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 7 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 7 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 7 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 12, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 7 data at row 12: fwqwfqfwwqf
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'fwqwfqfwwqf', '4214214244214', '4214214244214', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 8/19: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Product 8 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 8 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 8 colors: [] -> ''
+[2025-07-31 14:08:16] Product 8 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 8 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 8 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 8 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 8 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 13, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 8 data at row 13: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'ebfebfeqbiuf32bi', '2414214412412', '2414214412412', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 9/19: testing appending feature sharepoint
+[2025-07-31 14:08:16] Product 9 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 9 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 9 colors: [] -> ''
+[2025-07-31 14:08:16] Product 9 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 9 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 9 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 9 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 9 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 14, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 9 data at row 14: testing appending feature sharepoint
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'testing appending feature sharepoint', '8218948219421', '8218948219421', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 10/19: ngai
+[2025-07-31 14:08:16] Product 10 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 10 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 10 colors: [] -> ''
+[2025-07-31 14:08:16] Product 10 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 10 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 10 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 10 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 10 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 15, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 10 data at row 15: ngai
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'ngai', '2421442142142', '2421442142142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 11/19: test tee
+[2025-07-31 14:08:16] Product 11 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 11 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 11 colors: [] -> ''
+[2025-07-31 14:08:16] Product 11 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 11 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 11 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 11 - POD status: 'OUI' (type_produit: 'POD')
+[2025-07-31 14:08:16] Product 11 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 16, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 11 data at row 16: test tee
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['POD', 'test tee', '2112231333323', '2112231333323', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'OUI', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 12/19: Testing new image upload
+[2025-07-31 14:08:16] Product 12 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 12 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 12 colors: [] -> ''
+[2025-07-31 14:08:16] Product 12 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 12 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 12 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 12 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 12 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 17, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 12 data at row 17: Testing new image upload
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing new image upload', '1283428448142', '1283428448142', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 13/19: Testing
+[2025-07-31 14:08:16] Product 13 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 13 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 13 colors: [] -> ''
+[2025-07-31 14:08:16] Product 13 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 13 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 13 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 13 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 13 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 18, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 13 data at row 18: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'Testing', '2142844010824', '2142844010824', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 14/19: Testing
+[2025-07-31 14:08:16] Product 14 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 14 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 14 colors: [] -> ''
+[2025-07-31 14:08:16] Product 14 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 14 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 14 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 14 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 14 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 19, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 14 data at row 19: Testing
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'Testing', '4214214821498', '4214214821498', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 15/19: TestTestTestTestTest
+[2025-07-31 14:08:16] Product 15 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 15 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 15 colors: [] -> ''
+[2025-07-31 14:08:16] Product 15 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 15 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 15 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 15 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 15 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 20, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 15 data at row 20: TestTestTestTestTest
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'TestTestTestTestTest', '4124214215215', '4124214215215', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 16/19: fwqwfqfwwqf
+[2025-07-31 14:08:16] Product 16 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 16 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 16 colors: [] -> ''
+[2025-07-31 14:08:16] Product 16 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 16 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 16 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 16 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 16 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 21, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 16 data at row 21: fwqwfqfwwqf
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'fwqwfqfwwqf', '4214214244214', '4214214244214', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 17/19: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Product 17 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 17 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 17 colors: [] -> ''
+[2025-07-31 14:08:16] Product 17 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 17 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 17 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 17 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 17 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 22, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 17 data at row 22: ebfebfeqbiuf32bi
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'ebfebfeqbiuf32bi', '2414214412412', '2414214412412', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 18/19: testing appending feature sharepoint
+[2025-07-31 14:08:16] Product 18 total stock: 0 from stock_dict: {}
+[2025-07-31 14:08:16] Product 18 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 18 colors: [] -> ''
+[2025-07-31 14:08:16] Product 18 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 18 images: 0 images -> ''
+[2025-07-31 14:08:16] Product 18 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 18 - POD status: 'NON' (type_produit: 'Phono')
+[2025-07-31 14:08:16] Product 18 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 23, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 18 data at row 23: testing appending feature sharepoint
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Phono', 'testing appending feature sharepoint', '8218948219421', '8218948219421', 0, 0, 0, 0, 0, 0, '', '', 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Processing product 19/19: TestAppendNumber2
+[2025-07-31 14:08:16] Product 19 total stock: 123 from stock_dict: {'default': 123}
+[2025-07-31 14:08:16] Product 19 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-07-31 14:08:16] Product 19 colors: [] -> ''
+[2025-07-31 14:08:16] Product 19 sizes: [] -> ''
+[2025-07-31 14:08:16] Product 19 images: 1 images -> ''
+[2025-07-31 14:08:16] Product 19 - Column N data: '16/07/2025' (from date_sortie: '2025-07-16', date_commercialisation: '2025-07-16')
+[2025-07-31 14:08:16] Product 19 - POD status: 'NON' (type_produit: 'Merch')
+[2025-07-31 14:08:16] Product 19 - Total shop stock: 123
+[2025-07-31 14:08:16] 🎯 COLUMN N DEBUG: Row 24, Column N (14) set to: '16/07/2025' (combined_dates_ddmmyyyy)
+[2025-07-31 14:08:16] Successfully added product 19 data at row 24: TestAppendNumber2
+[2025-07-31 14:08:16] Combined dates field content: 'DATE DE SORTIE (Album): 2025-07-16
+COMMERCIALISATION (Merch): 2025-07-16'
+[2025-07-31 14:08:16] Colors field content: ''
+[2025-07-31 14:08:16] Sizes field content: ''
+[2025-07-31 14:08:16] Data written: ['Merch', 'TestAppendNumber2', 'Testing again', '2184219442479', 123, 0, 0, 0, 0, 0, 2132, 32, 'NON', '16/07/2025', '', 'NON', '', '', '', '', '']
+[2025-07-31 14:08:16] Finished processing all products. Final row: 24
+[2025-07-31 14:08:16] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_TST_TEST_AMANDA.xlsx
+[2025-07-31 14:08:16] Merchandising XLSX processing completed successfully

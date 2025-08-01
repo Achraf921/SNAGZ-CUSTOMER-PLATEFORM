@@ -306,13 +306,17 @@ router.post('/shops/:clientId/:shopId/images/upload', requireInternalAPIAuth, de
       console.error(`[INTERNAL SHOP IMAGE UPLOAD] Failed to clean up temp file:`, cleanupError);
     }
 
-    res.json({
+    const response = {
       success: true,
       message: `${imageType} uploaded successfully`,
       imageUrl: signedUrl,
       s3Key: s3Key,
       imageType: imageType
-    });
+    };
+    
+    console.log(`[INTERNAL SHOP IMAGE UPLOAD] Sending response:`, response);
+    
+    res.json(response);
 
   } catch (error) {
     console.error('[INTERNAL SHOP IMAGE UPLOAD] Error:', error);

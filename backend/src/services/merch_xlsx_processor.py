@@ -49,6 +49,10 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
     log(f"Starting Merchandising XLSX processing for: {xlsx_path}")
     log(f"Output will be saved to: {output_path}")
     
+    # Check if we're in append mode
+    append_mode = shop_data.get('appendMode', False)
+    log(f"Append mode: {append_mode}")
+    
     try:
         workbook = load_workbook(xlsx_path)
         log(f"Successfully loaded workbook: {xlsx_path}")
@@ -74,7 +78,8 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
             log(f"Found customer-related field: '{key}' = '{shop_data[key]}'")
     
     # Extract shop-level data for additional fields - try multiple field name variations
-    date_sortie = (shop_data.get('dateSortie', '') or 
+    date_sortie = (shop_data.get('dateSortieOfficielle', '') or 
+                   shop_data.get('dateSortie', '') or 
                    shop_data.get('dateDeSortie', '') or 
                    shop_data.get('dateAlbum', '') or 
                    shop_data.get('dateSortieAlbum', ''))
@@ -84,9 +89,18 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
                              shop_data.get('dateMerch', '') or 
                              shop_data.get('dateCommercialisationMerch', ''))
     
+    # Debug: Show all available date fields in shop_data
+    log(f"🔍 DEBUG: All shop_data keys: {list(shop_data.keys())}")
+    log(f"🔍 DEBUG: Date fields found - dateSortie: '{shop_data.get('dateSortie', 'NOT_FOUND')}', dateSortieOfficielle: '{shop_data.get('dateSortieOfficielle', 'NOT_FOUND')}', dateCommercialisation: '{shop_data.get('dateCommercialisation', 'NOT_FOUND')}'")
+    log(f"🔍 DEBUG: Full shop_data content: {shop_data}")
+    log(f"🔍 DEBUG: Final extracted - date_sortie: '{date_sortie}', date_commercialisation: '{date_commercialisation}'")
+    
+    # Extract date de mise en ligne in DD/MM/YYYY format for column 16
+    date_mise_en_ligne_ddmmyyyy = shop_data.get('dateMiseEnLigneDDMMYYYY', '')
+    
     raison_sociale = shop_data.get('raisonSociale', '') or shop_data.get('customerName', '')
     
-    log(f"Extracted dates - Sortie: '{date_sortie}', Commercialisation: '{date_commercialisation}'")
+    log(f"Extracted dates - Sortie: '{date_sortie}', Commercialisation: '{date_commercialisation}', Mise en ligne DD/MM/YYYY: '{date_mise_en_ligne_ddmmyyyy}'")
     log(f"Extracted raison sociale: '{raison_sociale}'")
     
     # Combine dates for column 14 (Date de sortie + Date commercialisation)
@@ -99,8 +113,57 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
         else:
             combined_dates = f"COMMERCIALISATION (Merch): {date_commercialisation}"
     
-    log(f"Combined dates field: '{combined_dates}'")
+    # Create DD/MM/YYYY formatted date for column N (prioritize date_sortie, fallback to date_commercialisation)
+    combined_dates_ddmmyyyy = ''
+    primary_date = date_sortie or date_commercialisation
+    log(f"🔍 DEBUG: Primary date for column N: '{primary_date}' (from date_sortie: '{date_sortie}' or date_commercialisation: '{date_commercialisation}')")
     
+    if primary_date:
+        try:
+            # Handle different date formats
+            if '/' in primary_date:
+                date_parts = primary_date.split('/')
+                # Already in YYYY/MM/DD or DD/MM/YYYY format
+                if len(date_parts[0]) == 4:  # YYYY/MM/DD
+                    year, month, day = date_parts
+                    combined_dates_ddmmyyyy = f"{day.zfill(2)}/{month.zfill(2)}/{year}"
+                    log(f"🔍 DEBUG: Converted YYYY/MM/DD '{primary_date}' to DD/MM/YYYY '{combined_dates_ddmmyyyy}'")
+                elif len(date_parts) == 3 and len(date_parts[2]) == 4:  # DD/MM/YYYY
+                    combined_dates_ddmmyyyy = primary_date
+                    log(f"🔍 DEBUG: Date already in DD/MM/YYYY format: '{combined_dates_ddmmyyyy}'")
+                else:
+                    combined_dates_ddmmyyyy = primary_date
+                    log(f"🔍 DEBUG: Keeping original date format: '{combined_dates_ddmmyyyy}'")
+            elif '-' in primary_date:
+                # Handle YYYY-MM-DD format
+                date_parts = primary_date.split('-')
+                if len(date_parts[0]) == 4:  # YYYY-MM-DD
+                    year, month, day = date_parts
+                    combined_dates_ddmmyyyy = f"{day.zfill(2)}/{month.zfill(2)}/{year}"
+                    log(f"🔍 DEBUG: Converted YYYY-MM-DD '{primary_date}' to DD/MM/YYYY '{combined_dates_ddmmyyyy}'")
+                else:
+                    combined_dates_ddmmyyyy = primary_date
+                    log(f"🔍 DEBUG: Keeping original date with dashes: '{combined_dates_ddmmyyyy}'")
+            else:
+                # Handle other formats if needed
+                combined_dates_ddmmyyyy = primary_date
+                log(f"🔍 DEBUG: No recognized format, keeping as-is: '{combined_dates_ddmmyyyy}'")
+        except Exception as e:
+            combined_dates_ddmmyyyy = primary_date
+            log(f"🔍 DEBUG: Date conversion error, keeping original: '{combined_dates_ddmmyyyy}' (error: {e})")
+    else:
+        log(f"🔍 DEBUG: No primary date found, column N will be empty")
+    
+    log(f"Combined dates field: '{combined_dates}'")
+    log(f"Combined dates DD/MM/YYYY: '{combined_dates_ddmmyyyy}'")
+    
+    # Calculate total stock for all products in the shop
+    total_shop_stock = 0
+    for product in products:
+        product_stock = product.get('stock', {})
+        total_shop_stock += calculate_total_stock(product_stock)
+    
+    log(f"Total shop stock calculated: {total_shop_stock}")
     log(f"Processing {len(products)} products for shop: {nom_projet}")
 
     # Process all worksheets
@@ -118,20 +181,39 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
                     original_value = cell.value
                     new_value = original_value
                     
-                    # Replace placeholders - try multiple variations
-                    placeholders_to_replace = [
-                        ('nonProjet', nom_projet),
-                        ('nomProjet', nom_projet),
-                        ('CLIENT', nom_projet),
-                        ('PROJET', nom_projet),
-                        ('shopifyDomain', shopify_domain),
-                        ('SHOPIFY_DOMAIN', shopify_domain)
-                    ]
-                    
-                    for placeholder, replacement in placeholders_to_replace:
-                        if placeholder in new_value:
-                            new_value = new_value.replace(placeholder, replacement)
-                            log(f"Replaced '{placeholder}' with '{replacement}' in cell {cell.coordinate}")
+                    # Special handling for specific cells FIRST (before general replacements)
+                    if cell.coordinate == 'A2':
+                        new_value = "CLIENT :"
+                        log(f"🎯 SPECIAL CELL A2: Set to 'CLIENT :' (was: '{original_value}')")
+                    elif cell.coordinate == 'B2':
+                        new_value = nom_projet
+                        log(f"🎯 SPECIAL CELL B2: Set to shop name '{nom_projet}' (was: '{original_value}')")
+                    elif cell.coordinate == 'C2':
+                        new_value = f"E-SHOP : {shopify_domain}"
+                        log(f"🎯 SPECIAL CELL C2: Set to 'E-SHOP : {shopify_domain}' (was: '{original_value}')")
+                    elif cell.coordinate == 'F2':
+                        # F2 contains a SUM formula, let's replace it with the actual total stock value
+                        if 'SUM' in str(cell.value) or '####' in str(cell.value):
+                            new_value = str(total_shop_stock)  # Just put the total stock number
+                            log(f"🎯 SPECIAL CELL F2: Replaced formula/#### with total stock {total_shop_stock} (was: '{original_value}', now: '{new_value}')")
+                        else:
+                            log(f"🎯 SPECIAL CELL F2: No formula/#### found (value: '{cell.value}')")
+                    else:
+                        # Replace placeholders - try multiple variations (ONLY for non-special cells)
+                        placeholders_to_replace = [
+                            ('nonProjet', nom_projet),
+                            ('nomProjet', nom_projet),
+                            ('CLIENT', nom_projet),  # This won't affect A2 now
+                            ('PROJET', nom_projet),
+                            ('shopifyDomain', shopify_domain),
+                            ('SHOPIFY_DOMAIN', shopify_domain),
+                            ('####', str(total_shop_stock))  # This won't affect F2 now
+                        ]
+                        
+                        for placeholder, replacement in placeholders_to_replace:
+                            if placeholder in new_value:
+                                new_value = new_value.replace(placeholder, replacement)
+                                log(f"Replaced '{placeholder}' with '{replacement}' in cell {cell.coordinate}")
                     
                     if new_value != original_value:
                         try:
@@ -210,8 +292,32 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
             
         log(f"Will start inserting product data at row: {data_start_row}")
         
-        # Add products data
-        current_row = data_start_row
+        # Handle append mode - find the last row with data if we're appending
+        if append_mode:
+            log("Append mode: Finding last row with existing product data...")
+            last_data_row = data_start_row - 1  # Start from before data section
+            
+            # Search for the last row with data in column A (product type)
+            for row in range(data_start_row, worksheet.max_row + 1):
+                cell_value = worksheet.cell(row=row, column=1).value
+                if cell_value and str(cell_value).strip():
+                    last_data_row = row
+                    log(f"Found data in row {row}, column A: '{cell_value}'")
+            
+            # Start adding new products after the last data row
+            current_row = last_data_row + 1
+            log(f"Append mode: Will start adding new products at row {current_row}")
+        else:
+            # In normal mode, clear existing data and start fresh
+            log("Normal mode: Clearing existing product data...")
+            for row in range(data_start_row, worksheet.max_row + 1):
+                for col in range(1, 22):  # Clear columns A through U
+                    cell = worksheet.cell(row=row, column=col)
+                    if not isinstance(cell, MergedCell):
+                        cell.value = None
+            
+            current_row = data_start_row
+        
         log(f"Starting to add {len(products)} products at row {current_row}")
         
         for i, product in enumerate(products):
@@ -266,43 +372,44 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
             couleurs_str = ', '.join(couleurs) if isinstance(couleurs, list) else str(couleurs) if couleurs else ''
             tailles_str = ', '.join(tailles) if isinstance(tailles, list) else str(tailles) if tailles else ''
             
-            # Extract and format product images
+            # Extract and format product images - ALWAYS LEAVE EMPTY as requested
             image_urls = product.get('imageUrls', [])
-            visuels_str = ''
-            if image_urls and isinstance(image_urls, list):
-                # Keep the images in their existing order and format as numbered list
-                visuels_list = []
-                for idx, url in enumerate(image_urls, 1):
-                    if url:  # Only include non-empty URLs
-                        visuels_list.append(f"{idx}. {url}")
-                visuels_str = '\n'.join(visuels_list)
+            visuels_str = ''  # Always leave visuels empty as requested - never put actual S3 URLs
             
             log(f"Product {i+1} colors: {couleurs} -> '{couleurs_str}'")
             log(f"Product {i+1} sizes: {tailles} -> '{tailles_str}'")
             log(f"Product {i+1} images: {len(image_urls)} images -> '{visuels_str[:100]}{'...' if len(visuels_str) > 100 else ''}'")
             
+            # Determine POD status based on product type
+            pod_status = 'OUI' if type_produit.upper() == 'POD' else 'NON'
+            
+            log(f"Product {i+1} - Column N data: '{combined_dates_ddmmyyyy}' (from date_sortie: '{date_sortie}', date_commercialisation: '{date_commercialisation}')")
+            log(f"Product {i+1} - POD status: '{pod_status}' (type_produit: '{type_produit}')")
+            log(f"Product {i+1} - Total shop stock: {total_shop_stock}")
+            
+            # Build row data with correct column mapping (A=1, B=2, ..., P=16, S=19, T=20)
             row_data = [
-                type_produit,                            # Column 1: Type de produit
-                titre,                                   # Column 2: Titre
-                description,                             # Column 3: Description
-                code_ean,                                # Column 4: Code EAN
-                total_stock,                             # Column 5: Quantités totales (per product)
-                size_stocks.get('XS', 0),               # Column 6a: XS stock
-                size_stocks.get('S', 0),                # Column 6b: S stock
-                size_stocks.get('M', 0),                # Column 6c: M stock
-                size_stocks.get('L', 0),                # Column 6d: L stock
-                size_stocks.get('XL', 0),               # Column 6e: XL stock
-                poids,                                   # Column 7: Poids
-                prix,                                    # Column 8: Prix TTC
-                'OUI' if occ else 'NON',                # Column 13: OCC
-                combined_dates,                          # Column 14: Date de sortie + Date commercialisation
-                raison_sociale,                          # Column 15: Artiste/Label (Raison sociale from customer)
-                '',                                      # Column 16: Empty cell
-                '',                                      # Column 17: Empty cell
-                '',                                      # Column 18: Empty cell
-                couleurs_str,                            # Column 19: Couleurs (colors selected by users)
-                tailles_str,                             # Column 20: Tailles (sizes selected by users)
-                visuels_str                              # Column 21: Visuels (product images in order)
+                type_produit,                            # Column A (1): Type de produit
+                titre,                                   # Column B (2): Titre
+                description,                             # Column C (3): Description
+                code_ean,                                # Column D (4): Code EAN
+                total_stock,                             # Column E (5): Quantités totales (per product)
+                size_stocks.get('XS', 0),               # Column F (6): XS stock
+                size_stocks.get('S', 0),                # Column G (7): S stock
+                size_stocks.get('M', 0),                # Column H (8): M stock
+                size_stocks.get('L', 0),                # Column I (9): L stock
+                size_stocks.get('XL', 0),               # Column J (10): XL stock
+                poids,                                   # Column K (11): Poids
+                prix,                                    # Column L (12): Prix TTC
+                'OUI' if occ else 'NON',                # Column M (13): OCC status
+                combined_dates_ddmmyyyy,                 # Column N (14): Date de sortie/commercialisation (DD/MM/YYYY)
+                '',                                      # Column O (15): Empty cell
+                pod_status,                              # Column P (16): POD Status (OUI/NON)
+                '',                                      # Column Q (17): Empty cell
+                '',                                      # Column R (18): Empty cell
+                couleurs_str,                            # Column S (19): Couleurs (colors selected by users)
+                tailles_str,                             # Column T (20): Tailles (sizes selected by users)
+                visuels_str                              # Column U (21): Visuels (product images in order)
             ]
             
             # Insert the row with borders
@@ -316,6 +423,10 @@ def process_merch_xlsx(xlsx_path, shop_data, output_path):
                     
                     # Set cell value
                     cell.value = value
+                    
+                    # Debug column N specifically
+                    if col_num == 14:  # Column N
+                        log(f"🎯 COLUMN N DEBUG: Row {current_row}, Column N (14) set to: '{value}' (combined_dates_ddmmyyyy)")
                     
                     # Add solid borders to all sides
                     thin_border = Border(

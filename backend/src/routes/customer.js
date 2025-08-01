@@ -7,8 +7,90 @@ const { generateDocumentation } = require('../services/sharepointService');
 const path = require('path');
 const fs = require('fs');
 const { connectToDatabase } = require('../config/db');
-const { logoUpload, bannerUpload, faviconUpload, getSignedUrl } = require('../services/s3Service');
-const { validateUserAccess, addRequestSecurity } = require('../middleware/authSecurity');
+const { getSignedUrl } = require('../services/s3Service');
+const multer = require('multer');
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { s3 } = require('../services/s3Service');
+
+// Ensure temp directory exists
+const tempDir = path.join(__dirname, '..', 'uploads', 'temp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
+
+// Local multer configuration for customer uploads (more reliable than S3 multer)
+const customerImageUpload = multer({
+  dest: tempDir,
+  fileFilter: (req, file, cb) => {
+    console.log('🔍 [CUSTOMER MULTER] Processing file:', file.originalname, file.mimetype);
+    // Only allow image files
+    if (file.mimetype.startsWith('image/')) {
+      console.log('🔍 [CUSTOMER MULTER] File accepted:', file.originalname);
+      cb(null, true);
+    } else {
+      console.log('🔍 [CUSTOMER MULTER] File rejected (not an image):', file.originalname);
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+const { validateUserAccess, validateWelcomeFormAccess, validateShopUploadAccess, addRequestSecurity } = require('../middleware/authSecurity');
+
+// Error handling middleware for multer file upload errors
+const handleMulterError = (err, req, res, next) => {
+  console.error('🚨 [CUSTOMER MULTER ERROR]', err.code, err.message);
+  
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      message: 'File size too large. Maximum allowed size is 10MB.',
+      error: 'FILE_SIZE_LIMIT_EXCEEDED'
+    });
+  }
+  
+  if (err.code === 'LIMIT_FILE_COUNT') {
+    return res.status(400).json({
+      success: false,
+      message: 'Too many files. Only one file allowed.',
+      error: 'FILE_COUNT_LIMIT_EXCEEDED'
+    });
+  }
+  
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({
+      success: false,
+      message: 'Unexpected file field.',
+      error: 'UNEXPECTED_FILE_FIELD'
+    });
+  }
+  
+  // Handle custom file filter errors
+  if (err.message === 'Only image files are allowed!') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid file type. Only image files are allowed.',
+      error: 'INVALID_FILE_TYPE'
+    });
+  }
+  
+  // Handle "Unexpected end of form" error
+  if (err.message === 'Unexpected end of form') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid form data. Please ensure you are uploading a valid image file.',
+      error: 'INVALID_FORM_DATA'
+    });
+  }
+  
+  // Generic multer error
+  return res.status(400).json({
+    success: false,
+    message: 'File upload error: ' + err.message,
+    error: 'FILE_UPLOAD_ERROR'
+  });
+};
 
 // Rate limiting for image operations to prevent abuse
 const imageOperationLimiter = rateLimit({
@@ -267,7 +349,7 @@ router.get('/my-products', addRequestSecurity, validateUserAccess, async (req, r
 });
 
 // Route to handle welcome form submissions - REQUIRES AUTHENTICATION
-router.post('/welcome-form', addRequestSecurity, validateUserAccess, async (req, res) => {
+router.post('/welcome-form', addRequestSecurity, validateWelcomeFormAccess, async (req, res) => {
   try {
     const formData = req.body;
     
@@ -934,12 +1016,12 @@ router.post('/shops/:userId/:shopId/upload-image', addRequestSecurity, validateU
       });
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB (increased for convenience)
     if (imageFile.size > maxSize) {
       return res.status(400).json({
         success: false,
-        message: 'File size too large. Maximum size is 5MB.'
+        message: 'File size too large. Maximum size is 10MB.'
       });
     }
 
@@ -1742,12 +1824,8 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
     const customer = await customersCollection.findOne({
       'shops.shopId': shopId
     });
-    // Find specific shop object
-    const shop = customer.shops.find(s => s.shopId === shopId);
-    if (!shop) {
-      return res.status(404).json({ success: false, message: 'Shop not found' });
-    }
 
+    // FIXED: Check if customer exists BEFORE using it
     if (!customer) {
       console.log('Shop not found');
       return res.status(404).json({
@@ -1757,7 +1835,24 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
     }
 
     console.log('Found customer:', customer._id);
-    console.log('Found shop in customer document');
+
+    // Find specific shop object
+    const shop = customer.shops.find(s => s.shopId === shopId);
+    if (!shop) {
+      console.log('❌ [DOC-DELETE-ERROR] Shop not found in customer shops array');
+      console.log('❌ [DOC-DELETE-ERROR] Available shop IDs in customer:', customer.shops.map(s => s.shopId));
+      console.log('❌ [DOC-DELETE-ERROR] Requested shopId:', shopId);
+      return res.status(404).json({ success: false, message: 'Shop not found' });
+    }
+
+    console.log('✅ [DOC-DELETE-SUCCESS] Found shop in customer document');
+    console.log('📊 [DOC-DELETE-INFO] Shop details:', {
+      shopId: shop.shopId,
+      nomProjet: shop.nomProjet,
+      currentDocStatus: shop.documented,
+      productsCount: shop.products?.length || 0
+    });
+    console.log('📊 [DOC-DELETE-INFO] Requested action:', action);
 
     // Handle SharePoint documentation generation
     if (action === 'document') {
@@ -1923,12 +2018,21 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
       // For other actions (mark_documented, undocument), update status first
       const newStatus = action === 'mark_documented' ? 'documented' : 'undocumented';
       const productDocumentedStatus = action === 'mark_documented' ? true : false;
-      console.log('Updating status to:', newStatus);
-      console.log('Updating all products documented status to:', productDocumentedStatus);
+      
+      console.log('🔄 [DOC-UPDATE] Starting documentation status update...');
+      console.log('🔄 [DOC-UPDATE] Action requested:', action);
+      console.log('🔄 [DOC-UPDATE] New shop status:', newStatus);
+      console.log('🔄 [DOC-UPDATE] New product documented status:', productDocumentedStatus);
       
       // Find the shop and get products count for logging
       const shopData = customer.shops.find(s => s.shopId === shopId);
       const productsCount = shopData?.products?.length || 0;
+      
+      console.log('📊 [DOC-UPDATE] Shop data before update:', {
+        currentStatus: shopData?.documented,
+        productsCount: productsCount,
+        shopId: shopId
+      });
       
       // Update the shop and all its products documentation status
       const updateOperations = {
@@ -1938,27 +2042,38 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
       
       // Update all products' documented status
       if (productsCount > 0) {
+        console.log(`🔄 [DOC-UPDATE] Preparing to update ${productsCount} products...`);
         for (let i = 0; i < productsCount; i++) {
           updateOperations[`shops.$.products.${i}.documented`] = productDocumentedStatus;
           }
+        console.log('🔄 [DOC-UPDATE] Product update operations prepared');
         }
+      
+      console.log('🔄 [DOC-UPDATE] Final update operations:', updateOperations);
+      console.log('🔄 [DOC-UPDATE] Executing database update...');
       
       const updateResult = await customersCollection.updateOne(
         { 'shops.shopId': shopId },
         { $set: updateOperations }
       );
 
-      console.log('Update result:', updateResult);
+      console.log('📊 [DOC-UPDATE] Database update result:', {
+        acknowledged: updateResult.acknowledged,
+        matchedCount: updateResult.matchedCount,
+        modifiedCount: updateResult.modifiedCount,
+        upsertedCount: updateResult.upsertedCount
+      });
 
       if (updateResult.modifiedCount === 0) {
-        console.log('No documents were modified');
+        console.log('❌ [DOC-UPDATE-ERROR] No documents were modified');
+        console.log('❌ [DOC-UPDATE-ERROR] This could mean the shop was not found or data was already in the requested state');
         return res.status(500).json({
           success: false,
           message: 'Failed to update shop documentation status'
         });
       }
 
-      console.log(`Successfully updated shop documentation status and ${productsCount} products`);
+      console.log(`✅ [DOC-UPDATE-SUCCESS] Successfully updated shop documentation status and ${productsCount} products`);
       
       res.status(200).json({
         success: true,
@@ -1970,11 +2085,19 @@ router.post('/shop/:shopId/documentation', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error updating shop documentation status:', error);
+    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Critical error updating shop documentation status');
+    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Error name:', error.name);
+    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Error message:', error.message);
+    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Error stack:', error.stack);
+    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Request params:', req.params);
+    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Request body:', req.body);
+    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Timestamp:', new Date().toISOString());
+    
     res.status(500).json({
       success: false,
       message: 'An error occurred while updating shop documentation status',
-      error: error.message
+      error: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
@@ -2577,7 +2700,7 @@ router.put('/shops/:userId/:shopId/products/:productId', addRequestSecurity, val
 
 
 
-router.post('/shops/:shopId/upload/logo', logoUpload.single('logo'), async (req, res) => {
+router.post('/shops/:shopId/upload/logo', addRequestSecurity, validateShopUploadAccess, customerImageUpload.single('logo'), handleMulterError, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No logo file uploaded' });
@@ -2585,13 +2708,63 @@ router.post('/shops/:shopId/upload/logo', logoUpload.single('logo'), async (req,
 
     const customersCollection = await getCustomersCollection();
     const shopId = req.params.shopId;
+    const sessionUserId = req.session.userInfo?.sub || req.session.userInfo?.userId;
+    
+    // Verify that the shop belongs to the authenticated user
+    const customer = await customersCollection.findOne({
+      userId: sessionUserId,
+      'shops.shopId': shopId
+    });
+
+    if (!customer) {
+      console.error('🚨 SECURITY: User attempting to upload to unauthorized shop');
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Access denied: Shop not found or unauthorized' 
+      });
+    }
+
+    // Read the uploaded file
+    const fileBuffer = await fs.promises.readFile(req.file.path);
+    
+    // Generate unique key for S3
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+    const fileName = `${timestamp}-${randomString}${fileExtension}`;
+    const s3Key = `shops/shop-${shopId}/logo/${fileName}`;
+    
+    console.log(`[CUSTOMER LOGO UPLOAD] Uploading to S3 with key: ${s3Key}`);
+    
+    // Upload to S3
+    const uploadCommand = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: fileBuffer,
+      ContentType: req.file.mimetype,
+      ACL: 'private'
+    });
+    
+    await s3.send(uploadCommand);
+    
+    // Generate signed URL for the uploaded image
+    const signedUrl = await getSignedUrl(s3Key);
+    
+    console.log(`[CUSTOMER LOGO UPLOAD] Successfully uploaded to S3, signed URL generated`);
+    
+    // Clean up temporary file
+    try {
+      await fs.promises.unlink(req.file.path);
+    } catch (unlinkError) {
+      console.warn(`[CUSTOMER LOGO UPLOAD] Failed to delete temp file:`, unlinkError);
+    }
     
     // Update shop with logo URL
     const result = await customersCollection.updateOne(
-      { 'shops.shopId': shopId },
+      { userId: sessionUserId, 'shops.shopId': shopId },
       { 
         $set: { 
-          'shops.$.logoUrl': req.file.location,
+          'shops.$.logoUrl': signedUrl,
           'shops.$.updatedAt': new Date()
         }
       }
@@ -2603,19 +2776,29 @@ router.post('/shops/:shopId/upload/logo', logoUpload.single('logo'), async (req,
 
     res.json({ 
       success: true, 
-      logoUrl: req.file.location,
+      logoUrl: signedUrl,
       message: 'Logo uploaded successfully' 
     });
   } catch (error) {
     console.error('Error uploading logo:', error);
+    
+    // Clean up temporary file on error
+    if (req.file && req.file.path) {
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.warn(`[CUSTOMER LOGO UPLOAD] Failed to delete temp file on error:`, unlinkError);
+      }
+    }
+    
     res.status(500).json({ success: false, message: 'Error uploading logo' });
   }
 });
 
-router.post('/shops/:shopId/upload/banner', bannerUpload.fields([
+router.post('/shops/:shopId/upload/banner', addRequestSecurity, validateShopUploadAccess, customerImageUpload.fields([
   { name: 'desktopBanner', maxCount: 1 },
   { name: 'mobileBanner', maxCount: 1 }
-]), async (req, res) => {
+]), handleMulterError, async (req, res) => {
   try {
     if (!req.files || (!req.files.desktopBanner && !req.files.mobileBanner)) {
       return res.status(400).json({ success: false, message: 'No banner files uploaded' });
@@ -2623,19 +2806,95 @@ router.post('/shops/:shopId/upload/banner', bannerUpload.fields([
 
     const customersCollection = await getCustomersCollection();
     const shopId = req.params.shopId;
+    const sessionUserId = req.session.userInfo?.sub || req.session.userInfo?.userId;
     
-    const updateData = { 'shops.$.updatedAt': new Date() };
-    
-    if (req.files.desktopBanner) {
-      updateData['shops.$.desktopBannerUrl'] = req.files.desktopBanner[0].location;
+    // Verify that the shop belongs to the authenticated user
+    const customer = await customersCollection.findOne({
+      userId: sessionUserId,
+      'shops.shopId': shopId
+    });
+
+    if (!customer) {
+      console.error('🚨 SECURITY: User attempting to upload to unauthorized shop');
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Access denied: Shop not found or unauthorized' 
+      });
     }
-    
+
+    const updateData = { 'shops.$.updatedAt': new Date() };
+    const responseData = { success: true, message: 'Banners uploaded successfully' };
+    const uploadedFiles = [];
+
+    // Process desktop banner if uploaded
+    if (req.files.desktopBanner) {
+      const file = req.files.desktopBanner[0];
+      const fileBuffer = await fs.promises.readFile(file.path);
+      
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      const fileExtension = path.extname(file.originalname).toLowerCase();
+      const fileName = `${timestamp}-${randomString}${fileExtension}`;
+      const s3Key = `shops/shop-${shopId}/banners/desktop/${fileName}`;
+      
+      console.log(`[CUSTOMER BANNER UPLOAD] Uploading desktop banner to S3 with key: ${s3Key}`);
+      
+      const uploadCommand = new PutObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
+        Key: s3Key,
+        Body: fileBuffer,
+        ContentType: file.mimetype,
+        ACL: 'private'
+      });
+      
+      await s3.send(uploadCommand);
+      const signedUrl = await getSignedUrl(s3Key);
+      
+      updateData['shops.$.desktopBannerUrl'] = signedUrl;
+      responseData.desktopBannerUrl = signedUrl;
+      uploadedFiles.push(file.path);
+    }
+
+    // Process mobile banner if uploaded
     if (req.files.mobileBanner) {
-      updateData['shops.$.mobileBannerUrl'] = req.files.mobileBanner[0].location;
+      const file = req.files.mobileBanner[0];
+      const fileBuffer = await fs.promises.readFile(file.path);
+      
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      const fileExtension = path.extname(file.originalname).toLowerCase();
+      const fileName = `${timestamp}-${randomString}${fileExtension}`;
+      const s3Key = `shops/shop-${shopId}/banners/mobile/${fileName}`;
+      
+      console.log(`[CUSTOMER BANNER UPLOAD] Uploading mobile banner to S3 with key: ${s3Key}`);
+      
+      const uploadCommand = new PutObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
+        Key: s3Key,
+        Body: fileBuffer,
+        ContentType: file.mimetype,
+        ACL: 'private'
+      });
+      
+      await s3.send(uploadCommand);
+      const signedUrl = await getSignedUrl(s3Key);
+      
+      updateData['shops.$.mobileBannerUrl'] = signedUrl;
+      responseData.mobileBannerUrl = signedUrl;
+      uploadedFiles.push(file.path);
+    }
+
+    // Clean up temporary files
+    for (const filePath of uploadedFiles) {
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (unlinkError) {
+        console.warn(`[CUSTOMER BANNER UPLOAD] Failed to delete temp file:`, unlinkError);
+      }
     }
 
     const result = await customersCollection.updateOne(
-      { 'shops.shopId': shopId },
+      { userId: sessionUserId, 'shops.shopId': shopId },
       { $set: updateData }
     );
 
@@ -2643,19 +2902,31 @@ router.post('/shops/:shopId/upload/banner', bannerUpload.fields([
       return res.status(404).json({ success: false, message: 'Shop not found' });
     }
 
-    const responseData = { success: true, message: 'Banners uploaded successfully' };
-    if (req.files.desktopBanner) responseData.desktopBannerUrl = req.files.desktopBanner[0].location;
-    if (req.files.mobileBanner) responseData.mobileBannerUrl = req.files.mobileBanner[0].location;
-
     res.json(responseData);
   } catch (error) {
     console.error('Error uploading banners:', error);
+    
+    // Clean up temporary files on error
+    if (req.files) {
+      const filesToClean = [];
+      if (req.files.desktopBanner) filesToClean.push(req.files.desktopBanner[0].path);
+      if (req.files.mobileBanner) filesToClean.push(req.files.mobileBanner[0].path);
+      
+      for (const filePath of filesToClean) {
+        try {
+          await fs.promises.unlink(filePath);
+        } catch (unlinkError) {
+          console.warn(`[CUSTOMER BANNER UPLOAD] Failed to delete temp file on error:`, unlinkError);
+        }
+      }
+    }
+    
     res.status(500).json({ success: false, message: 'Error uploading banners' });
   }
 });
 
 // NEW: Route to upload favicon
-router.post('/shops/:shopId/upload/favicon', faviconUpload.single('favicon'), async (req, res) => {
+router.post('/shops/:shopId/upload/favicon', addRequestSecurity, validateShopUploadAccess, customerImageUpload.single('favicon'), handleMulterError, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No favicon file uploaded' });
@@ -2663,13 +2934,63 @@ router.post('/shops/:shopId/upload/favicon', faviconUpload.single('favicon'), as
 
     const customersCollection = await getCustomersCollection();
     const shopId = req.params.shopId;
+    const sessionUserId = req.session.userInfo?.sub || req.session.userInfo?.userId;
+    
+    // Verify that the shop belongs to the authenticated user
+    const customer = await customersCollection.findOne({
+      userId: sessionUserId,
+      'shops.shopId': shopId
+    });
+
+    if (!customer) {
+      console.error('🚨 SECURITY: User attempting to upload to unauthorized shop');
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Access denied: Shop not found or unauthorized' 
+      });
+    }
+
+    // Read the uploaded file
+    const fileBuffer = await fs.promises.readFile(req.file.path);
+    
+    // Generate unique key for S3
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+    const fileName = `${timestamp}-${randomString}${fileExtension}`;
+    const s3Key = `shops/shop-${shopId}/favicon/${fileName}`;
+    
+    console.log(`[CUSTOMER FAVICON UPLOAD] Uploading to S3 with key: ${s3Key}`);
+    
+    // Upload to S3
+    const uploadCommand = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: fileBuffer,
+      ContentType: req.file.mimetype,
+      ACL: 'private'
+    });
+    
+    await s3.send(uploadCommand);
+    
+    // Generate signed URL for the uploaded image
+    const signedUrl = await getSignedUrl(s3Key);
+    
+    console.log(`[CUSTOMER FAVICON UPLOAD] Successfully uploaded to S3, signed URL generated`);
+    
+    // Clean up temporary file
+    try {
+      await fs.promises.unlink(req.file.path);
+    } catch (unlinkError) {
+      console.warn(`[CUSTOMER FAVICON UPLOAD] Failed to delete temp file:`, unlinkError);
+    }
     
     // Update shop with favicon URL
     const result = await customersCollection.updateOne(
-      { 'shops.shopId': shopId },
+      { userId: sessionUserId, 'shops.shopId': shopId },
       { 
         $set: { 
-          'shops.$.faviconUrl': req.file.location,
+          'shops.$.faviconUrl': signedUrl,
           'shops.$.updatedAt': new Date()
         }
       }
@@ -2681,11 +3002,21 @@ router.post('/shops/:shopId/upload/favicon', faviconUpload.single('favicon'), as
 
     res.json({ 
       success: true, 
-      faviconUrl: req.file.location,
+      faviconUrl: signedUrl,
       message: 'Favicon uploaded successfully' 
     });
   } catch (error) {
     console.error('Error uploading favicon:', error);
+    
+    // Clean up temporary file on error
+    if (req.file && req.file.path) {
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.warn(`[CUSTOMER FAVICON UPLOAD] Failed to delete temp file on error:`, unlinkError);
+      }
+    }
+    
     res.status(500).json({ success: false, message: 'Error uploading favicon' });
   }
 });

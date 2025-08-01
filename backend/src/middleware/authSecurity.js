@@ -77,6 +77,81 @@ const validateUserAccess = (req, res, next) => {
   next();
 };
 
+// Validate that the user is authenticated for welcome form submission
+const validateWelcomeFormAccess = (req, res, next) => {
+  const sessionUserInfo = req.session.userInfo;
+
+  console.log('🔒 WELCOME FORM ACCESS VALIDATION:', {
+    sessionUserId: sessionUserInfo?.userId,
+    sessionSub: sessionUserInfo?.sub,
+    sessionEmail: sessionUserInfo?.email,
+    path: req.path
+  });
+
+  // Check if user is authenticated
+  if (!sessionUserInfo) {
+    console.error('🚨 SECURITY: No user session for welcome form submission');
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+      securityAlert: 'NO_USER_SESSION'
+    });
+  }
+
+  const sessionUserId = sessionUserInfo.userId || sessionUserInfo.sub;
+  
+  if (!sessionUserId) {
+    console.error('🚨 CRITICAL: Session has no valid userId/sub for welcome form');
+    return res.status(500).json({
+      success: false,
+      message: 'Invalid session data',
+      securityAlert: 'Missing userId in session'
+    });
+  }
+
+  console.log('✅ SECURITY: Welcome form access validation passed');
+  next();
+};
+
+// Validate that the user is authenticated for shop upload operations
+const validateShopUploadAccess = (req, res, next) => {
+  const sessionUserInfo = req.session.userInfo;
+
+  console.log('🔒 SHOP UPLOAD ACCESS VALIDATION:', {
+    sessionUserId: sessionUserInfo?.userId,
+    sessionSub: sessionUserInfo?.sub,
+    sessionEmail: sessionUserInfo?.email,
+    path: req.path,
+    shopId: req.params.shopId
+  });
+
+  // Check if user is authenticated
+  if (!sessionUserInfo) {
+    console.error('🚨 SECURITY: No user session for shop upload');
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+      securityAlert: 'NO_USER_SESSION'
+    });
+  }
+
+  const sessionUserId = sessionUserInfo.userId || sessionUserInfo.sub;
+  
+  if (!sessionUserId) {
+    console.error('🚨 CRITICAL: Session has no valid userId/sub for shop upload');
+    return res.status(500).json({
+      success: false,
+      message: 'Invalid session data',
+      securityAlert: 'Missing userId in session'
+    });
+  }
+
+  // For shop uploads, we need to verify that the shop belongs to the authenticated user
+  // This will be done in the route handler by looking up the shop in the database
+  console.log('✅ SECURITY: Shop upload access validation passed');
+  next();
+};
+
 // Clear any potentially contaminated session data
 const sanitizeSession = (req, res, next) => {
   // Log session state for debugging
@@ -121,6 +196,8 @@ const addRequestSecurity = (req, res, next) => {
 module.exports = {
   validateAuthentication,
   validateUserAccess,
+  validateWelcomeFormAccess,
+  validateShopUploadAccess,
   sanitizeSession,
   addRequestSecurity
 }; 

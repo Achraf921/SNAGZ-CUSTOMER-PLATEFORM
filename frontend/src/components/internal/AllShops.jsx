@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import ShopDetails from "./ShopDetails"; // Assuming ShopDetails is in the same directory
-import { FaUpload, FaPlus } from "react-icons/fa";
+import {
+  FaUpload,
+  FaPlus,
+  FaTrash,
+  FaExclamationTriangle,
+} from "react-icons/fa";
 
 const AllShops = () => {
   const [shops, setShops] = useState([]);
@@ -9,6 +14,9 @@ const AllShops = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedRows, setExpandedRows] = useState({});
   const [uploadingImage, setUploadingImage] = useState(null); // Changed from uploadingLogo to uploadingImage
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [shopToDelete, setShopToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Function to handle image upload for any image type
   const handleImageUpload = (shopId, imageType) => {
@@ -69,6 +77,46 @@ const AllShops = () => {
 
       const result = await response.json();
 
+      console.log(`${imageType} uploaded successfully:`, result);
+
+      // CRITICAL: Call replace endpoint to save to database
+      console.log(`🔄 [ALL SHOPS] Calling replace endpoint for ${imageType}`);
+
+      const oldImageUrl = shop[`${imageType}Url`];
+      const replaceUrl = `/api/internal/shops/${shop.clientId}/${shopId}/images/replace`;
+
+      console.log(`📞 [ALL SHOPS] Replace call:`, {
+        replaceUrl,
+        imageType,
+        newImageUrl: result.imageUrl,
+        oldImageUrl,
+      });
+
+      const replaceResponse = await fetch(replaceUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageType: imageType,
+          newImageUrl: result.imageUrl,
+          oldImageUrl: oldImageUrl,
+        }),
+        credentials: "include",
+      });
+
+      if (!replaceResponse.ok) {
+        const errorText = await replaceResponse.text();
+        console.error(`❌ [ALL SHOPS] Replace failed:`, errorText);
+        throw new Error(
+          `Failed to save ${imageType} to database: ${errorText}`
+        );
+      }
+
+      const replaceResult = await replaceResponse.json();
+      console.log(
+        `✅ [ALL SHOPS] ${imageType} saved to database:`,
+        replaceResult
+      );
+
       // Update the shop in the state with the new image URL
       setShops((prevShops) =>
         prevShops.map((s) =>
@@ -76,6 +124,7 @@ const AllShops = () => {
             ? {
                 ...s,
                 [`${imageType}Url`]: result.imageUrl,
+                [`${imageType}S3Key`]: result.s3Key,
                 // Also update alternative field names if they exist
                 ...(imageType === "desktopBanner" && {
                   bannerUrl: result.imageUrl,
@@ -88,8 +137,10 @@ const AllShops = () => {
         )
       );
 
-      console.log(`${imageType} uploaded successfully:`, result);
       setError(null); // Clear any previous errors
+      console.log(
+        `🎉 [ALL SHOPS] ${imageType} upload and save completed successfully!`
+      );
     } catch (error) {
       console.error(`Error uploading ${imageType}:`, error);
 
@@ -167,17 +218,95 @@ const AllShops = () => {
     );
   };
 
+  // Function to initiate delete shop process
+  const initiateDeleteShop = (shop) => {
+    console.log("🗑️ [FRONTEND] Initiating delete for shop:", shop.name);
+    setShopToDelete(shop);
+    setShowDeleteModal(true);
+  };
+
+  // Function to confirm and execute shop deletion
+  const confirmDeleteShop = async () => {
+    if (!shopToDelete) return;
+
+    console.log("🗑️ [FRONTEND] Confirming delete for shop:", shopToDelete.name);
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/internal/clients/${shopToDelete.clientId}/shops/${shopToDelete.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Erreur lors de la suppression de la boutique"
+        );
+      }
+
+      console.log("✅ [FRONTEND] Shop deleted successfully:", result);
+
+      // Show success message with details
+      const successMessage = `Boutique "${shopToDelete.name}" supprimée avec succès. ${
+        result.details?.imagesDeleted
+          ? `${result.details.imagesDeleted} image(s) supprimée(s) de S3.`
+          : ""
+      }`;
+
+      setError(null);
+
+      // Remove shop from local state
+      handleShopDelete(shopToDelete.id);
+
+      // Show success message briefly
+      setError({ type: "success", message: successMessage });
+      setTimeout(() => setError(null), 5000);
+    } catch (error) {
+      console.error("❌ [FRONTEND] Error deleting shop:", error);
+      setError({ type: "error", message: error.message });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setShopToDelete(null);
+    }
+  };
+
+  // Function to cancel shop deletion
+  const cancelDeleteShop = () => {
+    console.log("❌ [FRONTEND] Cancelled delete for shop:", shopToDelete?.name);
+    setShowDeleteModal(false);
+    setShopToDelete(null);
+  };
+
   if (isLoading) return <p>Chargement de toutes les boutiques...</p>;
-  if (error) return <p className="text-red-500">Erreur: {error}</p>;
+  if (error && typeof error === "string")
+    return <p className="text-red-500">Erreur: {error}</p>;
 
   return (
     <div className="w-full p-4">
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
+        <div
+          className={`mb-4 p-3 border rounded ${
+            error.type === "success"
+              ? "bg-green-100 border-green-400 text-green-700"
+              : "bg-red-100 border-red-400 text-red-700"
+          }`}
+        >
+          {error.message || error}
           <button
             onClick={() => setError(null)}
-            className="ml-2 text-red-900 hover:text-red-700"
+            className={`ml-2 hover:opacity-70 ${
+              error.type === "success" ? "text-green-900" : "text-red-900"
+            }`}
           >
             ×
           </button>
@@ -313,12 +442,21 @@ const AllShops = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => toggleRow(shop.id)}
-                        className="text-sna-primary hover:underline"
-                      >
-                        {expandedRows[shop.id] ? "Masquer" : "Voir Détails"}
-                      </button>
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => toggleRow(shop.id)}
+                          className="text-sna-primary hover:underline"
+                        >
+                          {expandedRows[shop.id] ? "Masquer" : "Voir Détails"}
+                        </button>
+                        <button
+                          onClick={() => initiateDeleteShop(shop)}
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Supprimer la boutique"
+                        >
+                          <FaTrash className="text-sm" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   {expandedRows[shop.id] && (
@@ -508,6 +646,58 @@ const AllShops = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <FaExclamationTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
+                Supprimer la boutique
+              </h3>
+              <div className="mt-2 px-7 py-3">
+                <p className="text-sm text-gray-500">
+                  Êtes-vous sûr de vouloir supprimer la boutique{" "}
+                  <strong>"{shopToDelete?.name || "Sans nom"}"</strong> de{" "}
+                  <strong>{shopToDelete?.clientName}</strong> ?
+                </p>
+                <p className="text-sm text-red-600 mt-2 font-medium">
+                  ⚠️ Cette action est irréversible et supprimera également
+                  toutes les images associées du serveur S3.
+                </p>
+              </div>
+              <div className="items-center px-4 py-3">
+                <div className="flex space-x-3">
+                  <button
+                    onClick={cancelDeleteShop}
+                    disabled={isDeleting}
+                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={confirmDeleteShop}
+                    disabled={isDeleting}
+                    className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50 flex items-center justify-center"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                        Suppression...
+                      </>
+                    ) : (
+                      "Supprimer"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

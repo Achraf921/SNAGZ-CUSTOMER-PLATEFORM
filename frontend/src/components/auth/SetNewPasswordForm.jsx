@@ -7,6 +7,7 @@ function SetNewPasswordForm({
   onPasswordSet,
   onCancel,
   cognitoChallengeParameters,
+  defaultRedirectUrl,
 }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -84,20 +85,53 @@ function SetNewPasswordForm({
         // This will be used to show the welcome form on the dashboard
         sessionStorage.setItem("isFirstLogin", "true");
 
-        // Store the userId in sessionStorage and localStorage for persistence
-        // This will be used to associate the welcome form submission with this user
-        // In a real implementation, you would get the actual userId from your authentication system
-        // For now, we'll create a simple userId based on the username
-        const userId = `user_${username
-          .replace(/[^a-zA-Z0-9]/g, "_")
-          .toLowerCase()}`;
-        sessionStorage.setItem("userId", userId);
-        localStorage.setItem("userId", userId);
+        // Store the complete userInfo from the backend response
+        if (data.userInfo) {
+          console.log(
+            "✅ [SECURITY] Storing user info from backend response:",
+            data.userInfo
+          );
+          sessionStorage.setItem("userInfo", JSON.stringify(data.userInfo));
+          localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
+
+          // Also store userId for compatibility
+          const userId = data.userInfo.sub || data.userInfo.userId;
+          if (userId) {
+            sessionStorage.setItem("userId", userId);
+            localStorage.setItem("userId", userId);
+          }
+        } else {
+          console.warn(
+            "⚠️ [SECURITY] No userInfo in backend response, creating fallback"
+          );
+          // Fallback: create a simple userId based on the username
+          const userId = `user_${username
+            .replace(/[^a-zA-Z0-9]/g, "_")
+            .toLowerCase()}`;
+          sessionStorage.setItem("userId", userId);
+          localStorage.setItem("userId", userId);
+        }
 
         if (onPasswordSet) {
-          onPasswordSet(data.redirectUrl); // Call the callback to handle redirect
+          // Security check: ensure redirect URL is safe
+          const redirectUrl = data.redirectUrl;
+          const safeRedirects = [
+            "/client/dashboard",
+            "/client/compte",
+            "/internal/dashboard",
+            "/admin/client-accounts",
+          ];
+
+          if (
+            redirectUrl &&
+            safeRedirects.some((safe) => redirectUrl.startsWith(safe))
+          ) {
+            onPasswordSet(redirectUrl);
+          } else {
+            onPasswordSet(defaultRedirectUrl || "/");
+          }
         } else {
-          // Fallback redirect if onPasswordSet is not provided, though it should be.
+          // Fallback redirect if onPasswordSet is not provided
           window.location.href = data.redirectUrl || "/";
         }
       } else {

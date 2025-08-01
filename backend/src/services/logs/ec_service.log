@@ -3894,3 +3894,742 @@
 [2025-07-16T08:50:13.829Z] -----------------------------
 [2025-07-16T08:50:13.829Z] EC service call completed. Updating product statuses in DB.
 [2025-07-16T08:50:13.850Z] --- EC Generation Request Succeeded (NEW ROUTE) ---
+[2025-07-31T14:52:18.760Z] --- Initiating EC Generation Request (NEW ROUTE) ---
+[2025-07-31T14:52:18.762Z] Shop ID: 6877a8dbd94f83fadc5ec607, Product IDs: ["688b75cbf30f0996da97fed9"]
+[2025-07-31T14:52:18.785Z] Found customer: TsT (683da69591456c53b3729dce)
+[2025-07-31T14:52:18.785Z] Found shop: Test_Amanda
+[2025-07-31T14:52:18.785Z] [EC Generation] Starting EC generation for 1 products from shop Test_Amanda
+[2025-07-31T14:52:18.786Z] Checking for required EC API credentials...
+[2025-07-31T14:52:18.786Z] Environment variables check:
+[2025-07-31T14:52:18.786Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-07-31T14:52:18.786Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-07-31T14:52:18.786Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-07-31T14:52:18.786Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-07-31T14:52:18.786Z]   process.env.NODE_ENV: production
+[2025-07-31T14:52:18.787Z]   Current working directory: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend
+[2025-07-31T14:52:18.787Z] All EC_* environment variables:
+[2025-07-31T14:52:18.787Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-07-31T14:52:18.787Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-07-31T14:52:18.787Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-07-31T14:52:18.787Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-07-31T14:52:18.787Z] Credentials check passed.
+[2025-07-31T14:52:18.787Z] Mapping products to EC items...
+[2025-07-31T14:52:18.788Z]   - Mapping product: TestEmpyEANandEC (ID: 688b75cbf30f0996da97fed9)
+[2025-07-31T14:52:18.788Z]     - Generated 5 variant combinations.
+[2025-07-31T14:52:18.788Z]       - Processing combination: XS
+[2025-07-31T14:52:18.788Z]         - WARNING: EAN is missing for combination XS.
+[2025-07-31T14:52:18.788Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:52:18.788Z]         - Item validation for XS:
+[2025-07-31T14:52:18.788Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:52:18.788Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:52:18.788Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-XS" (required, max 38 chars, actual: 32)
+[2025-07-31T14:52:18.789Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:52:18.789Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:52:18.789Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:52:18.789Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:52:18.789Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:52:18.789Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:52:18.789Z]       - Processing combination: S
+[2025-07-31T14:52:18.789Z]         - WARNING: EAN is missing for combination S.
+[2025-07-31T14:52:18.789Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:52:18.789Z]         - Item validation for S:
+[2025-07-31T14:52:18.789Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:52:18.790Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:52:18.790Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-S" (required, max 38 chars, actual: 31)
+[2025-07-31T14:52:18.790Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:52:18.790Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:52:18.790Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:52:18.790Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:52:18.790Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:52:18.790Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:52:18.790Z]       - Processing combination: M
+[2025-07-31T14:52:18.790Z]         - WARNING: EAN is missing for combination M.
+[2025-07-31T14:52:18.790Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:52:18.790Z]         - Item validation for M:
+[2025-07-31T14:52:18.790Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:52:18.790Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:52:18.790Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-M" (required, max 38 chars, actual: 31)
+[2025-07-31T14:52:18.791Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:52:18.791Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:52:18.791Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:52:18.791Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:52:18.791Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:52:18.791Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:52:18.791Z]       - Processing combination: L
+[2025-07-31T14:52:18.791Z]         - WARNING: EAN is missing for combination L.
+[2025-07-31T14:52:18.791Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:52:18.791Z]         - Item validation for L:
+[2025-07-31T14:52:18.791Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:52:18.791Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:52:18.791Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-L" (required, max 38 chars, actual: 31)
+[2025-07-31T14:52:18.791Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:52:18.791Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:52:18.791Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:52:18.792Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:52:18.792Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:52:18.792Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:52:18.792Z]       - Processing combination: XL
+[2025-07-31T14:52:18.792Z]         - WARNING: EAN is missing for combination XL.
+[2025-07-31T14:52:18.792Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:52:18.792Z]         - Item validation for XL:
+[2025-07-31T14:52:18.792Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:52:18.792Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:52:18.792Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-XL" (required, max 38 chars, actual: 32)
+[2025-07-31T14:52:18.792Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:52:18.792Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:52:18.792Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:52:18.792Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:52:18.792Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:52:18.792Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:52:18.792Z] Total items to import: 5
+[2025-07-31T14:52:18.792Z] Query Parameters prepared for request: {
+  "CustomerAccount": "887459",
+  "Login": "015130_01",
+  "Password": "***",
+  "uploadType": "User",
+  "User": "Ggytg$jgh45"
+}
+[2025-07-31T14:52:18.792Z] --- Starting variant-by-variant import for 5 items ---
+[2025-07-31T14:52:18.793Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XS) ---
+[2025-07-31T14:52:18.793Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:52:18.793Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:52:18.793Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-XS",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "XS",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:52:18.793Z] -------------------------------------------
+[2025-07-31T14:52:19.728Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XS. Status: 200
+[2025-07-31T14:52:19.729Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-S) ---
+[2025-07-31T14:52:19.729Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:52:19.730Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:52:19.730Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-S",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "S",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:52:19.730Z] -------------------------------------------
+[2025-07-31T14:52:20.030Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-S. Status: 200
+[2025-07-31T14:52:20.030Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-M) ---
+[2025-07-31T14:52:20.030Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:52:20.031Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:52:20.031Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-M",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "M",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:52:20.031Z] -------------------------------------------
+[2025-07-31T14:52:20.339Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-M. Status: 200
+[2025-07-31T14:52:20.339Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-L) ---
+[2025-07-31T14:52:20.339Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:52:20.339Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:52:20.339Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-L",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "L",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:52:20.339Z] -------------------------------------------
+[2025-07-31T14:52:20.555Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-L. Status: 200
+[2025-07-31T14:52:20.556Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XL) ---
+[2025-07-31T14:52:20.556Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:52:20.556Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:52:20.556Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-XL",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "XL",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:52:20.556Z] -------------------------------------------
+[2025-07-31T14:52:20.781Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XL. Status: 200
+[2025-07-31T14:52:20.782Z] 
+--- Import Process Complete ---
+[2025-07-31T14:52:20.782Z] Successfully imported: 5
+[2025-07-31T14:52:20.783Z] Failed to import: 0
+[2025-07-31T14:52:20.783Z] -----------------------------
+[2025-07-31T14:52:20.783Z] EC service call completed. Updating product statuses in DB.
+[2025-07-31T14:52:20.857Z] --- EC Generation Request Succeeded (NEW ROUTE) ---
+[2025-07-31T14:56:04.628Z] --- Initiating EC Generation Request (NEW ROUTE) ---
+[2025-07-31T14:56:04.629Z] Shop ID: 6877a8dbd94f83fadc5ec607, Product IDs: ["688b75cbf30f0996da97fed9"]
+[2025-07-31T14:56:04.655Z] Found customer: TsT (683da69591456c53b3729dce)
+[2025-07-31T14:56:04.655Z] Found shop: Test_Amanda
+[2025-07-31T14:56:04.655Z] [EC Generation] Starting EC generation for 1 products from shop Test_Amanda
+[2025-07-31T14:56:04.655Z] Checking for required EC API credentials...
+[2025-07-31T14:56:04.656Z] Environment variables check:
+[2025-07-31T14:56:04.656Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-07-31T14:56:04.656Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-07-31T14:56:04.656Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-07-31T14:56:04.656Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-07-31T14:56:04.656Z]   process.env.NODE_ENV: production
+[2025-07-31T14:56:04.656Z]   Current working directory: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend
+[2025-07-31T14:56:04.656Z] All EC_* environment variables:
+[2025-07-31T14:56:04.657Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-07-31T14:56:04.657Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-07-31T14:56:04.657Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-07-31T14:56:04.657Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-07-31T14:56:04.657Z] Credentials check passed.
+[2025-07-31T14:56:04.657Z] Mapping products to EC items...
+[2025-07-31T14:56:04.657Z]   - Mapping product: TestEmpyEANandEC (ID: 688b75cbf30f0996da97fed9)
+[2025-07-31T14:56:04.657Z]     - Generated 5 variant combinations.
+[2025-07-31T14:56:04.658Z]       - Processing combination: XS
+[2025-07-31T14:56:04.658Z]         - WARNING: EAN is missing for combination XS.
+[2025-07-31T14:56:04.658Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:56:04.658Z]         - Item validation for XS:
+[2025-07-31T14:56:04.658Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:56:04.658Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:56:04.658Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-XS" (required, max 38 chars, actual: 32)
+[2025-07-31T14:56:04.658Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:56:04.658Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:56:04.658Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:56:04.658Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:56:04.658Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:56:04.658Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:56:04.658Z]       - Processing combination: S
+[2025-07-31T14:56:04.658Z]         - WARNING: EAN is missing for combination S.
+[2025-07-31T14:56:04.658Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:56:04.658Z]         - Item validation for S:
+[2025-07-31T14:56:04.658Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:56:04.659Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:56:04.659Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-S" (required, max 38 chars, actual: 31)
+[2025-07-31T14:56:04.659Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:56:04.659Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:56:04.659Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:56:04.659Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:56:04.659Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:56:04.659Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:56:04.659Z]       - Processing combination: M
+[2025-07-31T14:56:04.659Z]         - WARNING: EAN is missing for combination M.
+[2025-07-31T14:56:04.659Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:56:04.659Z]         - Item validation for M:
+[2025-07-31T14:56:04.659Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:56:04.659Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:56:04.659Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-M" (required, max 38 chars, actual: 31)
+[2025-07-31T14:56:04.659Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:56:04.659Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:56:04.659Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:56:04.659Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:56:04.659Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:56:04.659Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:56:04.660Z]       - Processing combination: L
+[2025-07-31T14:56:04.660Z]         - WARNING: EAN is missing for combination L.
+[2025-07-31T14:56:04.660Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:56:04.660Z]         - Item validation for L:
+[2025-07-31T14:56:04.660Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:56:04.660Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:56:04.660Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-L" (required, max 38 chars, actual: 31)
+[2025-07-31T14:56:04.660Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:56:04.660Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:56:04.660Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:56:04.660Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:56:04.660Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:56:04.660Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:56:04.660Z]       - Processing combination: XL
+[2025-07-31T14:56:04.660Z]         - WARNING: EAN is missing for combination XL.
+[2025-07-31T14:56:04.660Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T14:56:04.661Z]         - Item validation for XL:
+[2025-07-31T14:56:04.661Z]           productType: "Affiche Client" (required)
+[2025-07-31T14:56:04.661Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T14:56:04.661Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-XL" (required, max 38 chars, actual: 32)
+[2025-07-31T14:56:04.661Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T14:56:04.661Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T14:56:04.661Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T14:56:04.661Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T14:56:04.661Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T14:56:04.661Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T14:56:04.661Z] Total items to import: 5
+[2025-07-31T14:56:04.661Z] Query Parameters prepared for request: {
+  "CustomerAccount": "887459",
+  "Login": "015130_01",
+  "Password": "***",
+  "uploadType": "User",
+  "User": "Ggytg$jgh45"
+}
+[2025-07-31T14:56:04.661Z] --- Starting variant-by-variant import for 5 items ---
+[2025-07-31T14:56:04.661Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XS) ---
+[2025-07-31T14:56:04.661Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:56:04.661Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:56:04.661Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-XS",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "XS",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:56:04.662Z] -------------------------------------------
+[2025-07-31T14:56:05.217Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XS. Status: 200
+[2025-07-31T14:56:05.218Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-S) ---
+[2025-07-31T14:56:05.218Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:56:05.218Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:56:05.218Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-S",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "S",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:56:05.218Z] -------------------------------------------
+[2025-07-31T14:56:05.453Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-S. Status: 200
+[2025-07-31T14:56:05.453Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-M) ---
+[2025-07-31T14:56:05.453Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:56:05.453Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:56:05.453Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-M",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "M",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:56:05.453Z] -------------------------------------------
+[2025-07-31T14:56:05.686Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-M. Status: 200
+[2025-07-31T14:56:05.686Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-L) ---
+[2025-07-31T14:56:05.686Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:56:05.687Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:56:05.687Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-L",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "L",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:56:05.687Z] -------------------------------------------
+[2025-07-31T14:56:05.910Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-L. Status: 200
+[2025-07-31T14:56:05.911Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XL) ---
+[2025-07-31T14:56:05.911Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T14:56:05.911Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T14:56:05.911Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-XL",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "XL",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T14:56:05.911Z] -------------------------------------------
+[2025-07-31T14:56:06.137Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XL. Status: 200
+[2025-07-31T14:56:06.137Z] 
+--- Import Process Complete ---
+[2025-07-31T14:56:06.137Z] Successfully imported: 5
+[2025-07-31T14:56:06.137Z] Failed to import: 0
+[2025-07-31T14:56:06.137Z] -----------------------------
+[2025-07-31T14:56:06.137Z] EC service call completed. Updating product statuses in DB.
+[2025-07-31T14:56:06.152Z] --- EC Generation Request Succeeded (NEW ROUTE) ---
+[2025-07-31T15:09:25.530Z] --- Initiating EC Generation Request (NEW ROUTE) ---
+[2025-07-31T15:09:25.531Z] Shop ID: 6877a8dbd94f83fadc5ec607, Product IDs: ["688b75cbf30f0996da97fed9","688b62926c69f5b9c1610bb4"]
+[2025-07-31T15:09:25.553Z] Found customer: TsT (683da69591456c53b3729dce)
+[2025-07-31T15:09:25.553Z] Found shop: Test_Amanda
+[2025-07-31T15:09:25.553Z] [EC Generation] Starting EC generation for 2 products from shop Test_Amanda
+[2025-07-31T15:09:25.553Z] Checking for required EC API credentials...
+[2025-07-31T15:09:25.553Z] Environment variables check:
+[2025-07-31T15:09:25.553Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-07-31T15:09:25.553Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-07-31T15:09:25.553Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-07-31T15:09:25.553Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-07-31T15:09:25.554Z]   process.env.NODE_ENV: production
+[2025-07-31T15:09:25.554Z]   Current working directory: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend
+[2025-07-31T15:09:25.554Z] All EC_* environment variables:
+[2025-07-31T15:09:25.554Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-07-31T15:09:25.554Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-07-31T15:09:25.554Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-07-31T15:09:25.554Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-07-31T15:09:25.554Z] Credentials check passed.
+[2025-07-31T15:09:25.554Z] Mapping products to EC items...
+[2025-07-31T15:09:25.554Z]   - Mapping product: TestUpladLimitandAppent (ID: 688b62926c69f5b9c1610bb4)
+[2025-07-31T15:09:25.554Z]     - Generated 1 variant combinations.
+[2025-07-31T15:09:25.554Z]       - Processing combination: default
+[2025-07-31T15:09:25.554Z]         - WARNING: Invalid EAN13 code for combination default: "1234567891011". Will send empty barCode.
+[2025-07-31T15:09:25.555Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-07-31T15:09:25.555Z]         - Item validation for default:
+[2025-07-31T15:09:25.555Z]           productType: "Pantalon Client" (required)
+[2025-07-31T15:09:25.555Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T15:09:25.555Z]           sku: "PANTALON-TESTUPLADLIMITANDAPPENT" (required, max 38 chars, actual: 32)
+[2025-07-31T15:09:25.555Z]           title: "TestUpladLimitandAppent" (required, max 70 chars, actual: 23)
+[2025-07-31T15:09:25.555Z]           CN23Label: "TestUpladLimitandAppent" (required, max 30 chars, actual: 23)
+[2025-07-31T15:09:25.555Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T15:09:25.555Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T15:09:25.555Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T15:09:25.555Z]           description: "Please let me go " (max 255 chars, actual: 17)
+[2025-07-31T15:09:25.555Z]   - Mapping product: TestEmpyEANandEC (ID: 688b75cbf30f0996da97fed9)
+[2025-07-31T15:09:25.555Z]     - Generated 5 variant combinations.
+[2025-07-31T15:09:25.555Z]       - Processing combination: XS
+[2025-07-31T15:09:25.555Z]         - WARNING: EAN is missing for combination XS.
+[2025-07-31T15:09:25.555Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T15:09:25.555Z]         - Item validation for XS:
+[2025-07-31T15:09:25.556Z]           productType: "Affiche Client" (required)
+[2025-07-31T15:09:25.556Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T15:09:25.556Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-XS" (required, max 38 chars, actual: 32)
+[2025-07-31T15:09:25.556Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T15:09:25.556Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T15:09:25.556Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T15:09:25.556Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T15:09:25.556Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T15:09:25.556Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T15:09:25.556Z]       - Processing combination: S
+[2025-07-31T15:09:25.556Z]         - WARNING: EAN is missing for combination S.
+[2025-07-31T15:09:25.556Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T15:09:25.556Z]         - Item validation for S:
+[2025-07-31T15:09:25.556Z]           productType: "Affiche Client" (required)
+[2025-07-31T15:09:25.556Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T15:09:25.556Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-S" (required, max 38 chars, actual: 31)
+[2025-07-31T15:09:25.556Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T15:09:25.556Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T15:09:25.556Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T15:09:25.556Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T15:09:25.556Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T15:09:25.557Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T15:09:25.557Z]       - Processing combination: M
+[2025-07-31T15:09:25.557Z]         - WARNING: EAN is missing for combination M.
+[2025-07-31T15:09:25.557Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T15:09:25.557Z]         - Item validation for M:
+[2025-07-31T15:09:25.557Z]           productType: "Affiche Client" (required)
+[2025-07-31T15:09:25.557Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T15:09:25.557Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-M" (required, max 38 chars, actual: 31)
+[2025-07-31T15:09:25.557Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T15:09:25.557Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T15:09:25.557Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T15:09:25.557Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T15:09:25.557Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T15:09:25.557Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T15:09:25.557Z]       - Processing combination: L
+[2025-07-31T15:09:25.557Z]         - WARNING: EAN is missing for combination L.
+[2025-07-31T15:09:25.557Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T15:09:25.557Z]         - Item validation for L:
+[2025-07-31T15:09:25.557Z]           productType: "Affiche Client" (required)
+[2025-07-31T15:09:25.557Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T15:09:25.557Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-L" (required, max 38 chars, actual: 31)
+[2025-07-31T15:09:25.557Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T15:09:25.557Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T15:09:25.558Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T15:09:25.558Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T15:09:25.558Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T15:09:25.558Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T15:09:25.558Z]       - Processing combination: XL
+[2025-07-31T15:09:25.558Z]         - WARNING: EAN is missing for combination XL.
+[2025-07-31T15:09:25.558Z]     - Mapped Merch/Lithographie to: Affiche Client
+[2025-07-31T15:09:25.558Z]         - Item validation for XL:
+[2025-07-31T15:09:25.558Z]           productType: "Affiche Client" (required)
+[2025-07-31T15:09:25.558Z]           CptClient: "887459" (required, 6 chars, actual: 6)
+[2025-07-31T15:09:25.558Z]           sku: "LITHOGRAPHIE-TESTEMPYEANANDEC-XL" (required, max 38 chars, actual: 32)
+[2025-07-31T15:09:25.558Z]           title: "TestEmpyEANandEC" (required, max 70 chars, actual: 16)
+[2025-07-31T15:09:25.558Z]           CN23Label: "TestEmpyEANandEC" (required, max 30 chars, actual: 16)
+[2025-07-31T15:09:25.558Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-07-31T15:09:25.558Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-07-31T15:09:25.558Z]           artist: "TsT" (max 70 chars, actual: 3)
+[2025-07-31T15:09:25.558Z]           description: "testing empty ean for ec prod" (max 255 chars, actual: 29)
+[2025-07-31T15:09:25.558Z] Total items to import: 6
+[2025-07-31T15:09:25.558Z] Query Parameters prepared for request: {
+  "CustomerAccount": "887459",
+  "Login": "015130_01",
+  "Password": "***",
+  "uploadType": "User",
+  "User": "Ggytg$jgh45"
+}
+[2025-07-31T15:09:25.559Z] --- Starting variant-by-variant import for 6 items ---
+[2025-07-31T15:09:25.559Z] 
+--- Sending Variant (SKU: PANTALON-TESTUPLADLIMITANDAPPENT) ---
+[2025-07-31T15:09:25.559Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T15:09:25.559Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T15:09:25.559Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "887459",
+    "sku": "PANTALON-TESTUPLADLIMITANDAPPENT",
+    "title": "TestUpladLimitandAppent",
+    "CN23Label": "TestUpladLimitandAppent",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "Please let me go ",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T15:09:25.559Z] -------------------------------------------
+[2025-07-31T15:09:26.124Z] ✅ SUCCESS for SKU: PANTALON-TESTUPLADLIMITANDAPPENT. Status: 200
+[2025-07-31T15:09:26.126Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XS) ---
+[2025-07-31T15:09:26.126Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T15:09:26.126Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T15:09:26.126Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-XS",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "XS",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T15:09:26.126Z] -------------------------------------------
+[2025-07-31T15:09:26.372Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XS. Status: 200
+[2025-07-31T15:09:26.374Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-S) ---
+[2025-07-31T15:09:26.374Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T15:09:26.374Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T15:09:26.374Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-S",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "S",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T15:09:26.374Z] -------------------------------------------
+[2025-07-31T15:09:26.603Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-S. Status: 200
+[2025-07-31T15:09:26.604Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-M) ---
+[2025-07-31T15:09:26.604Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T15:09:26.604Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T15:09:26.604Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-M",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "M",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T15:09:26.604Z] -------------------------------------------
+[2025-07-31T15:09:26.870Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-M. Status: 200
+[2025-07-31T15:09:26.871Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-L) ---
+[2025-07-31T15:09:26.871Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T15:09:26.871Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T15:09:26.871Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-L",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "L",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T15:09:26.871Z] -------------------------------------------
+[2025-07-31T15:09:27.130Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-L. Status: 200
+[2025-07-31T15:09:27.131Z] 
+--- Sending Variant (SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XL) ---
+[2025-07-31T15:09:27.131Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=887459&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-07-31T15:09:27.132Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-07-31T15:09:27.132Z] BODY: [
+  {
+    "productType": "Affiche Client",
+    "CptClient": "887459",
+    "sku": "LITHOGRAPHIE-TESTEMPYEANANDEC-XL",
+    "title": "TestEmpyEANandEC",
+    "CN23Label": "TestEmpyEANandEC",
+    "custodyCode": "00000000",
+    "artist": "TsT",
+    "barCode": "",
+    "description": "testing empty ean for ec prod",
+    "size": "XL",
+    "itemClassification": "Merch",
+    "Boutique": "Test_Amanda",
+    "occ": false
+  }
+]
+[2025-07-31T15:09:27.132Z] -------------------------------------------
+[2025-07-31T15:09:27.365Z] ✅ SUCCESS for SKU: LITHOGRAPHIE-TESTEMPYEANANDEC-XL. Status: 200
+[2025-07-31T15:09:27.366Z] 
+--- Import Process Complete ---
+[2025-07-31T15:09:27.367Z] Successfully imported: 6
+[2025-07-31T15:09:27.367Z] Failed to import: 0
+[2025-07-31T15:09:27.367Z] -----------------------------
+[2025-07-31T15:09:27.367Z] EC service call completed. Updating product statuses in DB.
+[2025-07-31T15:09:27.400Z] --- EC Generation Request Succeeded (NEW ROUTE) ---

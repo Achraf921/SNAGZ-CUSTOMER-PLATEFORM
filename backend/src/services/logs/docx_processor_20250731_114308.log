@@ -1,0 +1,20 @@
+[2025-07-31 11:43:08] Script started
+[2025-07-31 11:43:08] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-07-31 11:43:08] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ TsT _ Test_Amanda _ 887459 _Démarrage Projet.docx
+[2025-07-31 11:43:08] Encoded data length: 864 characters
+[2025-07-31 11:43:08] Decoding base64 data...
+[2025-07-31 11:43:08] Successfully decoded base64 data
+[2025-07-31 11:43:08] [DEBUG] Type of shop_data_string after decode: <class 'str'>
+[2025-07-31 11:43:08] [DEBUG] First 100 chars of shop_data_string: {"nomProjet":"Test_Amanda","typeProjet":"Test","contactsClient":"achrafbayi@icloud.com","nomClient":...
+[2025-07-31 11:43:08] Parsing JSON data...
+[2025-07-31 11:43:08] Successfully parsed JSON data
+[2025-07-31 11:43:08] [DEBUG] Type of shop_data after json.loads: <class 'dict'>
+[2025-07-31 11:43:08] [DEBUG] shop_data keys: ['nomProjet', 'typeProjet', 'contactsClient', 'nomClient', 'compteClientRef', 'dateMiseEnLigne', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicaceEnvisagee', 'estBoutiqueEnLigne', 'chefProjet', 'demarrageProjet', 'pourcentageSNA', 'dateMiseEnLigneDDMMYYYY', 'typeAbonnementShopify', 'moduleMondialRelay', 'moduleDelivengo', 'commercial', 'clientName', 'raisonSociale', 'shopifyPlanMonthlySelected', 'shopifyPlanYearlySelected']
+[2025-07-31 11:43:08] Starting document processing...
+[2025-07-31 11:43:08] Starting document processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx
+[2025-07-31 11:43:08] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/PROCESSED_FICHE PROJET_ TsT _ Test_Amanda _ 887459 _Démarrage Projet.docx
+[2025-07-31 11:43:08] Failed to load document: Package not found at '/Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx'
+[2025-07-31 11:43:08] Error processing document: Package not found at '/Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx'
+[2025-07-31 11:43:08] Error type: PackageNotFoundError
+[2025-07-31 11:43:08] Error args: ("Package not found at '/Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx'",)
+[2025-07-31 11:43:08] Fatal error: Package not found at '/Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/DocxAModifier/FICHE PROJET_ CLIENT _ PROJET _ COMPTENUM _Démarrage Projet.docx'

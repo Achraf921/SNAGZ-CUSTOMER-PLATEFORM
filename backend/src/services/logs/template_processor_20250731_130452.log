@@ -1,0 +1,38 @@
+[2025-07-31 13:04:52] Template processor script started
+[2025-07-31 13:04:52] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/TemplateSharePoint/Template questionnaire D2C.xlsx
+[2025-07-31 13:04:52] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/generated_docs/Template_Questionaire_D2C_887459_1753959892816.xlsx
+[2025-07-31 13:04:52] Encoded data length: 780 characters
+[2025-07-31 13:04:52] Decoding base64 data...
+[2025-07-31 13:04:52] Successfully decoded base64 data
+[2025-07-31 13:04:52] Parsing JSON data...
+[2025-07-31 13:04:52] Successfully parsed JSON data
+[2025-07-31 13:04:52] Template data keys: ['nomProjet', 'typeProjet', 'commercial', 'boutiqueEnLigne', 'client', 'contactsClient', 'numeroCompteClient', 'dateMiseEnLigne', 'dateCommercialisation', 'dateSortieOfficielle', 'precommande', 'dedicace', 'facturation', 'abonnementMensuelShopify', 'abonnementAnnuelShopify', 'coutsMondialRelay', 'coutsDelivengo', 'fraisMensuelMaintenance', 'fraisOuvertureBoutique', 'fraisOuvertureSansHabillage', 'commissionSnagz']
+[2025-07-31 13:04:52] Starting template processing...
+[2025-07-31 13:04:52] Starting Template D2C processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/TemplateSharePoint/Template questionnaire D2C.xlsx
+[2025-07-31 13:04:52] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/generated_docs/Template_Questionaire_D2C_887459_1753959892816.xlsx
+[2025-07-31 13:04:52] Successfully loaded template: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/TemplateSharePoint/Template questionnaire D2C.xlsx
+[2025-07-31 13:04:52] Processing worksheet: Feuil1
+[2025-07-31 13:04:52] Filling row 2 with 21 columns of data
+[2025-07-31 13:04:52] Set column 1 to: 'Test_Amanda'
+[2025-07-31 13:04:52] Set column 2 to: 'Test'
+[2025-07-31 13:04:52] Set column 3 to: 'Achraf'
+[2025-07-31 13:04:52] Set column 4 to: 'OUI'
+[2025-07-31 13:04:52] Set column 5 to: 'TsT'
+[2025-07-31 13:04:52] Set column 6 to: 'achrafbayi@icloud.com'
+[2025-07-31 13:04:52] Set column 7 to: '887459'
+[2025-07-31 13:04:52] Set column 8 to: '2025-07-16'
+[2025-07-31 13:04:52] Set column 9 to: '2025-07-16'
+[2025-07-31 13:04:52] Set column 10 to: '2025-07-16'
+[2025-07-31 13:04:52] Set column 11 to: 'NON'
+[2025-07-31 13:04:52] Set column 12 to: 'NON'
+[2025-07-31 13:04:52] Set column 13 to: 'vendeur'
+[2025-07-31 13:04:52] Set column 14 to: 'NON'
+[2025-07-31 13:04:52] Set column 15 to: 'NON'
+[2025-07-31 13:04:52] Set column 16 to: 'OUI'
+[2025-07-31 13:04:52] Set column 17 to: 'NON'
+[2025-07-31 13:04:52] Set column 18 to: '50€'
+[2025-07-31 13:04:52] Set column 19 to: '500€'
+[2025-07-31 13:04:52] Set column 20 to: ''
+[2025-07-31 13:04:52] Set column 21 to: '67%'
+[2025-07-31 13:04:52] Template D2C file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/generated_docs/Template_Questionaire_D2C_887459_1753959892816.xlsx
+[2025-07-31 13:04:52] Template D2C processing completed successfully

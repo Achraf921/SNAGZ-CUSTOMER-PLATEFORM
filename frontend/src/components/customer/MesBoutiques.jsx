@@ -589,6 +589,7 @@ const MesBoutiques = () => {
                 "shopifySetupCompleted",
                 "isParametrized",
                 "products",
+                "lastModified",
               ];
 
               // Fields that should be read-only (no edit icon)
