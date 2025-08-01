@@ -1,9 +1,10 @@
 const { MongoClient } = require('mongodb');
-console.log('MongoDB module loaded');
+const { logger } = require('../utils/secureLogger');
+logger.debug('MongoDB module loaded');
 
 // MongoDB Connection URL
 const url = process.env.MONGODB_URI || 'mongodb://localhost:27017/SNAGZ';
-console.log('Attempting to connect to MongoDB at:', url);
+logger.debug('Attempting to connect to MongoDB at:', url);
 
 // Create a new MongoClient with options
 const client = new MongoClient(url, {
@@ -14,27 +15,27 @@ const client = new MongoClient(url, {
 });
 
 // Add command monitoring
-client.on('commandStarted', (event) => console.log('MongoDB command started:', event.commandName));
-client.on('commandSucceeded', (event) => console.log('MongoDB command succeeded:', event.commandName));
-client.on('commandFailed', (event) => console.log('MongoDB command failed:', event.commandName, event.failure));
+client.on('commandStarted', (event) => logger.debug('MongoDB command started:', event.commandName));
+client.on('commandSucceeded', (event) => logger.debug('MongoDB command succeeded:', event.commandName));
+client.on('commandFailed', (event) => logger.debug('MongoDB command failed:', event.commandName, event.failure));
 
-console.log('MongoDB client created with timeout options');
+logger.debug('MongoDB client created with timeout options');
 
 // Connection function
 async function connectToDatabase() {
-  console.log('connectToDatabase function called');
+  logger.debug('connectToDatabase function called');
   try {
     // Connect to the MongoDB server
-    console.log('Attempting to connect...');
+    logger.debug('Attempting to connect...');
     await client.connect();
-    console.log('Connected successfully to MongoDB server');
+    logger.debug('Connected successfully to MongoDB server');
     
     // Test the connection
     const db = client.db();
-    console.log('Got database instance');
+    logger.debug('Got database instance');
     
     await db.command({ ping: 1 });
-    console.log('Database ping successful');
+    logger.debug('Database ping successful');
     
     return db;
   } catch (error) {
@@ -58,9 +59,9 @@ async function getCustomersCollection() {
 async function closeConnection() {
   try {
     await client.close();
-    console.log('MongoDB connection closed');
+    logger.debug('MongoDB connection closed');
   } catch (error) {
-    console.error('Error closing MongoDB connection:', error);
+    logger.error('Error closing MongoDB connection:', error);
     throw error;
   }
 }

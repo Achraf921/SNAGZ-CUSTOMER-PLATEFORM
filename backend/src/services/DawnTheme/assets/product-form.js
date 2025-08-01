@@ -97,7 +97,7 @@ if (!customElements.get('product-form')) {
             }
           })
           .catch((e) => {
-            console.error(e);
+            logger.error(e);
           })
           .finally(() => {
             this.submitButton.classList.remove('loading');

@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { logger } = require('../utils/secureLogger');
 
 class EmailService {
   constructor() {
@@ -23,7 +24,7 @@ class EmailService {
             rejectUnauthorized: false // Allow self-signed certificates
           }
         });
-        console.log('📧 SMTP email service configured successfully');
+        logger.debug('📧 SMTP email service configured successfully');
       } else if (process.env.SMTP_HOST && process.env.SMTP_PORT) {
         // Fallback to original variable names for backward compatibility
         this.transporter = nodemailer.createTransport({
@@ -38,7 +39,7 @@ class EmailService {
             rejectUnauthorized: false
           }
         });
-        console.log('📧 SMTP email service configured (legacy variables)');
+        logger.debug('📧 SMTP email service configured (legacy variables)');
       } else if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
         // Use Gmail configuration
         this.transporter = nodemailer.createTransport({
@@ -50,7 +51,7 @@ class EmailService {
         });
       } else {
         // Use development configuration - create test account dynamically
-        console.log('📧 No email configuration found, setting up development mode...');
+        logger.debug('📧 No email configuration found, setting up development mode...');
         
         try {
           // Create a test account dynamically
@@ -66,18 +67,18 @@ class EmailService {
             }
           });
           
-          console.log('📧 Development email account created:', testAccount.user);
+          logger.debug('📧 Development email account created:', testAccount.user);
         } catch (etherealError) {
-          console.log('⚠️ Ethereal email setup failed, using mock transporter for development');
+          logger.debug('⚠️ Ethereal email setup failed, using mock transporter for development');
           
           // Create a mock transporter that logs instead of sending
           this.transporter = {
             sendMail: async (mailOptions) => {
-              console.log('📧 [MOCK EMAIL] Would send email:');
-              console.log('📧 From:', mailOptions.from);
-              console.log('📧 To:', mailOptions.to);
-              console.log('📧 Subject:', mailOptions.subject);
-              console.log('📧 Content preview:', mailOptions.text?.substring(0, 100) + '...');
+              logger.debug('📧 [MOCK EMAIL] Would send email:');
+              logger.debug('📧 From:', mailOptions.from);
+              logger.debug('📧 To:', mailOptions.to);
+              logger.debug('📧 Subject:', mailOptions.subject);
+              logger.debug('📧 Content preview:', mailOptions.text?.substring(0, 100) + '...');
               
               return {
                 messageId: `mock-${Date.now()}@localhost`,
@@ -91,9 +92,9 @@ class EmailService {
 
       // Verify transporter configuration
       await this.transporter.verify();
-      console.log('✅ Email service initialized successfully');
+      logger.debug('✅ Email service initialized successfully');
     } catch (error) {
-      console.error('❌ Email service initialization failed:', error);
+      logger.error('❌ Email service initialization failed:', error);
       this.transporter = null;
     }
   }
@@ -101,7 +102,7 @@ class EmailService {
   async sendWelcomeEmail(email, name, temporaryPassword) {
     try {
       if (!this.transporter) {
-        console.log('📧 Email service not ready, attempting re-initialization...');
+        logger.debug('📧 Email service not ready, attempting re-initialization...');
         await this.initializeTransporter();
         if (!this.transporter) {
           throw new Error('Email service not initialized');
@@ -139,7 +140,7 @@ class EmailService {
               overflow: hidden;
             }
             .header { 
-              background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); 
+              background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); 
               color: white; 
               padding: 40px 30px; 
               text-align: center; 
@@ -149,11 +150,15 @@ class EmailService {
               font-weight: 700; 
               margin-bottom: 8px; 
               letter-spacing: -0.5px;
+              color: white !important;
+              text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
             }
             .header p { 
               font-size: 16px; 
-              opacity: 0.9; 
-              font-weight: 300;
+              opacity: 0.95; 
+              font-weight: 400;
+              color: white !important;
+              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
             }
             .content { 
               padding: 40px 30px; 
@@ -408,11 +413,7 @@ class EmailService {
 
       const result = await this.transporter.sendMail(mailOptions);
       
-      console.log('📧 Welcome email sent successfully:', {
-        recipient: email,
-        messageId: result.messageId,
-        mode: process.env.NODE_ENV || 'development'
-      });
+      // Email logging removed for security
 
       return {
         success: true,
@@ -422,7 +423,7 @@ class EmailService {
       };
 
     } catch (error) {
-      console.error('❌ Failed to send welcome email:', error);
+      logger.error('❌ Failed to send welcome email:', error);
       return {
         success: false,
         error: error.message,
@@ -434,7 +435,7 @@ class EmailService {
   async sendPasswordResetEmail(email, name, resetUrl) {
     try {
       if (!this.transporter) {
-        console.log('📧 Email service not ready, attempting re-initialization...');
+        logger.debug('📧 Email service not ready, attempting re-initialization...');
         await this.initializeTransporter();
         if (!this.transporter) {
           throw new Error('Email service not initialized');
@@ -723,11 +724,7 @@ class EmailService {
 
       const result = await this.transporter.sendMail(mailOptions);
       
-      console.log('📧 Password reset email sent successfully:', {
-        recipient: email,
-        messageId: result.messageId,
-        mode: process.env.NODE_ENV || 'development'
-      });
+      // Email logging removed for security
 
       return {
         success: true,
@@ -737,7 +734,7 @@ class EmailService {
       };
 
     } catch (error) {
-      console.error('❌ Failed to send password reset email:', error);
+      logger.error('❌ Failed to send password reset email:', error);
       return {
         success: false,
         error: error.message,
@@ -749,7 +746,7 @@ class EmailService {
   async sendNotificationEmail(email, name, subject, message) {
     try {
       if (!this.transporter) {
-        console.log('📧 Email service not ready, attempting re-initialization...');
+        logger.debug('📧 Email service not ready, attempting re-initialization...');
         await this.initializeTransporter();
         if (!this.transporter) {
           throw new Error('Email service not initialized');
@@ -766,7 +763,17 @@ class EmailService {
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #0047AB; color: white; padding: 20px; text-align: center; }
+            .header { 
+              background-color: #0047AB; 
+              color: white; 
+              padding: 20px; 
+              text-align: center; 
+            }
+            .header h1 { 
+              color: white !important;
+              text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+              font-weight: 700;
+            }
             .content { padding: 20px; background-color: #f9f9f9; }
             .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
           </style>
@@ -803,11 +810,7 @@ class EmailService {
 
       const result = await this.transporter.sendMail(mailOptions);
       
-      console.log('📧 Notification email sent successfully:', {
-        recipient: email,
-        messageId: result.messageId,
-        subject: subject
-      });
+      // Email logging removed for security
 
       return {
         success: true,
@@ -816,7 +819,7 @@ class EmailService {
       };
 
     } catch (error) {
-      console.error('❌ Failed to send notification email:', error);
+      logger.error('❌ Failed to send notification email:', error);
       return {
         success: false,
         error: error.message,
@@ -828,7 +831,7 @@ class EmailService {
   async sendAccountCreationEmail(email, name, temporaryPassword, accountType) {
     try {
       if (!this.transporter) {
-        console.log('📧 Email service not ready, attempting re-initialization...');
+        logger.debug('📧 Email service not ready, attempting re-initialization...');
         await this.initializeTransporter();
         if (!this.transporter) {
           throw new Error('Email service not initialized');
@@ -840,8 +843,8 @@ class EmailService {
         client: {
           primaryColor: '#3b82f6',
           secondaryColor: '#1d4ed8',
-          gradientStart: '#3b82f6',
-          gradientEnd: '#1d4ed8',
+          gradientStart: '#1e40af',
+          gradientEnd: '#1e3a8a',
           title: '🎉 Bienvenue chez SNA GZ',
           subtitle: 'Votre espace client est prêt',
           loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/login`,
@@ -856,8 +859,8 @@ class EmailService {
         internal: {
           primaryColor: '#10b981',
           secondaryColor: '#059669',
-          gradientStart: '#10b981',
-          gradientEnd: '#059669',
+          gradientStart: '#047857',
+          gradientEnd: '#065f46',
           title: '👨‍💼 Bienvenue dans l\'équipe SNA GZ',
           subtitle: 'Votre accès personnel interne est activé',
           loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/internal/login`,
@@ -872,8 +875,8 @@ class EmailService {
         admin: {
           primaryColor: '#7c3aed',
           secondaryColor: '#5b21b6',
-          gradientStart: '#7c3aed',
-          gradientEnd: '#5b21b6',
+          gradientStart: '#5b21b6',
+          gradientEnd: '#4c1d95',
           title: '⚡ Accès Administrateur SNA GZ',
           subtitle: 'Votre compte administrateur est configuré',
           loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/login`,
@@ -929,11 +932,15 @@ class EmailService {
               font-weight: 700; 
               margin-bottom: 8px; 
               letter-spacing: -0.5px;
+              color: white !important;
+              text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
             }
             .header p { 
               font-size: 16px; 
-              opacity: 0.9; 
-              font-weight: 300;
+              opacity: 0.95; 
+              font-weight: 400;
+              color: white !important;
+              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
             }
             .content { 
               padding: 40px 30px; 
@@ -1180,7 +1187,7 @@ class EmailService {
 
       const result = await this.transporter.sendMail(mailOptions);
       
-      console.log(`📧 Account creation email sent successfully (${accountType}):`, {
+      // Email logging removed for security:`, {
         recipient: email,
         messageId: result.messageId,
         accountType: accountType
@@ -1194,7 +1201,7 @@ class EmailService {
       };
 
     } catch (error) {
-      console.error('❌ Failed to send account creation email:', error);
+      logger.error('❌ Failed to send account creation email:', error);
       return {
         success: false,
         error: error.message,

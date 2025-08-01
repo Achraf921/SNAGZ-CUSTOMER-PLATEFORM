@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { logger } = require('../utils/secureLogger');
 
 /**
  * GraphQL-based Shopify Shop Parametrization Service
@@ -15,9 +16,9 @@ const axios = require('axios');
 
 class ShopifyGraphQLParametrization {
     constructor(shopDomain, accessToken) {
-        console.log(`🔧 ShopifyGraphQLParametrization constructor called`);
-        console.log(`🔧 shopDomain: ${shopDomain}`);
-        console.log(`🔧 accessToken: ${accessToken?.substring(0, 20)}...`);
+        logger.debug(`🔧 ShopifyGraphQLParametrization constructor called`);
+        logger.debug(`🔧 shopDomain: ${shopDomain}`);
+        logger.debug(`🔧 accessToken: ${accessToken?.substring(0, 20)}...`);
         
         this.shopDomain = shopDomain;
         this.accessToken = accessToken;
@@ -29,7 +30,7 @@ class ShopifyGraphQLParametrization {
             
         this.graphqlEndpoint = `https://${fullDomain}/admin/api/2024-04/graphql.json`;
         
-        console.log(`🔧 GraphQL endpoint: ${this.graphqlEndpoint}`);
+        logger.debug(`🔧 GraphQL endpoint: ${this.graphqlEndpoint}`);
     }
 
     /**
@@ -37,9 +38,9 @@ class ShopifyGraphQLParametrization {
      */
     async makeGraphQLRequest(query, variables = {}) {
         try {
-            console.log(`🔧 Making GraphQL request to: ${this.graphqlEndpoint}`);
-            console.log(`🔧 Access token being used: ${this.accessToken?.substring(0, 20)}...`);
-            console.log(`🔧 Query: ${query.substring(0, 100)}...`);
+            logger.debug(`🔧 Making GraphQL request to: ${this.graphqlEndpoint}`);
+            logger.debug(`🔧 Access token being used: ${this.accessToken?.substring(0, 20)}...`);
+            logger.debug(`🔧 Query: ${query.substring(0, 100)}...`);
             
             const response = await axios({
                 method: 'POST',
@@ -60,7 +61,7 @@ class ShopifyGraphQLParametrization {
 
             return response.data.data;
         } catch (error) {
-            console.error('GraphQL request failed:', error.response?.data || error.message);
+            logger.error('GraphQL request failed:', error.response?.data || error.message);
             throw error;
         }
     }
@@ -138,7 +139,7 @@ class ShopifyGraphQLParametrization {
                 ]
             };
         } catch (error) {
-            console.error('Error checking parametrization status:', error);
+            logger.error('Error checking parametrization status:', error);
             throw error;
         }
     }
@@ -233,7 +234,7 @@ class ShopifyGraphQLParametrization {
             };
 
         } catch (error) {
-            console.error('REST API parametrization failed:', error.response?.data || error.message);
+            logger.error('REST API parametrization failed:', error.response?.data || error.message);
             return {
                 success: false,
                 error: error.response?.data?.errors || error.message,
@@ -250,20 +251,20 @@ async function parametrizeShopViaGraphQL(shopDomain, accessToken, projectName) {
     try {
         const parametrizer = new ShopifyGraphQLParametrization(shopDomain, accessToken);
         
-        console.log(`🔧 Starting GraphQL-based parametrization for ${shopDomain}...`);
+        logger.debug(`🔧 Starting GraphQL-based parametrization for ${shopDomain}...`);
         
         // First, check current status
         const status = await parametrizer.checkParametrizationStatus();
-        console.log('Current parametrization status:', status);
+        logger.debug('Current parametrization status:', status);
         
         if (status.requiresManualSetup) {
-            console.log('⚠️ GraphQL limitations detected. Attempting REST API fallback...');
+            logger.debug('⚠️ GraphQL limitations detected. Attempting REST API fallback...');
             
             // Try REST API approach
             const restResult = await parametrizer.attemptRestAPIParametrization(projectName);
             
             if (restResult.success) {
-                console.log('✅ Successfully parametrized via REST API');
+                logger.debug('✅ Successfully parametrized via REST API');
                 return {
                     success: true,
                     method: 'REST API',
@@ -271,7 +272,7 @@ async function parametrizeShopViaGraphQL(shopDomain, accessToken, projectName) {
                     details: restResult
                 };
             } else {
-                console.log('❌ REST API also failed. Manual setup required.');
+                logger.debug('❌ REST API also failed. Manual setup required.');
                 
                 // Provide manual setup instructions
                 const instructions = await parametrizer.getManualSetupInstructions(projectName);
@@ -285,7 +286,7 @@ async function parametrizeShopViaGraphQL(shopDomain, accessToken, projectName) {
                 };
             }
         } else {
-            console.log('✅ Shop is already properly parametrized');
+            logger.debug('✅ Shop is already properly parametrized');
             return {
                 success: true,
                 method: 'Already Configured',
@@ -295,7 +296,7 @@ async function parametrizeShopViaGraphQL(shopDomain, accessToken, projectName) {
         }
         
     } catch (error) {
-        console.error('Parametrization error:', error);
+        logger.error('Parametrization error:', error);
         return {
             success: false,
             error: error.message,
@@ -317,7 +318,7 @@ async function verifyShopParametrization(shopDomain, accessToken) {
             ...status
         };
     } catch (error) {
-        console.error('Verification error:', error);
+        logger.error('Verification error:', error);
         return {
             success: false,
             error: error.message

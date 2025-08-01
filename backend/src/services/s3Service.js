@@ -1,4 +1,5 @@
 const { S3Client } = require('@aws-sdk/client-s3');
+const { logger } = require('../utils/secureLogger');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const path = require('path');
@@ -67,7 +68,7 @@ const createShopUpload = (folder) => {
       }
     },
     limits: {
-      fileSize: 10 * 1024 * 1024 // 10MB limit (increased for convenience)
+      fileSize: 50 * 1024 * 1024 // 50MB limit for high-resolution images
     }
   });
 };
@@ -77,18 +78,18 @@ const createProductUpload = () => {
   return multer({
     dest: path.join(__dirname, '..', 'uploads', 'temp'),
     fileFilter: (req, file, cb) => {
-      console.log('🔍 [MULTER DEBUG] Processing file:', file.originalname, file.mimetype);
+      logger.debug('🔍 [MULTER DEBUG] Processing file:', file.originalname, file.mimetype);
       // Only allow image files
       if (file.mimetype.startsWith('image/')) {
-        console.log('🔍 [MULTER DEBUG] File accepted:', file.originalname);
+        logger.debug('🔍 [MULTER DEBUG] File accepted:', file.originalname);
         cb(null, true);
       } else {
-        console.log('🔍 [MULTER DEBUG] File rejected (not an image):', file.originalname);
+        logger.debug('🔍 [MULTER DEBUG] File rejected (not an image):', file.originalname);
         cb(new Error('Only image files are allowed!'), false);
       }
     },
     limits: {
-      fileSize: 10 * 1024 * 1024 // 10MB limit (increased for convenience)
+      fileSize: 50 * 1024 * 1024 // 50MB limit for high-resolution images
     }
   });
 };
@@ -97,18 +98,28 @@ const createProductUpload = () => {
 const productImagesUpload = multer({
   dest: path.join(__dirname, '..', 'uploads', 'temp'),
   fileFilter: (req, file, cb) => {
-    console.log('🔍 [MULTER DEBUG] Processing file:', file.originalname, file.mimetype);
+    logger.debug('🔍 [MULTER DEBUG] Processing file:', file.originalname, file.mimetype, 'Size:', file.size || 'unknown');
     // Only allow image files
     if (file.mimetype.startsWith('image/')) {
-      console.log('🔍 [MULTER DEBUG] File accepted:', file.originalname);
+      logger.debug('🔍 [MULTER DEBUG] File accepted:', file.originalname);
       cb(null, true);
     } else {
-      console.log('🔍 [MULTER DEBUG] File rejected (not an image):', file.originalname);
+      logger.debug('🔍 [MULTER DEBUG] File rejected (not an image):', file.originalname);
       cb(new Error('Only image files are allowed!'), false);
     }
   },
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit (increased for convenience)
+    fileSize: 50 * 1024 * 1024 // 50MB limit for high-resolution images
+  },
+  onError: (err, next) => {
+    logger.error('🔍 [MULTER ERROR] Upload error:', err.message);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      const error = new Error(`File too large. Maximum size allowed is 50MB.`);
+      error.status = 413;
+      error.code = 'FILE_TOO_LARGE';
+      return next(error);
+    }
+    next(err);
   }
 }).array('productImages', 5);
 
@@ -127,7 +138,7 @@ const deleteImage = async (imageUrl) => {
     await s3.send(command);
     return { success: true };
   } catch (error) {
-    console.error('Error deleting image from S3:', error);
+    logger.error('Error deleting image from S3:', error);
     return { success: false, error: error.message };
   }
 };
@@ -145,7 +156,7 @@ const getSignedUrl = async (key) => {
     
     return await awsGetSignedUrl(s3, command, { expiresIn: 3600 }); // 1 hour
   } catch (error) {
-    console.error('Error generating signed URL:', error);
+    logger.error('Error generating signed URL:', error);
     throw error;
   }
 };
@@ -160,18 +171,19 @@ const uploadFile = async (fileData, key, contentType) => {
       Key: key,
       Body: fileData,
       ContentType: contentType,
+      ACL: 'private', // Ensure private access for secure bucket
+      ServerSideEncryption: 'AES256', // Add encryption
       Metadata: {
         uploadedAt: new Date().toISOString()
       },
-      // Add CORS headers
-      CacheControl: 'public, max-age=31536000',
+      // Remove public cache control for private bucket
       ContentDisposition: 'inline'
     });
     
     await s3.send(command);
     return { success: true };
   } catch (error) {
-    console.error('Error uploading file to S3:', error);
+    logger.error('Error uploading file to S3:', error);
     return { success: false, error: error.message };
   }
 };
@@ -189,7 +201,7 @@ const generatePresignedUrl = async (key) => {
     
     return await awsGetSignedUrl(s3, command, { expiresIn: 3600 }); // 1 hour
   } catch (error) {
-    console.error('Error generating presigned URL:', error);
+    logger.error('Error generating presigned URL:', error);
     throw error;
   }
 };

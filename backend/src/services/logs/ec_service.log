@@ -4633,3 +4633,521 @@
 [2025-07-31T15:09:27.367Z] -----------------------------
 [2025-07-31T15:09:27.367Z] EC service call completed. Updating product statuses in DB.
 [2025-07-31T15:09:27.400Z] --- EC Generation Request Succeeded (NEW ROUTE) ---
+[2025-08-01T18:38:00.746Z] --- Initiating EC Generation Request (NEW ROUTE) ---
+[2025-08-01T18:38:00.747Z] Shop ID: 688ce92fa4aab51cad2ac117, Product IDs: ["688cfa2e90f7273bda9b1290","688cfaf590f7273bda9b1292","688cfea390f7273bda9b1293"]
+[2025-08-01T18:38:00.751Z] Found customer: Omerta48 (688ce8bba4aab51cad2ac116)
+[2025-08-01T18:38:00.751Z] Found shop: Omerta48
+[2025-08-01T18:38:00.752Z] [EC Generation] Starting EC generation for 3 products from shop Omerta48
+[2025-08-01T18:38:00.752Z] Checking for required EC API credentials...
+[2025-08-01T18:38:00.752Z] Environment variables check:
+[2025-08-01T18:38:00.753Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-08-01T18:38:00.753Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-08-01T18:38:00.753Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-08-01T18:38:00.753Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-08-01T18:38:00.753Z]   process.env.NODE_ENV: production
+[2025-08-01T18:38:00.753Z]   Current working directory: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend
+[2025-08-01T18:38:00.753Z] All EC_* environment variables:
+[2025-08-01T18:38:00.754Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-08-01T18:38:00.754Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-08-01T18:38:00.755Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-08-01T18:38:00.755Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-08-01T18:38:00.755Z] Credentials check passed.
+[2025-08-01T18:38:00.755Z] Mapping products to EC items...
+[2025-08-01T18:38:00.756Z]   - Mapping product: Omerta Hoodie (ID: 688cfa2e90f7273bda9b1290)
+[2025-08-01T18:38:00.756Z]     - Generated 10 variant combinations.
+[2025-08-01T18:38:00.756Z]       - Processing combination: S-Noir
+[2025-08-01T18:38:00.756Z]         - WARNING: Invalid EAN13 code for combination S-Noir: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.757Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.757Z]         - Item validation for S-Noir:
+[2025-08-01T18:38:00.757Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.757Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.757Z]           sku: "PANTALON-OMERTAHOODIE-NOIR-S" (required, max 38 chars, actual: 28)
+[2025-08-01T18:38:00.757Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.757Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.757Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.757Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.758Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.758Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.758Z]       - Processing combination: S-Blanc
+[2025-08-01T18:38:00.758Z]         - WARNING: Invalid EAN13 code for combination S-Blanc: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.758Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.758Z]         - Item validation for S-Blanc:
+[2025-08-01T18:38:00.758Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.758Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.758Z]           sku: "PANTALON-OMERTAHOODIE-BLANC-S" (required, max 38 chars, actual: 29)
+[2025-08-01T18:38:00.758Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.758Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.759Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.759Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.759Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.759Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.761Z]       - Processing combination: XS-Noir
+[2025-08-01T18:38:00.761Z]         - WARNING: Invalid EAN13 code for combination XS-Noir: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.762Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.762Z]         - Item validation for XS-Noir:
+[2025-08-01T18:38:00.763Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.763Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.763Z]           sku: "PANTALON-OMERTAHOODIE-NOIR-XS" (required, max 38 chars, actual: 29)
+[2025-08-01T18:38:00.763Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.763Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.763Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.763Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.764Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.764Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.764Z]       - Processing combination: XS-Blanc
+[2025-08-01T18:38:00.764Z]         - WARNING: Invalid EAN13 code for combination XS-Blanc: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.765Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.765Z]         - Item validation for XS-Blanc:
+[2025-08-01T18:38:00.765Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.765Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.766Z]           sku: "PANTALON-OMERTAHOODIE-BLANC-XS" (required, max 38 chars, actual: 30)
+[2025-08-01T18:38:00.766Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.766Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.766Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.767Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.767Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.767Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.767Z]       - Processing combination: M-Noir
+[2025-08-01T18:38:00.768Z]         - WARNING: Invalid EAN13 code for combination M-Noir: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.768Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.768Z]         - Item validation for M-Noir:
+[2025-08-01T18:38:00.768Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.769Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.769Z]           sku: "PANTALON-OMERTAHOODIE-NOIR-M" (required, max 38 chars, actual: 28)
+[2025-08-01T18:38:00.769Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.769Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.769Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.769Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.769Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.769Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.769Z]       - Processing combination: M-Blanc
+[2025-08-01T18:38:00.769Z]         - WARNING: Invalid EAN13 code for combination M-Blanc: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.769Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.770Z]         - Item validation for M-Blanc:
+[2025-08-01T18:38:00.770Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.770Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.770Z]           sku: "PANTALON-OMERTAHOODIE-BLANC-M" (required, max 38 chars, actual: 29)
+[2025-08-01T18:38:00.770Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.770Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.770Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.770Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.770Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.770Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.770Z]       - Processing combination: L-Noir
+[2025-08-01T18:38:00.770Z]         - WARNING: Invalid EAN13 code for combination L-Noir: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.770Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.771Z]         - Item validation for L-Noir:
+[2025-08-01T18:38:00.771Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.771Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.771Z]           sku: "PANTALON-OMERTAHOODIE-NOIR-L" (required, max 38 chars, actual: 28)
+[2025-08-01T18:38:00.771Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.771Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.771Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.771Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.771Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.771Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.771Z]       - Processing combination: L-Blanc
+[2025-08-01T18:38:00.771Z]         - WARNING: Invalid EAN13 code for combination L-Blanc: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.772Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.772Z]         - Item validation for L-Blanc:
+[2025-08-01T18:38:00.772Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.772Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.772Z]           sku: "PANTALON-OMERTAHOODIE-BLANC-L" (required, max 38 chars, actual: 29)
+[2025-08-01T18:38:00.772Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.772Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.772Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.772Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.772Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.773Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.773Z]       - Processing combination: XL-Noir
+[2025-08-01T18:38:00.773Z]         - WARNING: Invalid EAN13 code for combination XL-Noir: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.773Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.773Z]         - Item validation for XL-Noir:
+[2025-08-01T18:38:00.773Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.773Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.773Z]           sku: "PANTALON-OMERTAHOODIE-NOIR-XL" (required, max 38 chars, actual: 29)
+[2025-08-01T18:38:00.773Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.773Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.773Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.774Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.774Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.774Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.774Z]       - Processing combination: XL-Blanc
+[2025-08-01T18:38:00.774Z]         - WARNING: Invalid EAN13 code for combination XL-Blanc: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.774Z]     - Mapped Merch/Pantalon to: Pantalon Client
+[2025-08-01T18:38:00.775Z]         - Item validation for XL-Blanc:
+[2025-08-01T18:38:00.775Z]           productType: "Pantalon Client" (required)
+[2025-08-01T18:38:00.775Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.775Z]           sku: "PANTALON-OMERTAHOODIE-BLANC-XL" (required, max 38 chars, actual: 30)
+[2025-08-01T18:38:00.776Z]           title: "Omerta Hoodie" (required, max 70 chars, actual: 13)
+[2025-08-01T18:38:00.776Z]           CN23Label: "Omerta Hoodie" (required, max 30 chars, actual: 13)
+[2025-08-01T18:38:00.777Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.777Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.777Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.777Z]           description: "Hoodie test" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.777Z]   - Mapping product: Vinyle Booba LDS (ID: 688cfaf590f7273bda9b1292)
+[2025-08-01T18:38:00.777Z]     - Generated 1 variant combinations.
+[2025-08-01T18:38:00.777Z]       - Processing combination: default
+[2025-08-01T18:38:00.778Z]         - WARNING: Invalid EAN13 code for combination default: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.778Z]     - Mapped Phono/Vinyl to: Vinyle Client
+[2025-08-01T18:38:00.778Z]         - Item validation for default:
+[2025-08-01T18:38:00.778Z]           productType: "Vinyle Client" (required)
+[2025-08-01T18:38:00.778Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.778Z]           sku: "VINYL-VINYLEBOOBALDS-OMERTA48-OCC" (required, max 38 chars, actual: 33)
+[2025-08-01T18:38:00.778Z]           title: "Vinyle Booba LDS" (required, max 70 chars, actual: 16)
+[2025-08-01T18:38:00.778Z]           CN23Label: "Vinyle Booba LDS" (required, max 30 chars, actual: 16)
+[2025-08-01T18:38:00.778Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.778Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.778Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.778Z]           description: "Test cinyle" (max 255 chars, actual: 11)
+[2025-08-01T18:38:00.778Z]   - Mapping product: Clé USB Omerta (ID: 688cfea390f7273bda9b1293)
+[2025-08-01T18:38:00.778Z]     - Generated 1 variant combinations.
+[2025-08-01T18:38:00.779Z]       - Processing combination: default
+[2025-08-01T18:38:00.779Z]         - WARNING: Invalid EAN13 code for combination default: "0000000000000". Will send empty barCode.
+[2025-08-01T18:38:00.779Z]     - Mapped Merch/Autre to: Autre produit
+[2025-08-01T18:38:00.779Z]         - Item validation for default:
+[2025-08-01T18:38:00.779Z]           productType: "Autre produit" (required)
+[2025-08-01T18:38:00.779Z]           CptClient: "213224" (required, 6 chars, actual: 6)
+[2025-08-01T18:38:00.779Z]           sku: "AUTRE-CLUSBOMERTA" (required, max 38 chars, actual: 17)
+[2025-08-01T18:38:00.779Z]           title: "Clé USB Omerta" (required, max 70 chars, actual: 14)
+[2025-08-01T18:38:00.779Z]           CN23Label: "Clé USB Omerta" (required, max 30 chars, actual: 14)
+[2025-08-01T18:38:00.779Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-01T18:38:00.779Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-01T18:38:00.779Z]           artist: "Omerta48" (max 70 chars, actual: 8)
+[2025-08-01T18:38:00.779Z]           description: "test produit" (max 255 chars, actual: 12)
+[2025-08-01T18:38:00.779Z] Total items to import: 12
+[2025-08-01T18:38:00.779Z] Query Parameters prepared for request: {
+  "CustomerAccount": "213224",
+  "Login": "015130_01",
+  "Password": "***",
+  "uploadType": "User",
+  "User": "Ggytg$jgh45"
+}
+[2025-08-01T18:38:00.779Z] --- Starting variant-by-variant import for 12 items ---
+[2025-08-01T18:38:00.779Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-NOIR-S) ---
+[2025-08-01T18:38:00.779Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:00.779Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:00.780Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-NOIR-S",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "S",
+    "color": "Noir",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:00.780Z] -------------------------------------------
+[2025-08-01T18:38:02.134Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-NOIR-S. Status: 200
+[2025-08-01T18:38:02.135Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-BLANC-S) ---
+[2025-08-01T18:38:02.135Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:02.136Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:02.136Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-BLANC-S",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "S",
+    "color": "Blanc",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:02.136Z] -------------------------------------------
+[2025-08-01T18:38:02.796Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-BLANC-S. Status: 200
+[2025-08-01T18:38:02.797Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-NOIR-XS) ---
+[2025-08-01T18:38:02.797Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:02.798Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:02.798Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-NOIR-XS",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "XS",
+    "color": "Noir",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:02.798Z] -------------------------------------------
+[2025-08-01T18:38:03.527Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-NOIR-XS. Status: 200
+[2025-08-01T18:38:03.528Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-BLANC-XS) ---
+[2025-08-01T18:38:03.528Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:03.528Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:03.529Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-BLANC-XS",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "XS",
+    "color": "Blanc",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:03.529Z] -------------------------------------------
+[2025-08-01T18:38:04.218Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-BLANC-XS. Status: 200
+[2025-08-01T18:38:04.218Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-NOIR-M) ---
+[2025-08-01T18:38:04.218Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:04.218Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:04.218Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-NOIR-M",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "M",
+    "color": "Noir",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:04.218Z] -------------------------------------------
+[2025-08-01T18:38:04.934Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-NOIR-M. Status: 200
+[2025-08-01T18:38:04.935Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-BLANC-M) ---
+[2025-08-01T18:38:04.935Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:04.935Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:04.936Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-BLANC-M",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "M",
+    "color": "Blanc",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:04.936Z] -------------------------------------------
+[2025-08-01T18:38:05.619Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-BLANC-M. Status: 200
+[2025-08-01T18:38:05.619Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-NOIR-L) ---
+[2025-08-01T18:38:05.619Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:05.619Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:05.620Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-NOIR-L",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "L",
+    "color": "Noir",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:05.620Z] -------------------------------------------
+[2025-08-01T18:38:06.295Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-NOIR-L. Status: 200
+[2025-08-01T18:38:06.295Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-BLANC-L) ---
+[2025-08-01T18:38:06.295Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:06.296Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:06.296Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-BLANC-L",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "L",
+    "color": "Blanc",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:06.296Z] -------------------------------------------
+[2025-08-01T18:38:07.006Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-BLANC-L. Status: 200
+[2025-08-01T18:38:07.006Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-NOIR-XL) ---
+[2025-08-01T18:38:07.007Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:07.007Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:07.007Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-NOIR-XL",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "XL",
+    "color": "Noir",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:07.007Z] -------------------------------------------
+[2025-08-01T18:38:07.722Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-NOIR-XL. Status: 200
+[2025-08-01T18:38:07.723Z] 
+--- Sending Variant (SKU: PANTALON-OMERTAHOODIE-BLANC-XL) ---
+[2025-08-01T18:38:07.723Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:07.723Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:07.724Z] BODY: [
+  {
+    "productType": "Pantalon Client",
+    "CptClient": "213224",
+    "sku": "PANTALON-OMERTAHOODIE-BLANC-XL",
+    "title": "Omerta Hoodie",
+    "CN23Label": "Omerta Hoodie",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Hoodie test",
+    "size": "XL",
+    "color": "Blanc",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:07.724Z] -------------------------------------------
+[2025-08-01T18:38:08.471Z] ✅ SUCCESS for SKU: PANTALON-OMERTAHOODIE-BLANC-XL. Status: 200
+[2025-08-01T18:38:08.472Z] 
+--- Sending Variant (SKU: VINYL-VINYLEBOOBALDS-OMERTA48-OCC) ---
+[2025-08-01T18:38:08.472Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:08.472Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:08.472Z] BODY: [
+  {
+    "productType": "Vinyle Client",
+    "CptClient": "213224",
+    "sku": "VINYL-VINYLEBOOBALDS-OMERTA48-OCC",
+    "title": "Vinyle Booba LDS",
+    "CN23Label": "Vinyle Booba LDS",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "Test cinyle",
+    "itemClassification": "Phono",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:08.473Z] -------------------------------------------
+[2025-08-01T18:38:09.145Z] ✅ SUCCESS for SKU: VINYL-VINYLEBOOBALDS-OMERTA48-OCC. Status: 200
+[2025-08-01T18:38:09.146Z] 
+--- Sending Variant (SKU: AUTRE-CLUSBOMERTA) ---
+[2025-08-01T18:38:09.146Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=213224&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-01T18:38:09.146Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-01T18:38:09.146Z] BODY: [
+  {
+    "productType": "Autre produit",
+    "CptClient": "213224",
+    "sku": "AUTRE-CLUSBOMERTA",
+    "title": "Clé USB Omerta",
+    "CN23Label": "Clé USB Omerta",
+    "custodyCode": "00000000",
+    "artist": "Omerta48",
+    "barCode": "",
+    "description": "test produit",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta48",
+    "occ": false
+  }
+]
+[2025-08-01T18:38:09.146Z] -------------------------------------------
+[2025-08-01T18:38:09.830Z] ✅ SUCCESS for SKU: AUTRE-CLUSBOMERTA. Status: 200
+[2025-08-01T18:38:09.830Z] 
+--- Import Process Complete ---
+[2025-08-01T18:38:09.831Z] Successfully imported: 12
+[2025-08-01T18:38:09.831Z] Failed to import: 0
+[2025-08-01T18:38:09.831Z] -----------------------------
+[2025-08-01T18:38:09.831Z] EC service call completed. Updating product statuses in DB.
+[2025-08-01T18:38:09.865Z] --- EC Generation Request Succeeded (NEW ROUTE) ---

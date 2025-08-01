@@ -1,5 +1,24 @@
 const express = require('express');
+const { logger } = require('../utils/secureLogger');
 const router = express.Router();
+
+// Import authentication middleware for admin-only routes
+const requireAdminAPIAuth = (req, res, next) => {
+  // Allow internal users to access admin functions
+  if (req.session.internalUserInfo) {
+    return next();
+  }
+  
+  // Otherwise require admin authentication
+  if (!req.session.adminUserInfo) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required - Admin access only',
+      securityAlert: 'UNAUTHORIZED_API_ACCESS'
+    });
+  }
+  next();
+};
 const crypto = require('crypto');
 const cognitoService = require('../services/cognitoService');
 const captchaService = require('../services/captchaService');
@@ -13,7 +32,7 @@ setInterval(() => {
   for (const [token, data] of resetTokens.entries()) {
     if (data.expiresAt < now) {
       resetTokens.delete(token);
-      console.log('🧹 Cleaned up expired reset token');
+      logger.debug('🧹 Cleaned up expired reset token');
     }
   }
 }, 5 * 60 * 1000);
@@ -46,7 +65,7 @@ router.post('/request', async (req, res) => {
       });
     }
 
-    console.log(`🔐 Password reset requested for: ${email} (${userType})`);
+    logger.debug(`🔐 Password reset requested for: ${email} (${userType})`);
 
     // Check if user exists in Cognito
     let userResult = null;
@@ -55,17 +74,17 @@ router.post('/request', async (req, res) => {
       
       if (!userResult.success) {
         // Don't reveal whether user exists or not for security
-        console.log(`❌ User not found: ${email} (${userType})`);
+        logger.debug(`❌ User not found: ${email} (${userType})`);
         return res.json({
           success: true,
           message: 'Si votre email est associé à un compte, vous recevrez un lien de réinitialisation.'
         });
       }
       
-      console.log(`✅ User found: ${email} (${userType})`);
+      logger.debug(`✅ User found: ${email} (${userType})`);
       
     } catch (error) {
-      console.error('Error checking user existence:', error);
+      logger.error('Error checking user existence:', error);
       // Don't reveal the error for security
       return res.json({
         success: true,
@@ -86,7 +105,7 @@ router.post('/request', async (req, res) => {
       createdAt: Date.now()
     });
 
-    console.log(`🎫 Generated reset token for ${email}: ${resetToken.substring(0, 8)}...`);
+    logger.debug(`🎫 Generated reset token for ${email}: ${resetToken.substring(0, 8)}...`);
 
     // Send reset email
     try {
@@ -98,14 +117,14 @@ router.post('/request', async (req, res) => {
       const result = await emailService.sendPasswordResetEmail(email, userName, resetUrl);
       
       if (result.success) {
-        console.log('✅ Password reset email sent successfully');
+        logger.debug('✅ Password reset email sent successfully');
         
         res.json({
           success: true,
           message: 'Si votre email est associé à un compte, vous recevrez un lien de réinitialisation.'
         });
       } else {
-        console.error('❌ Failed to send password reset email:', result.error);
+        logger.error('❌ Failed to send password reset email:', result.error);
         
         // Clean up the token since email failed
         resetTokens.delete(resetToken);
@@ -116,7 +135,7 @@ router.post('/request', async (req, res) => {
         });
       }
     } catch (emailError) {
-      console.error('❌ Email service error:', emailError);
+      logger.error('❌ Email service error:', emailError);
       
       // Clean up the token since email failed
       resetTokens.delete(resetToken);
@@ -128,7 +147,7 @@ router.post('/request', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Error in password reset request:', error);
+    logger.error('❌ Error in password reset request:', error);
     res.status(500).json({
       success: false,
       message: 'Une erreur est survenue lors de la demande de réinitialisation',
@@ -150,12 +169,12 @@ router.get('/verify/:token', async (req, res) => {
       });
     }
 
-    console.log(`🔍 Verifying reset token: ${token.substring(0, 8)}...`);
+    logger.debug(`🔍 Verifying reset token: ${token.substring(0, 8)}...`);
 
     const tokenData = resetTokens.get(token);
     
     if (!tokenData) {
-      console.log('❌ Invalid or expired reset token');
+      logger.debug('❌ Invalid or expired reset token');
       return res.status(400).json({
         success: false,
         message: 'Token de réinitialisation invalide ou expiré',
@@ -164,7 +183,7 @@ router.get('/verify/:token', async (req, res) => {
     }
 
     if (tokenData.expiresAt < Date.now()) {
-      console.log('❌ Reset token expired');
+      logger.debug('❌ Reset token expired');
       resetTokens.delete(token);
       return res.status(400).json({
         success: false,
@@ -174,7 +193,7 @@ router.get('/verify/:token', async (req, res) => {
     }
 
     if (tokenData.used) {
-      console.log('❌ Reset token already used');
+      logger.debug('❌ Reset token already used');
       resetTokens.delete(token);
       return res.status(400).json({
         success: false,
@@ -183,7 +202,7 @@ router.get('/verify/:token', async (req, res) => {
       });
     }
 
-    console.log('✅ Reset token is valid');
+    logger.debug('✅ Reset token is valid');
     
     res.json({
       success: true,
@@ -193,7 +212,7 @@ router.get('/verify/:token', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error verifying reset token:', error);
+    logger.error('❌ Error verifying reset token:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la vérification du token',
@@ -233,12 +252,12 @@ router.post('/confirm', async (req, res) => {
       });
     }
 
-    console.log(`🔐 Confirming password reset for token: ${token.substring(0, 8)}...`);
+    logger.debug(`🔐 Confirming password reset for token: ${token.substring(0, 8)}...`);
 
     const tokenData = resetTokens.get(token);
     
     if (!tokenData) {
-      console.log('❌ Invalid or expired reset token');
+      logger.debug('❌ Invalid or expired reset token');
       return res.status(400).json({
         success: false,
         message: 'Token de réinitialisation invalide ou expiré',
@@ -247,7 +266,7 @@ router.post('/confirm', async (req, res) => {
     }
 
     if (tokenData.expiresAt < Date.now()) {
-      console.log('❌ Reset token expired');
+      logger.debug('❌ Reset token expired');
       resetTokens.delete(token);
       return res.status(400).json({
         success: false,
@@ -257,7 +276,7 @@ router.post('/confirm', async (req, res) => {
     }
 
     if (tokenData.used) {
-      console.log('❌ Reset token already used');
+      logger.debug('❌ Reset token already used');
       resetTokens.delete(token);
       return res.status(400).json({
         success: false,
@@ -286,7 +305,7 @@ router.post('/confirm', async (req, res) => {
       // Remove the token after successful password reset
       resetTokens.delete(token);
 
-      console.log(`✅ Password reset successfully for: ${tokenData.email}`);
+      logger.debug(`✅ Password reset successfully for: ${tokenData.email}`);
       
       res.json({
         success: true,
@@ -295,7 +314,7 @@ router.post('/confirm', async (req, res) => {
       });
       
     } catch (cognitoError) {
-      console.error('❌ Cognito error during password reset:', cognitoError);
+      logger.error('❌ Cognito error during password reset:', cognitoError);
       
       // Mark token as unused again if Cognito operation failed
       tokenData.used = false;
@@ -325,7 +344,7 @@ router.post('/confirm', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Error in password reset confirmation:', error);
+    logger.error('❌ Error in password reset confirmation:', error);
     res.status(500).json({
       success: false,
       message: 'Une erreur est survenue lors de la réinitialisation',
@@ -334,8 +353,8 @@ router.post('/confirm', async (req, res) => {
   }
 });
 
-// Get reset token statistics (for debugging)
-router.get('/stats', async (req, res) => {
+// Get reset token statistics (for debugging) - ADMIN ONLY
+router.get('/stats', requireAdminAPIAuth, async (req, res) => {
   const now = Date.now();
   const activeTokens = Array.from(resetTokens.entries()).filter(([, data]) => !data.used && data.expiresAt > now);
   const expiredTokens = Array.from(resetTokens.entries()).filter(([, data]) => data.expiresAt <= now);

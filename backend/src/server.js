@@ -1,70 +1,79 @@
 // Load environment variables from .env file at the root of the backend directory
 require('dotenv').config();
 
+// Load secure logger first
+const { logger } = require('./utils/secureLogger');
+
 // SECURITY: Environment variables loaded (not logged for security)
-console.log('--- Environment Configuration Loaded ---');
+logger.debug('--- Environment Configuration Loaded ---');
 
 
-console.log('Starting server.js...');
-console.log('Current working directory:', process.cwd());
-console.log('NODE_ENV:', process.env.NODE_ENV);
+logger.debug('Starting server.js...');
+logger.debug('Current working directory:', process.cwd());
+logger.debug('NODE_ENV:', process.env.NODE_ENV);
 
-console.log('Loading express...');
+logger.debug('Loading express...');
 const express = require('express');
-console.log('Express loaded');
+logger.debug('Express loaded');
 
-console.log('Loading cors...');
+logger.debug('Loading cors...');
 const cors = require('cors');
-console.log('CORS loaded');
+logger.debug('CORS loaded');
 
-console.log('Loading helmet...');
+logger.debug('Loading helmet...');
 const helmet = require('helmet');
-console.log('Helmet loaded');
+logger.debug('Helmet loaded');
 
-console.log('Loading morgan...');
+logger.debug('Loading morgan...');
 const morgan = require('morgan');
-console.log('Morgan loaded');
+logger.debug('Morgan loaded');
 
-console.log('Loading path...');
+logger.debug('Loading path...');
 const path = require('path');
-console.log('Path loaded');
+logger.debug('Path loaded');
 
-console.log('Loading session...');
+logger.debug('Loading HTTPS middleware...');
+const httpsRedirect = require('./middleware/httpsRedirect');
+const securityHeaders = require('./middleware/securityHeaders');
+const { getSSLOptions } = require('./config/ssl');
+logger.debug('HTTPS middleware loaded');
+
+logger.debug('Loading session...');
 const session = require('express-session');
-console.log('Session loaded');
+logger.debug('Session loaded');
 
-console.log('Loading rate limit...');
+logger.debug('Loading rate limit...');
 const rateLimit = require('express-rate-limit');
-console.log('Rate limit loaded');
+logger.debug('Rate limit loaded');
 
-console.log('Loading AWS SDK v3 Cognito Client...');
+logger.debug('Loading AWS SDK v3 Cognito Client...');
 const { CognitoIdentityProviderClient, InitiateAuthCommand, RespondToAuthChallengeCommand, GetUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
-console.log('Cognito Client loaded');
+logger.debug('Cognito Client loaded');
 
-console.log('Loading crypto...');
+logger.debug('Loading crypto...');
 const crypto = require('crypto');
-console.log('Crypto loaded');
+logger.debug('Crypto loaded');
 
-console.log('Loading database config...');
+logger.debug('Loading database config...');
 const { connectToDatabase } = require('./config/db');
-console.log('Database config loaded');
+logger.debug('Database config loaded');
 
 const captchaService = require('./services/captchaService');
-console.log('CAPTCHA service loaded');
+logger.debug('CAPTCHA service loaded');
 
 // Import and log each route loading step
-console.log('Loading customer routes...');
-console.log('Customer routes loaded');
-console.log('Loading shopify routes...');
-console.log('Shopify routes loaded');
-console.log('Loading internal routes...');
-console.log('--- [DEBUG] SERVER IS LOADING backend/src/routes/internal.js ---');
-console.log('Internal routes loaded');
-console.log('Loading accounts routes...');
-console.log('Accounts routes loaded');
-console.log('Statistics routes loaded');
-console.log('Auth routes loaded');
-console.log('Password reset routes loaded');
+logger.debug('Loading customer routes...');
+logger.debug('Customer routes loaded');
+logger.debug('Loading shopify routes...');
+logger.debug('Shopify routes loaded');
+logger.debug('Loading internal routes...');
+// Module loading (debug info removed)
+logger.debug('Internal routes loaded');
+logger.debug('Loading accounts routes...');
+logger.debug('Accounts routes loaded');
+logger.debug('Statistics routes loaded');
+logger.debug('Auth routes loaded');
+logger.debug('Password reset routes loaded');
 
 // const { Issuer, generators } = require('openid-client'); // No longer needed for login
 // const crypto = require('crypto'); // Added crypto module for SECRET_HASH
@@ -88,7 +97,7 @@ const calculateSecretHash = (username, clientId, clientSecret) => {
 
 // **NEW: Global request logger**
 app.use((req, res, next) => {
-  console.log(`Incoming Request: ${req.method} ${req.originalUrl}`);
+  logger.debug(`Incoming Request: ${req.method} ${req.originalUrl}`);
   next();
 });
 
@@ -138,7 +147,13 @@ app.use(helmet({
   xssFilter: true,
   referrerPolicy: { policy: "same-origin" },
   hidePoweredBy: true
-})); // Security headers
+})); // Basic security headers
+
+// Apply HTTPS redirect first (before other middleware)
+app.use(httpsRedirect);
+
+// Apply comprehensive security headers
+app.use(securityHeaders);
 
 // Configure CORS - Simple configuration that was working before
 app.use(cors());
@@ -150,26 +165,75 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Set to false for localhost development, even with NODE_ENV=production
+      secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== 'false', // Auto-enable secure cookies in production
       httpOnly: true,
-      sameSite: 'lax', // Consider 'strict' if applicable
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // CSRF protection
       maxAge: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
     },
     name: 'sna-gz-session' // Custom session name for better identification
 }));
 
 // MOUNT UPLOAD ROUTES BEFORE BODY PARSERS TO AVOID STREAM CONFLICTS
-console.log('🔧 [MIDDLEWARE] Mounting upload routes before body parsers...');
+logger.debug('🔧 [MIDDLEWARE] Mounting upload routes before body parsers...');
 const customerUploadRoutes = require('./routes/customerUpload');
 app.use('/api/customer', customerUploadRoutes);
 
 // Mount internal upload routes before body parsers as well
 const internalUploadRoutes = require('./routes/internalUpload');
 app.use('/api/internal', internalUploadRoutes);
-console.log('🔧 [MIDDLEWARE] Upload routes mounted successfully');
+logger.debug('🔧 [MIDDLEWARE] Upload routes mounted successfully');
 
-app.use(express.json({ limit: '50mb' })); // Parse JSON bodies with increased limit
-app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Parse URL-encoded bodies with increased limit
+// Conditional body parsing - skip for upload routes that handle raw streams
+app.use((req, res, next) => {
+  if (req.skipBodyParsing) {
+    logger.debug(`⏭️ [BODY PARSER] Skipping body parsing for: ${req.url}`);
+    return next();
+  }
+  next();
+});
+
+// Apply body parsers conditionally (skip for upload routes)
+app.use((req, res, next) => {
+  // Skip body parsing for upload routes - check specific upload patterns
+  const uploadPatterns = [
+    '/upload',
+    '/upload-image',
+    '/upload-images',
+    '/upload-logo',
+    '/upload-banner',
+    '/upload-favicon'
+  ];
+  
+  const shouldSkip = uploadPatterns.some(pattern => req.path.includes(pattern));
+  
+  if (shouldSkip) {
+    logger.debug(`⏭️ [BODY PARSER] Skipping JSON parsing for upload route: ${req.path}`);
+    return next();
+  }
+  
+  express.json({ limit: '50mb' })(req, res, next);
+});
+
+app.use((req, res, next) => {
+  // Skip body parsing for upload routes - check specific upload patterns
+  const uploadPatterns = [
+    '/upload',
+    '/upload-image',
+    '/upload-images',
+    '/upload-logo',
+    '/upload-banner',
+    '/upload-favicon'
+  ];
+  
+  const shouldSkip = uploadPatterns.some(pattern => req.path.includes(pattern));
+  
+  if (shouldSkip) {
+    logger.debug(`⏭️ [BODY PARSER] Skipping URL-encoded parsing for upload route: ${req.path}`);
+    return next();
+  }
+  
+  express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
+});
 
 // Rate limiting for API routes to prevent abuse
 const apiLimiter = rateLimit({
@@ -183,9 +247,9 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    console.log(`[RATE LIMIT] API rate limit exceeded for ${req.ip} on ${req.originalUrl}`);
-    console.log(`[RATE LIMIT] Current environment: ${process.env.NODE_ENV || 'undefined'}`);
-    console.log(`[RATE LIMIT] Request count limit: ${process.env.NODE_ENV === 'production' ? 500 : 5000}`);
+    logger.debug(`[RATE LIMIT] API rate limit exceeded for ${req.ip} on ${req.originalUrl}`);
+    logger.debug(`[RATE LIMIT] Current environment: ${process.env.NODE_ENV || 'undefined'}`);
+    logger.debug(`[RATE LIMIT] Request count limit: ${process.env.NODE_ENV === 'production' ? 500 : 5000}`);
     res.status(429).json({
       success: false,
       message: 'Too many API requests, please try again later.',
@@ -206,9 +270,9 @@ const strictApiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    console.log(`[RATE LIMIT] Sensitive endpoint rate limit exceeded for ${req.ip} on ${req.originalUrl}`);
-    console.log(`[RATE LIMIT] Current environment: ${process.env.NODE_ENV || 'undefined'}`);
-    console.log(`[RATE LIMIT] Sensitive request count limit: ${process.env.NODE_ENV === 'production' ? 150 : 1000}`);
+    logger.debug(`[RATE LIMIT] Sensitive endpoint rate limit exceeded for ${req.ip} on ${req.originalUrl}`);
+    logger.debug(`[RATE LIMIT] Current environment: ${process.env.NODE_ENV || 'undefined'}`);
+    logger.debug(`[RATE LIMIT] Sensitive request count limit: ${process.env.NODE_ENV === 'production' ? 150 : 1000}`);
     res.status(429).json({
       success: false,
       message: 'Too many requests to sensitive endpoint, please try again later.',
@@ -239,32 +303,11 @@ app.get('/api/rate-limit-status', (req, res) => {
   });
 });
 
-// Session debugging endpoint (development only)
-if (process.env.NODE_ENV !== 'production') {
-  app.get('/api/session-debug', (req, res) => {
-    res.json({
-      success: true,
-      session: {
-        hasSession: !!req.session,
-        sessionId: req.sessionID,
-        sessionKeys: req.session ? Object.keys(req.session) : [],
-        userInfo: req.session?.userInfo || null,
-        internalUserInfo: req.session?.internalUserInfo || null,
-        adminUserInfo: req.session?.adminUserInfo || null,
-        isAuthenticated: req.session?.isAuthenticated || false,
-        isFirstLogin: req.session?.isFirstLogin || false
-      },
-      cookies: req.headers.cookie,
-      userAgent: req.headers['user-agent']
-    });
-  });
-}
-
 // Development: Add option to disable rate limiting for debugging
 if (process.env.NODE_ENV !== 'production' && process.env.DISABLE_RATE_LIMIT === 'true') {
-  console.log('[DEV] Rate limiting disabled for development');
+  logger.info("DEV: Rate limiting disabled for development");
 } else {
-  console.log(`[RATE LIMIT] API rate limiting enabled - General: ${process.env.NODE_ENV === 'production' ? 500 : 5000} req/15min, Sensitive: ${process.env.NODE_ENV === 'production' ? 150 : 1000} req/15min`);
+  logger.debug(`[RATE LIMIT] API rate limiting enabled - General: ${process.env.NODE_ENV === 'production' ? 500 : 5000} req/15min, Sensitive: ${process.env.NODE_ENV === 'production' ? 150 : 1000} req/15min`);
 }
 
 // Apply stricter rate limiting to sensitive endpoints
@@ -295,15 +338,7 @@ app.use('/api/', (req, res, next) => {
   next();
 });
 
-// File upload middleware for image uploads
-const fileUpload = require('express-fileupload');
-app.use(fileUpload({
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit (increased for convenience)
-  abortOnLimit: true,
-  useTempFiles: true,
-  tempFileDir: '/tmp/',
-  debug: process.env.NODE_ENV === 'development'
-}));
+// File upload middleware removed - multer handles uploads in individual routes
 
 // Setup view engine (EJS)
 // app.set('view engine', 'ejs');
@@ -311,105 +346,91 @@ app.use(fileUpload({
 
 // Middleware to require client authentication
 const requireClientAuth = (req, res, next) => {
-    console.log('[AUTH DEBUG] Checking client auth for path:', req.originalUrl, {
-        hasSession: !!req.session,
-        hasUserInfo: !!req.session?.userInfo,
-        sessionKeys: req.session ? Object.keys(req.session) : [],
-        userEmail: req.session?.userInfo?.email
-    });
-    
     if (!req.session.userInfo) {
-        console.log('[AUTH] Client access denied. Redirecting to /client/login for path:', req.originalUrl);
-        // Redirect to the client login page for better UX
-        return res.redirect('/client/login');
-    }
-    console.log('[AUTH] Client access granted for path:', req.originalUrl);
-    next();
+    logger.debug('[AUTH] Client access denied. Redirecting to / for path:', req.originalUrl);
+    // Redirect to the frontend login page, not a backend route directly if it's just serving HTML
+    return res.redirect('/'); // Or specific client login page like /client-login-page
+  }
+  logger.debug('[AUTH] Client access granted for path:', req.originalUrl);
+  next();
 };
 
 // Middleware to require internal personnel authentication
 const requireInternalAuth = (req, res, next) => {
   if (!req.session.internalUserInfo) {
-    console.log('[AUTH] Internal access denied. Redirecting to / for path:', req.originalUrl);
+    logger.debug('[AUTH] Internal access denied. Redirecting to / for path:', req.originalUrl);
     // Redirect to the main page, which will show login options
     return res.redirect('/'); 
   }
-  console.log('[AUTH] Internal access granted for path:', req.originalUrl);
+  logger.debug('[AUTH] Internal access granted for path:', req.originalUrl);
   next();
 };
 
 // Middleware to require admin authentication
 const requireAdminAuth = (req, res, next) => {
   if (!req.session.adminUserInfo) {
-    console.log('[AUTH] Admin access denied. Redirecting to / for path:', req.originalUrl);
+    logger.debug('[AUTH] Admin access denied. Redirecting to / for path:', req.originalUrl);
     // Redirect to the main page, which will show login options
     return res.redirect('/');
   }
-  console.log('[AUTH] Admin access granted for path:', req.originalUrl);
+  logger.debug('[AUTH] Admin access granted for path:', req.originalUrl);
     next();
 };
 
 // API Authentication Middleware - Returns JSON instead of redirects
 const requireInternalAPIAuth = (req, res, next) => {
   if (!req.session.internalUserInfo) {
-    console.log(`[API AUTH] Internal API access denied for: ${req.originalUrl}`);
+    logger.debug(`[API AUTH] Internal API access denied for: ${req.originalUrl}`);
     return res.status(401).json({
       success: false,
       message: 'Authentication required - Internal personnel access only',
       securityAlert: 'UNAUTHORIZED_API_ACCESS'
     });
   }
-  console.log(`[API AUTH] Internal API access granted for: ${req.originalUrl}`);
+  logger.debug(`[API AUTH] Internal API access granted for: ${req.originalUrl}`);
   next();
 };
 
 const requireClientAPIAuth = (req, res, next) => {
   // DEBUG: Log session information for API calls
-  console.log(`🔍 [DEBUG] requireClientAPIAuth - ${req.originalUrl}:`, {
-    hasInternalUserInfo: !!req.session.internalUserInfo,
-    hasUserInfo: !!req.session.userInfo,
-    hasAdminUserInfo: !!req.session.adminUserInfo,
-    sessionKeys: Object.keys(req.session || {}),
-    internalUserEmail: req.session.internalUserInfo?.email,
-    userEmail: req.session.userInfo?.email
-  });
+  logger.debug("Client API auth check");
 
   // Allow internal users to access customer data for management
   if (req.session.internalUserInfo) {
-    console.log(`[API AUTH] Internal user accessing customer API: ${req.originalUrl}`);
+    logger.debug(`[API AUTH] Internal user accessing customer API: ${req.originalUrl}`);
     return next();
   }
   
   // Otherwise require client authentication
   if (!req.session.userInfo) {
-    console.log(`[API AUTH] Client API access denied for: ${req.originalUrl}`);
+    logger.debug(`[API AUTH] Client API access denied for: ${req.originalUrl}`);
     return res.status(401).json({
       success: false,
       message: 'Authentication required - Client access only',
       securityAlert: 'UNAUTHORIZED_API_ACCESS'
     });
   }
-  console.log(`[API AUTH] Client API access granted for: ${req.originalUrl}`);
+  logger.debug(`[API AUTH] Client API access granted for: ${req.originalUrl}`);
   next();
 };
 
 const requireAdminAPIAuth = (req, res, next) => {
   // Allow internal users to access admin functions for account management
   if (req.session.internalUserInfo) {
-    console.log(`[API AUTH] Internal user accessing admin API: ${req.originalUrl}`);
+    logger.debug(`[API AUTH] Internal user accessing admin API: ${req.originalUrl}`);
     return next();
   }
   
   // Otherwise require admin authentication
   if (!req.session.adminUserInfo) {
-    console.log(`[API AUTH] Admin API access denied for: ${req.originalUrl}`);
+    logger.debug(`[API AUTH] Admin API access denied for: ${req.originalUrl}`);
     return res.status(401).json({
       success: false,
       message: 'Authentication required - Admin access only',
       securityAlert: 'UNAUTHORIZED_API_ACCESS'
     });
   }
-  console.log(`[API AUTH] Admin API access granted for: ${req.originalUrl}`);
+  logger.debug(`[API AUTH] Admin API access granted for: ${req.originalUrl}`);
   next();
 };
 
@@ -419,7 +440,7 @@ app.use(express.static(path.join(__dirname, '../../frontend/build')));
 // Security middleware to prevent direct URL access to sensitive routes
 // MUST be placed BEFORE route registration to intercept API requests
 app.use((req, res, next) => {
-  console.log(`🔍 [SECURITY] Middleware executed for: ${req.method} ${req.path}`);
+  logger.debug(`🔍 [SECURITY] Middleware executed for: ${req.method} ${req.path}`);
   
   const sensitiveRoutes = [
     '/api/internal/',
@@ -433,7 +454,7 @@ app.use((req, res, next) => {
   const isSensitiveRoute = sensitiveRoutes.some(route => req.path.startsWith(route));
   
   if (isSensitiveRoute) {
-    console.log(`🔍 [SECURITY] API request to: ${req.path} from IP: ${req.ip}`);
+    logger.debug(`🔍 [SECURITY] API request to: ${req.path} from IP: ${req.ip}`);
     
     // Check for legitimate AJAX request indicators
     const hasCredentials = req.headers.cookie; // Session cookie present
@@ -449,20 +470,7 @@ app.use((req, res, next) => {
     const hasNoCacheBuster = !req.query._ && !req.headers['cache-control']?.includes('no-cache');
     
     // DEBUG: Log request details for troubleshooting
-    console.log(`🔍 [SECURITY DEBUG] Request details for ${req.path}:`, {
-      method: req.method,
-      hasCredentials: !!hasCredentials,
-      hasJsonContentType: !!hasJsonContentType,
-      hasFetchHeaders: !!hasFetchHeaders,
-      hasRefererFromApp: !!hasRefererFromApp,
-      acceptsJson: !!acceptsJson,
-      acceptsHtml: !!acceptsHtml,
-      isNavigateRequest: !!isNavigateRequest,
-      accept: req.headers.accept,
-      referer: req.headers.referer,
-      'sec-fetch-mode': req.headers['sec-fetch-mode'],
-      'sec-fetch-dest': req.headers['sec-fetch-dest']
-    });
+    logger.debug("Security validation");
     
     // Block if it looks like direct browser navigation
     const isDirectBrowserAccess = req.method === 'GET' && 
@@ -472,15 +480,8 @@ app.use((req, res, next) => {
       !acceptsJson;
     
     if (isDirectBrowserAccess) {
-      console.log(`🚨 [SECURITY] Blocking direct browser access to API: ${req.path}`);
-      console.log(`🚨 [SECURITY] Request details:`, {
-        method: req.method,
-        acceptsHtml,
-        isNavigateRequest,
-        hasRefererFromApp,
-        acceptsJson,
-        userAgent: req.headers['user-agent']?.substring(0, 50)
-      });
+      logger.debug(`🚨 [SECURITY] Blocking direct browser access to API: ${req.path}`);
+      logger.security("Security validation failed");
       return res.status(403).json({
         success: false,
         message: 'Direct API access not allowed. Please use the application interface.',
@@ -491,7 +492,7 @@ app.use((req, res, next) => {
     // Log legitimate but unauthenticated access attempts  
     const hasValidSession = req.session.internalUserInfo || req.session.userInfo || req.session.adminUserInfo;
     if (!hasValidSession) {
-      console.log(`🚨 [SECURITY] Unauthenticated API access attempt to: ${req.path}`);
+      logger.debug(`🚨 [SECURITY] Unauthenticated API access attempt to: ${req.path}`);
     }
   }
   
@@ -499,17 +500,17 @@ app.use((req, res, next) => {
 });
 
 // API Routes with Authentication
-console.log('🔍 [DEBUG] Registering API routes...');
+logger.debug('🔍 [DEBUG] Registering API routes...');
 app.use('/api/customer', requireClientAPIAuth, require('./routes/customer'));
-console.log('🔍 [DEBUG] Customer routes registered');
+logger.debug('🔍 [DEBUG] Customer routes registered');
 app.use('/api/shopify', requireInternalAPIAuth, require('./routes/shopify'));
-console.log('🔍 [DEBUG] Shopify routes registered');
+logger.debug('🔍 [DEBUG] Shopify routes registered');
 app.use('/api/internal', requireInternalAPIAuth, require('./routes/internal'));
-console.log('🔍 [DEBUG] Internal routes registered');
+logger.debug('🔍 [DEBUG] Internal routes registered');
 app.use('/api/accounts', requireAdminAPIAuth, require('./routes/accounts'));
-console.log('🔍 [DEBUG] Accounts routes registered');
+logger.debug('🔍 [DEBUG] Accounts routes registered');
 app.use('/api/statistics', requireInternalAPIAuth, require('./routes/statistics'));
-console.log('🔍 [DEBUG] Statistics routes registered');
+logger.debug('🔍 [DEBUG] Statistics routes registered');
 
 // Mixed authentication routes (some endpoints need auth, others don't)
 const authRoutes = require('./routes/auth');
@@ -517,10 +518,10 @@ const passwordResetRoutes = require('./routes/passwordReset');
 
 // Auth routes - change-password needs session auth, others are public
 app.use('/api/auth', (req, res, next) => {
-  console.log(`🔍 [AUTH ROUTES] Request to: ${req.method} ${req.path}`);
+  logger.debug(`🔍 [AUTH ROUTES] Request to: ${req.method} ${req.path}`);
   // This endpoint requires authentication (any user type)
   if (req.path === '/change-password' && !req.session.userInfo && !req.session.internalUserInfo && !req.session.adminUserInfo) {
-    console.log(`🔍 [AUTH ROUTES] Unauthorized access attempt to change-password`);
+    logger.debug(`🔍 [AUTH ROUTES] Unauthorized access attempt to change-password`);
     return res.status(401).json({
       success: false,
       message: 'Authentication required',
@@ -544,10 +545,10 @@ app.get('/api/health', (req, res) => {
 });
 
 // Add debug logging for route registration
-console.log('Registered routes:');
-console.log('- POST /api/customer/shop/:shopId/documentation');
-console.log('- GET /api/customer/shop/:shopId/documentation');
-console.log('- GET /api/internal/clients/:clientId');
+logger.debug('Registered routes:');
+logger.debug('- POST /api/customer/shop/:shopId/documentation');
+logger.debug('- GET /api/customer/shop/:shopId/documentation');
+logger.debug('- GET /api/internal/clients/:clientId');
 
 // Add CORS headers for preflight requests
 app.options('/api/customer/shop/:shopId/documentation', (req, res) => {
@@ -558,15 +559,15 @@ app.options('/api/customer/shop/:shopId/documentation', (req, res) => {
 });
 
 // SECURITY: Environment variables loaded (not logged for security)
-console.log('Environment Variables: Loaded');
+logger.debug('Environment Variables: Loaded');
 
 // Connect to MongoDB when the server starts
 connectToDatabase()
   .then(() => {
-    console.log('MongoDB connection established');
+    logger.debug('MongoDB connection established');
   })
   .catch(err => {
-    console.error('Failed to connect to MongoDB:', err);
+    logger.error('Failed to connect to MongoDB:', err);
   });
 
 // Auth routes
@@ -579,9 +580,9 @@ connectToDatabase()
 
 // Error handling middleware for API routes
 app.use('/api', (err, req, res, next) => {
-  console.error('🔍 [ERROR HANDLER] API Error caught:', err);
-  console.error('🔍 [ERROR HANDLER] Request path:', req.path);
-  console.error('🔍 [ERROR HANDLER] Error stack:', err.stack);
+  logger.error('🔍 [ERROR HANDLER] API Error caught:', err);
+  logger.error('🔍 [ERROR HANDLER] Request path:', req.path);
+  logger.error('🔍 [ERROR HANDLER] Error stack:', err.stack);
   res.status(500).json({ 
     status: 'error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
@@ -590,9 +591,9 @@ app.use('/api', (err, req, res, next) => {
 
 // Catch-all error handler for any unhandled errors
 app.use((err, req, res, next) => {
-  console.error('🔍 [CATCH-ALL ERROR] Unhandled error:', err);
-  console.error('🔍 [CATCH-ALL ERROR] Request path:', req.path);
-  console.error('🔍 [CATCH-ALL ERROR] Error stack:', err.stack);
+  logger.error('🔍 [CATCH-ALL ERROR] Unhandled error:', err);
+  logger.error('🔍 [CATCH-ALL ERROR] Request path:', req.path);
+  logger.error('🔍 [CATCH-ALL ERROR] Error stack:', err.stack);
   
   if (req.path.startsWith('/api/')) {
     return res.status(500).json({
@@ -623,9 +624,9 @@ async function revokeCognitoTokens(accessToken, clientId, clientSecret) {
         
         const command = new RevokeTokenCommand(revokeParams);
         await cognitoClient.send(command);
-        console.log('Background token revocation successful');
+        logger.debug('Background token revocation successful');
     } catch (error) {
-        console.log('Background token revocation failed (non-critical):', error.message);
+        logger.debug('Background token revocation failed (non-critical):', error.message);
     }
 }
 
@@ -647,7 +648,7 @@ app.post('/login-client', async (req, res) => {
     const clientSecret = process.env.COGNITO_CLIENT_APP_SECRET;
 
     if (!clientId || !clientSecret) {
-        console.error('[/login-client] Client ID or Client Secret not configured in .env for client portal.');
+        logger.error('[/login-client] Client ID or Client Secret not configured in .env for client portal.');
         return res.status(500).json({ success: false, message: 'Server configuration error.' });
     }
 
@@ -669,7 +670,7 @@ app.post('/login-client', async (req, res) => {
         const authResult = await cognitoClient.send(command);
         
         if (authResult.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
-            console.log('[/login-client] NEW_PASSWORD_REQUIRED challenge for user:', email);
+            logger.debug('[/login-client] NEW_PASSWORD_REQUIRED challenge for user:', email);
             return res.json({
                 success: false, // Not fully authenticated yet
                 challengeName: 'NEW_PASSWORD_REQUIRED',
@@ -690,11 +691,11 @@ app.post('/login-client', async (req, res) => {
             userInfo.username = userDetails.Username;
             
             // Extract and log all potential identifiers from userInfo
-            console.log('==== USER IDENTITY DEBUG INFO ====');
-            console.log('Raw userInfo:', JSON.stringify(userInfo, null, 2));
-            console.log('userInfo.sub:', userInfo.sub);
-            console.log('userInfo.username:', userInfo.username);
-            console.log('userDetails.Username:', userDetails.Username);
+            // Debug info removed for security
+            logger.debug('Raw userInfo:', JSON.stringify(userInfo, null, 2));
+            logger.debug('userInfo.sub:', userInfo.sub);
+            logger.debug('userInfo.username:', userInfo.username);
+            logger.debug('userDetails.Username:', userDetails.Username);
             
             // Use the sub attribute as the userId
             // This is a unique identifier from Cognito that won't change
@@ -705,8 +706,8 @@ app.post('/login-client', async (req, res) => {
             userInfo.accessToken = accessToken;
             
             // Log the userId (sub) being used
-            console.log('FINAL userId (from sub):', userId);
-            console.log('==== END USER IDENTITY DEBUG INFO ====');
+            logger.debug('FINAL userId (from sub):', userId);
+            // Debug info removed for security
 
             req.session.userInfo = userInfo;
             req.session.isAuthenticated = true;
@@ -714,42 +715,37 @@ app.post('/login-client', async (req, res) => {
             // Explicitly save the session to ensure it persists
             req.session.save((err) => {
                 if (err) {
-                    console.error('[/login-client] Session save error:', err);
+                    logger.error('[/login-client] Session save error:', err);
                     return res.status(500).json({ success: false, message: 'Session save failed.' });
                 }
 
-                console.log('[/login-client] Client login successful for:', email);
+                logger.debug('[/login-client] Client login successful for:', email);
                 return res.json({ success: true, redirectUrl: '/client/dashboard', userInfo });
             });
         } else {
-            console.error('[/login-client] Cognito initiateAuth unexpected result for:', email, authResult);
+            logger.error('[/login-client] Cognito initiateAuth unexpected result for:', email, authResult);
             return res.status(401).json({ success: false, message: 'Authentication failed. Please check credentials or server logs.' });
         }
     } catch (error) {
-        console.error('[/login-client] Error during client authentication for:', email, error);
-        console.log('[/login-client] Error details:', {
-            code: error.code,
-            name: error.name,
-            message: error.message,
-            __type: error.__type
-        });
+        logger.error('[/login-client] Error during client authentication for:', email, error);
+        logger.error("Authentication error occurred");
         
         let message = 'Échec de l\'authentification. Veuillez vérifier vos identifiants.';
         if (error.code === 'NotAuthorizedException' || error.__type === 'NotAuthorizedException') {
             message = 'Nom d\'utilisateur ou mot de passe incorrect.';
-            console.log('[/login-client] Setting NotAuthorizedException message');
+            logger.info("/login-client: Setting NotAuthorizedException message");
         } else if (error.code === 'UserNotFoundException' || error.__type === 'UserNotFoundException') {
             message = 'Utilisateur inexistant.';
-            console.log('[/login-client] Setting UserNotFoundException message');
+            logger.info("/login-client: Setting UserNotFoundException message");
         } else if (error.code === 'UserNotConfirmedException' || error.__type === 'UserNotConfirmedException') {
             message = 'Compte utilisateur non confirmé. Veuillez vérifier votre email pour confirmer votre compte.';
-            console.log('[/login-client] Setting UserNotConfirmedException message');
+            logger.info("/login-client: Setting UserNotConfirmedException message");
         } else if (error.code === 'InvalidParameterException' && error.message.includes('USER_PASSWORD_AUTH flow not enabled')) {
             message = 'Flux d\'authentification non activé pour ce client. Veuillez contacter le support.';
-            console.log('[/login-client] Setting InvalidParameterException message');
+            logger.info("/login-client: Setting InvalidParameterException message");
         }
         
-        console.log('[/login-client] Final error message:', message);
+        logger.debug('[/login-client] Final error message:', message);
         // Do not specifically mention NEW_PASSWORD_REQUIRED here as an error, it's handled above.
         return res.status(401).json({ success: false, message });
     }
@@ -772,9 +768,9 @@ app.get('/logout', (req, res) => {
     // Destroy session and redirect directly to login page
     req.session.destroy(err => {
         if (err) {
-            console.error('[/logout] Session destruction error:', err);
+            logger.error('[/logout] Session destruction error:', err);
         } else {
-            console.log('[/logout] Session destroyed successfully');
+            logger.info("/logout: Session destroyed successfully");
         }
         
         // Redirect directly to login page for better UX
@@ -807,7 +803,7 @@ app.post('/login-internal', async (req, res) => {
     const clientSecret = process.env.COGNITO_INTERNAL_APP_SECRET;
 
     if (!clientId || !clientSecret) {
-        console.error('[/login-internal] Client ID or Client Secret not configured in .env for internal portal.');
+        logger.error('[/login-internal] Client ID or Client Secret not configured in .env for internal portal.');
         return res.status(500).json({ success: false, message: 'Server configuration error.' });
     }
 
@@ -829,7 +825,7 @@ app.post('/login-internal', async (req, res) => {
         const authResult = await cognitoClient.send(command);
         
         if (authResult.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
-            console.log('[/login-internal] NEW_PASSWORD_REQUIRED challenge for user:', email);
+            logger.debug('[/login-internal] NEW_PASSWORD_REQUIRED challenge for user:', email);
             return res.json({
                 success: false,
                 challengeName: 'NEW_PASSWORD_REQUIRED',
@@ -842,7 +838,7 @@ app.post('/login-internal', async (req, res) => {
             const accessToken = authResult.AuthenticationResult.AccessToken;
             const userDetailsParams = { AccessToken: accessToken };
             const userDetails = await cognitoClient.send(new GetUserCommand(userDetailsParams));
-            
+
             const internalUserInfo = {};
             userDetails.UserAttributes.forEach(attr => {
                 internalUserInfo[attr.Name] = attr.Value;
@@ -858,42 +854,37 @@ app.post('/login-internal', async (req, res) => {
             // Explicitly save the session to ensure it persists
             req.session.save((err) => {
                 if (err) {
-                    console.error('[/login-internal] Session save error:', err);
+                    logger.error('[/login-internal] Session save error:', err);
                     return res.status(500).json({ success: false, message: 'Session save failed.' });
                 }
                 
-                console.log('[/login-internal] Internal login successful for:', email);
+                logger.debug('[/login-internal] Internal login successful for:', email);
                 return res.json({ success: true, redirectUrl: '/internal/dashboard', userInfo: internalUserInfo });
             });
         } else {
-            console.error('[/login-internal] Cognito initiateAuth unexpected result for:', email, authResult);
+            logger.error('[/login-internal] Cognito initiateAuth unexpected result for:', email, authResult);
             return res.status(401).json({ success: false, message: 'Authentication failed. Please check credentials or server logs.' });
         }
     } catch (error) {
-        console.error('[/login-internal] Error during internal authentication for:', email, error);
-        console.log('[/login-internal] Error details:', {
-            code: error.code,
-            name: error.name,
-            message: error.message,
-            __type: error.__type
-        });
+        logger.error('[/login-internal] Error during internal authentication for:', email, error);
+        logger.error("Authentication error occurred");
         
         let message = 'Échec de l\'authentification. Veuillez vérifier vos identifiants.';
         if (error.code === 'NotAuthorizedException' || error.__type === 'NotAuthorizedException') {
             message = 'Nom d\'utilisateur ou mot de passe incorrect.';
-            console.log('[/login-internal] Setting NotAuthorizedException message');
+            logger.info("/login-internal: Setting NotAuthorizedException message");
         } else if (error.code === 'UserNotFoundException' || error.__type === 'UserNotFoundException') {
             message = 'Utilisateur inexistant.';
-            console.log('[/login-internal] Setting UserNotFoundException message');
+            logger.info("/login-internal: Setting UserNotFoundException message");
         } else if (error.code === 'UserNotConfirmedException' || error.__type === 'UserNotConfirmedException') {
             message = 'Compte utilisateur non confirmé.';
-            console.log('[/login-internal] Setting UserNotConfirmedException message');
+            logger.info("/login-internal: Setting UserNotConfirmedException message");
         } else if (error.code === 'InvalidParameterException' && error.message.includes('USER_PASSWORD_AUTH flow not enabled')) {
             message = 'Flux d\'authentification non activé pour ce client. Veuillez contacter le support.';
-            console.log('[/login-internal] Setting InvalidParameterException message');
+            logger.info("/login-internal: Setting InvalidParameterException message");
         }
         
-        console.log('[/login-internal] Final error message:', message);
+        logger.debug('[/login-internal] Final error message:', message);
         return res.status(401).json({ success: false, message });
     }
 });
@@ -914,13 +905,13 @@ app.get('/logout-internal', (req, res) => {
     // Destroy session and redirect directly to login page
     req.session.destroy(err => {
         if (err) {
-            console.error('[/logout-internal] Session destruction error:', err);
+            logger.error('[/logout-internal] Session destruction error:', err);
         } else {
-            console.log('[/logout-internal] Session destroyed successfully');
+            logger.info("/logout-internal: Session destroyed successfully");
         }
         
         // Redirect directly to internal login page for better UX
-        res.redirect('/internal/login');
+        res.redirect('/internal-login');
     });
     
     // Background token revocation for enhanced security
@@ -949,7 +940,7 @@ app.post('/login-admin-portal', async (req, res) => {
     const clientSecret = process.env.COGNITO_ADMIN_APP_SECRET;
 
     if (!clientId || !clientSecret) {
-        console.error('[/login-admin-portal] Client ID or Client Secret not configured in .env for admin portal.');
+        logger.error('[/login-admin-portal] Client ID or Client Secret not configured in .env for admin portal.');
         return res.status(500).json({ success: false, message: 'Server configuration error.' });
     }
 
@@ -971,7 +962,7 @@ app.post('/login-admin-portal', async (req, res) => {
         const authResult = await cognitoClient.send(command);
         
         if (authResult.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
-            console.log('[/login-admin-portal] NEW_PASSWORD_REQUIRED challenge for user:', email);
+            logger.debug('[/login-admin-portal] NEW_PASSWORD_REQUIRED challenge for user:', email);
             return res.json({
                 success: false,
                 challengeName: 'NEW_PASSWORD_REQUIRED',
@@ -997,37 +988,32 @@ app.post('/login-admin-portal', async (req, res) => {
             req.session.adminUserInfo = adminUserInfo;
             req.session.isAdminAuthenticated = true;
 
-            console.log('[/login-admin-portal] Admin login successful for:', email);
+            logger.debug('[/login-admin-portal] Admin login successful for:', email);
             return res.json({ success: true, redirectUrl: '/admin/client-accounts', userInfo: adminUserInfo });
           } else {
-            console.error('[/login-admin-portal] Cognito initiateAuth unexpected result for:', email, authResult);
+            logger.error('[/login-admin-portal] Cognito initiateAuth unexpected result for:', email, authResult);
             return res.status(401).json({ success: false, message: 'Authentication failed. Please check credentials or server logs.' });
         }
     } catch (error) {
-        console.error('[/login-admin-portal] Error during admin authentication for:', email, error);
-        console.log('[/login-admin-portal] Error details:', {
-            code: error.code,
-            name: error.name,
-            message: error.message,
-            __type: error.__type
-        });
+        logger.error('[/login-admin-portal] Error during admin authentication for:', email, error);
+        logger.error("Authentication error occurred");
         
         let message = 'Échec de l\'authentification. Veuillez vérifier vos identifiants.';
         if (error.code === 'NotAuthorizedException' || error.__type === 'NotAuthorizedException') {
             message = 'Nom d\'utilisateur ou mot de passe incorrect.';
-            console.log('[/login-admin-portal] Setting NotAuthorizedException message');
+            logger.info("/login-admin-portal: Setting NotAuthorizedException message");
         } else if (error.code === 'UserNotFoundException' || error.__type === 'UserNotFoundException') {
             message = 'Utilisateur inexistant.';
-            console.log('[/login-admin-portal] Setting UserNotFoundException message');
+            logger.info("/login-admin-portal: Setting UserNotFoundException message");
         } else if (error.code === 'UserNotConfirmedException' || error.__type === 'UserNotConfirmedException') {
             message = 'Compte utilisateur non confirmé.';
-            console.log('[/login-admin-portal] Setting UserNotConfirmedException message');
+            logger.info("/login-admin-portal: Setting UserNotConfirmedException message");
         } else if (error.code === 'InvalidParameterException' && error.message.includes('USER_PASSWORD_AUTH flow not enabled')) {
             message = 'Flux d\'authentification non activé pour ce client. Veuillez contacter le support.';
-            console.log('[/login-admin-portal] Setting InvalidParameterException message');
+            logger.info("/login-admin-portal: Setting InvalidParameterException message");
         }
         
-        console.log('[/login-admin-portal] Final error message:', message);
+        logger.debug('[/login-admin-portal] Final error message:', message);
         return res.status(401).json({ success: false, message });
     }
 });
@@ -1048,13 +1034,13 @@ app.get('/logout-admin', (req, res) => {
     // Destroy session and redirect directly to login page
     req.session.destroy(err => {
         if (err) {
-            console.error('[/logout-admin] Session destruction error:', err);
+            logger.error('[/logout-admin] Session destruction error:', err);
         } else {
-            console.log('[/logout-admin] Session destroyed successfully');
+            logger.info("/logout-admin: Session destroyed successfully");
         }
         
         // Redirect directly to admin login page for better UX
-        res.redirect('/admin/login');
+        res.redirect('/admin-login');
     });
     
     // Background token revocation for enhanced security
@@ -1078,10 +1064,10 @@ app.post('/api/logout', (req, res) => {
     
     req.session.destroy(err => {
         if (err) {
-            console.error('[/api/logout] Session destruction error:', err);
+            logger.error('[/api/logout] Session destruction error:', err);
             return res.status(500).json({ success: false, message: 'Logout failed' });
         }
-        console.log('[/api/logout] Session destroyed successfully');
+        logger.info("/api/logout: Session destroyed successfully");
         res.json({ success: true, message: 'Logged out successfully' });
     });
     
@@ -1104,10 +1090,10 @@ app.post('/api/logout-internal', (req, res) => {
     
     req.session.destroy(err => {
         if (err) {
-            console.error('[/api/logout-internal] Session destruction error:', err);
+            logger.error('[/api/logout-internal] Session destruction error:', err);
             return res.status(500).json({ success: false, message: 'Logout failed' });
         }
-        console.log('[/api/logout-internal] Session destroyed successfully');
+        logger.info("/api/logout-internal: Session destroyed successfully");
         res.json({ success: true, message: 'Logged out successfully' });
     });
     
@@ -1130,10 +1116,10 @@ app.post('/api/logout-admin', (req, res) => {
     
     req.session.destroy(err => {
         if (err) {
-            console.error('[/api/logout-admin] Session destruction error:', err);
+            logger.error('[/api/logout-admin] Session destruction error:', err);
             return res.status(500).json({ success: false, message: 'Logout failed' });
         }
-        console.log('[/api/logout-admin] Session destroyed successfully');
+        logger.info("/api/logout-admin: Session destroyed successfully");
         res.json({ success: true, message: 'Logged out successfully' });
     });
     
@@ -1157,7 +1143,7 @@ app.post('/complete-new-password-client', async (req, res) => {
     const clientSecret = process.env.COGNITO_CLIENT_APP_SECRET;
 
     if (!clientId || !clientSecret) {
-        console.error('[/complete-new-password-client] Client ID or Client Secret not configured in .env for client portal.');
+        logger.error('[/complete-new-password-client] Client ID or Client Secret not configured in .env for client portal.');
         return res.status(500).json({ success: false, message: 'Server configuration error.' });
     }
 
@@ -1197,15 +1183,8 @@ app.post('/complete-new-password-client', async (req, res) => {
             req.session.isAuthenticated = true;
             req.session.isFirstLogin = true; // Mark as first login to trigger welcome form
 
-            console.log('[/complete-new-password-client] New password set and client login successful for:', username);
-            console.log('[/complete-new-password-client] Marked as first login - will show welcome form');
-            console.log('[/complete-new-password-client] Session created:', {
-                userId: userInfo.sub,
-                email: userInfo.email,
-                isAuthenticated: req.session.isAuthenticated,
-                isFirstLogin: req.session.isFirstLogin
-            });
-            
+            logger.debug('[/complete-new-password-client] New password set and client login successful for:', username);
+            logger.info("/complete-new-password-client: Marked as first login - will show welcome form");
             return res.json({ 
                 success: true, 
                 redirectUrl: '/client/compte', // Redirect to account page to show welcome form
@@ -1213,13 +1192,13 @@ app.post('/complete-new-password-client', async (req, res) => {
                 isFirstLogin: true
             });
         } else {
-            console.error('[/complete-new-password-client] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
+            logger.error('[/complete-new-password-client] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
             // This case might indicate an issue if Cognito doesn't return tokens after a successful challenge response
             // or if another challenge is presented (which shouldn't happen here).
             return res.status(401).json({ success: false, message: 'Failed to set new password. Please try logging in again.' });
         }
     } catch (error) {
-        console.error('[/complete-new-password-client] Error completing new password for:', username, error);
+        logger.error('[/complete-new-password-client] Error completing new password for:', username, error);
         let message = 'Failed to set new password.';
         if (error.code === 'InvalidPasswordException') {
             message = `Password does not meet requirements: ${error.message}`;
@@ -1247,7 +1226,7 @@ app.post('/complete-new-password-internal', async (req, res) => {
     const clientSecret = process.env.COGNITO_INTERNAL_APP_SECRET;
 
     if (!clientId || !clientSecret) {
-        console.error('[/complete-new-password-internal] Client ID or Client Secret not configured for internal portal.');
+        logger.error('[/complete-new-password-internal] Client ID or Client Secret not configured for internal portal.');
         return res.status(500).json({ success: false, message: 'Server configuration error.' });
     }
 
@@ -1282,14 +1261,14 @@ app.post('/complete-new-password-internal', async (req, res) => {
             req.session.internalUserInfo = internalUserInfo;
             req.session.isInternalAuthenticated = true;
 
-            console.log('[/complete-new-password-internal] New password set and internal login successful for:', username);
+            logger.debug('[/complete-new-password-internal] New password set and internal login successful for:', username);
             return res.json({ success: true, redirectUrl: '/internal/dashboard', userInfo: internalUserInfo });
         } else {
-            console.error('[/complete-new-password-internal] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
+            logger.error('[/complete-new-password-internal] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
             return res.status(401).json({ success: false, message: 'Failed to set new password. Please try logging in again.' });
         }
     } catch (error) {
-        console.error('[/complete-new-password-internal] Error completing new password for:', username, error);
+        logger.error('[/complete-new-password-internal] Error completing new password for:', username, error);
         let message = 'Failed to set new password.';
         if (error.code === 'InvalidPasswordException') {
             message = `Password does not meet requirements: ${error.message}`;
@@ -1311,7 +1290,7 @@ app.post('/complete-new-password-admin', async (req, res) => {
     const clientSecret = process.env.COGNITO_ADMIN_APP_SECRET;
 
     if (!clientId || !clientSecret) {
-        console.error('[/complete-new-password-admin] Client ID or Client Secret not configured for admin portal.');
+        logger.error('[/complete-new-password-admin] Client ID or Client Secret not configured for admin portal.');
         return res.status(500).json({ success: false, message: 'Server configuration error.' });
     }
 
@@ -1349,14 +1328,14 @@ app.post('/complete-new-password-admin', async (req, res) => {
             req.session.adminUserInfo = adminUserInfo;
             req.session.isAdminAuthenticated = true;
 
-            console.log('[/complete-new-password-admin] New password set and admin login successful for:', username);
+            logger.debug('[/complete-new-password-admin] New password set and admin login successful for:', username);
             return res.json({ success: true, redirectUrl: '/admin/client-accounts', userInfo: adminUserInfo });
         } else {
-            console.error('[/complete-new-password-admin] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
+            logger.error('[/complete-new-password-admin] Cognito respondToAuthChallenge unexpected result for:', username, authResult);
             return res.status(401).json({ success: false, message: 'Failed to set new password. Please try logging in again.' });
         }
     } catch (error) {
-        console.error('[/complete-new-password-admin] Error completing new password for:', username, error);
+        logger.error('[/complete-new-password-admin] Error completing new password for:', username, error);
         let message = 'Failed to set new password.';
         if (error.code === 'InvalidPasswordException') {
             message = `Password does not meet requirements: ${error.message}`;
@@ -1384,7 +1363,7 @@ app.get('*', (req, res, next) => {
       // req.originalUrl.startsWith(INTERNAL_CALLBACK_PATH) ||
       // req.originalUrl.startsWith(ADMIN_CALLBACK_PATH)
     ) {
-      console.log(`[CATCH-ALL] Passing through request for: ${req.originalUrl}`);
+      logger.debug(`[CATCH-ALL] Passing through request for: ${req.originalUrl}`);
       return next(); // Let it fall through to a 404 handler or other specific handlers
     }
 
@@ -1392,40 +1371,40 @@ app.get('*', (req, res, next) => {
     // Now apply auth checks based on the path prefix.
     if (req.path.startsWith('/client/')) {
         return requireClientAuth(req, res, () => {
-            console.log(`[Catch-all * : /client/] Client auth passed. Serving index.html for ${req.path}`);
+            logger.debug(`[Catch-all * : /client/] Client auth passed. Serving index.html for ${req.path}`);
             res.sendFile(path.join(__dirname, '../../frontend/build/index.html'), (err) => {
                 if (err) {
-                    console.error(`[Catch-all * : /client/] Error sending index.html for ${req.path}:`, err);
+                    logger.error(`[Catch-all * : /client/] Error sending index.html for ${req.path}:`, err);
                     if (!res.headersSent) res.status(500).send('Error serving application.');
                 }
             });
         });
     } else if (req.path.startsWith('/internal/')) {
         return requireInternalAuth(req, res, () => {
-            console.log(`[Catch-all * : /internal/] Internal auth passed. Serving index.html for ${req.path}`);
+            logger.debug(`[Catch-all * : /internal/] Internal auth passed. Serving index.html for ${req.path}`);
             res.sendFile(path.join(__dirname, '../../frontend/build/index.html'), (err) => {
                 if (err) {
-                    console.error(`[Catch-all * : /internal/] Error sending index.html for ${req.path}:`, err);
+                    logger.error(`[Catch-all * : /internal/] Error sending index.html for ${req.path}:`, err);
                     if (!res.headersSent) res.status(500).send('Error serving application.');
                 }
             });
         });
     } else if (req.path.startsWith('/admin/')) {
         return requireAdminAuth(req, res, () => {
-            console.log(`[Catch-all * : /admin/] Admin auth passed. Serving index.html for ${req.path}`);
+            logger.debug(`[Catch-all * : /admin/] Admin auth passed. Serving index.html for ${req.path}`);
             res.sendFile(path.join(__dirname, '../../frontend/build/index.html'), (err) => {
                 if (err) {
-                    console.error(`[Catch-all * : /admin/] Error sending index.html for ${req.path}:`, err);
+                    logger.error(`[Catch-all * : /admin/] Error sending index.html for ${req.path}:`, err);
                     if (!res.headersSent) res.status(500).send('Error serving application.');
                 }
             });
         });
     } else {
         // For public paths not starting with /client, /internal, or /admin (e.g., '/', or any other page)
-        console.log(`[Catch-all * : Public Path] Serving index.html for ${req.path}`);
+        logger.debug(`[Catch-all * : Public Path] Serving index.html for ${req.path}`);
         res.sendFile(path.join(__dirname, '../../frontend/build/index.html'), (err) => {
             if (err) {
-                console.error(`[Catch-all * : Public Path] Error sending index.html for ${req.path}:`, err);
+                logger.error(`[Catch-all * : Public Path] Error sending index.html for ${req.path}:`, err);
                 if (!res.headersSent) res.status(500).send('Error serving application.');
             }
         });
@@ -1435,34 +1414,95 @@ app.get('*', (req, res, next) => {
 // Add a final 404 handler for anything that falls through all routing.
 // This should be the VERY LAST piece of middleware/route handler.
 app.use((req, res, next) => {
-    console.log(`[404 Handler] Path not found: ${req.originalUrl}`);
+    logger.debug(`[404 Handler] Path not found: ${req.originalUrl}`);
     res.status(404).send("Sorry, the page you are looking for does not exist.");
 });
 
 async function startServer() {
   try {
-    console.log('Starting server initialization...');
+    // Initialize sensitive documents function
+    const initializeSensitiveDocsOnStartup = async () => {
+      try {
+        // Only initialize if environment variables are set for S3
+        if (process.env.AWS_REGION && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_S3_BUCKET_NAME) {
+          const { initializeSensitiveDocuments } = require('./services/sensitiveDocumentsS3');
+          logger.debug('📄 [STARTUP] Checking sensitive documents in S3...');
+          await initializeSensitiveDocuments();
+        } else {
+          logger.debug('⚠️ [STARTUP] S3 not configured for sensitive documents, skipping initialization');
+        }
+      } catch (error) {
+        logger.error('❌ [STARTUP] Error initializing sensitive documents:', error.message);
+        // Don't fail startup if sensitive docs initialization fails
+      }
+    };
+
+    logger.debug('Starting server initialization...');
     const preferredPort = parseInt(process.env.PORT, 10) || 3001;
-    console.log('Attempting to start server on port:', preferredPort);
+    logger.debug('Attempting to start server on port:', preferredPort);
 
     // Test MongoDB connection first
     try {
-      console.log('Testing MongoDB connection...');
+      logger.debug('Testing MongoDB connection...');
       await connectToDatabase();
-      console.log('MongoDB connection successful');
+      logger.debug('MongoDB connection successful');
     } catch (dbError) {
-      console.error('MongoDB connection failed:', dbError);
+      logger.error('MongoDB connection failed:', dbError);
       throw dbError;
     }
 
-    app.listen(preferredPort, () => {
-      console.log(`Server running on port ${preferredPort}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log('Cognito Configuration: Loaded');
-
-    });
+    // Configure HTTPS if SSL certificates are available
+    const sslOptions = getSSLOptions();
+    
+    if (sslOptions) {
+      // Start HTTPS server
+      const https = require('https');
+      const httpsServer = https.createServer(sslOptions, app);
+      
+      httpsServer.listen(preferredPort, async () => {
+        logger.debug(`🔒 HTTPS Server running on port ${preferredPort}`);
+        logger.debug(`🌐 Secure URL: https://localhost:${preferredPort}`);
+        logger.debug(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        logger.debug('Cognito Configuration: Loaded');
+        logger.debug('🔐 SSL/TLS encryption: ENABLED');
+        
+        // Initialize sensitive documents after server starts
+        await initializeSensitiveDocsOnStartup();
+        
+        logger.debug('✅ HTTPS Server ready to accept secure connections\n');
+      });
+      
+      // Also start HTTP server for redirects (optional)
+      if (process.env.NODE_ENV === 'production') {
+        const httpPort = process.env.HTTP_PORT || 80;
+        const httpApp = express();
+        httpApp.use(httpsRedirect);
+        httpApp.listen(httpPort, () => {
+          logger.debug(`🔄 HTTP redirect server running on port ${httpPort} (redirects to HTTPS)`);
+        });
+      }
+      
+    } else {
+      // Start regular HTTP server
+      app.listen(preferredPort, async () => {
+        logger.debug(`🌐 HTTP Server running on port ${preferredPort}`);
+        logger.debug(`🔓 URL: http://localhost:${preferredPort}`);
+        logger.debug(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        logger.debug('Cognito Configuration: Loaded');
+        
+        if (process.env.NODE_ENV === 'production') {
+          logger.debug('⚠️  WARNING: Running HTTP in production mode');
+          logger.debug('💡 Consider enabling HTTPS for production deployment');
+        }
+      
+        // Initialize sensitive documents after server starts
+        await initializeSensitiveDocsOnStartup();
+        
+        logger.debug('✅ HTTP Server ready to accept connections\n');
+      });
+    }
   } catch (error) {
-    console.error("Failed to start the server. Detailed error:", error);
+    logger.error("Failed to start the server. Detailed error:", error);
     process.exit(1);
   }
 }

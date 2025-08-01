@@ -1,11 +1,33 @@
 const express = require('express');
+const { logger } = require('../utils/secureLogger');
 const router = express.Router();
 const cognitoService = require('../services/cognitoService');
 const { getCustomersCollection } = require('../config/db');
 const { ObjectId } = require('mongodb');
 
+// Import authentication middleware
+const requireAdminAPIAuth = (req, res, next) => {
+  // Allow internal users to access admin functions for account management
+  if (req.session.internalUserInfo) {
+    logger.debug(`[API AUTH] Internal user accessing admin API: ${req.originalUrl}`);
+    return next();
+  }
+  
+  // Otherwise require admin authentication
+  if (!req.session.adminUserInfo) {
+    logger.debug(`[API AUTH] Admin API access denied for: ${req.originalUrl}`);
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required - Admin access only',
+      securityAlert: 'UNAUTHORIZED_API_ACCESS'
+    });
+  }
+  logger.debug(`[API AUTH] Admin API access granted for: ${req.originalUrl}`);
+  next();
+};
+
 // Get all accounts for a specific user type
-router.get('/:userType', async (req, res) => {
+router.get('/:userType', requireAdminAPIAuth, async (req, res) => {
   try {
     const { userType } = req.params;
     
@@ -16,7 +38,7 @@ router.get('/:userType', async (req, res) => {
       });
     }
 
-    console.log(`Fetching ${userType} accounts from Cognito`);
+    logger.debug(`Fetching ${userType} accounts from Cognito`);
 
     const result = await cognitoService.listUsers(userType);
     
@@ -53,7 +75,7 @@ router.get('/:userType', async (req, res) => {
         }));
         
       } catch (dbError) {
-        console.error('Error checking customer mappings:', dbError);
+        logger.error('Error checking customer mappings:', dbError);
         // Continue without customer mapping data if DB error
         result.users = result.users.map(user => ({
           ...user,
@@ -67,7 +89,7 @@ router.get('/:userType', async (req, res) => {
     res.json(result);
     
   } catch (error) {
-    console.error('Error fetching accounts:', error);
+    logger.error("Error fetching accounts", { error: error.message });
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching accounts',
@@ -77,7 +99,7 @@ router.get('/:userType', async (req, res) => {
 });
 
 // Create a new account
-router.post('/:userType', async (req, res) => {
+router.post('/:userType', requireAdminAPIAuth, async (req, res) => {
   try {
     const { userType } = req.params;
     const { name, email, password, sendWelcomeEmail } = req.body;
@@ -96,7 +118,7 @@ router.post('/:userType', async (req, res) => {
       });
     }
 
-    console.log(`Creating ${userType} account:`, { name, email, sendWelcomeEmail });
+    logger.debug(`Creating ${userType} account:`, { name, email, sendWelcomeEmail });
 
     const result = await cognitoService.createUser(userType, {
       name,
@@ -112,7 +134,7 @@ router.post('/:userType', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Error creating account:', error);
+    logger.error('Error creating account:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while creating the account',
@@ -122,7 +144,7 @@ router.post('/:userType', async (req, res) => {
 });
 
 // Delete an account
-router.delete('/:userType/:username', async (req, res) => {
+router.delete('/:userType/:username', requireAdminAPIAuth, async (req, res) => {
   try {
     const { userType, username } = req.params;
     
@@ -133,19 +155,19 @@ router.delete('/:userType/:username', async (req, res) => {
       });
     }
 
-    console.log(`Deleting ${userType} account:`, username);
+    logger.debug(`Deleting ${userType} account:`, username);
 
     // Step 1: Get user details before deletion (to get sub for customer mapping)
     let userSub = null;
     let mappedCustomer = null;
     
     if (userType === 'client') {
-      console.log('🔍 Getting user details before deletion to check for customer mapping...');
+      logger.debug('🔍 Getting user details before deletion to check for customer mapping...');
       const userDetails = await cognitoService.getUser(userType, username);
       
       if (userDetails.success && userDetails.user.sub) {
         userSub = userDetails.user.sub;
-        console.log('📋 Found user sub:', userSub);
+        logger.debug('📋 Found user sub:', userSub);
         
         // Step 2: Check if there's a mapped customer document
         try {
@@ -159,10 +181,10 @@ router.delete('/:userType/:username', async (req, res) => {
               shopsCount: mappedCustomer.shops ? mappedCustomer.shops.length : 0
             });
           } else {
-            console.log('ℹ️ No customer document found for this user');
+            logger.debug('ℹ️ No customer document found for this user');
           }
         } catch (dbError) {
-          console.error('⚠️ Error checking for customer mapping:', dbError);
+          logger.error('⚠️ Error checking for customer mapping:', dbError);
           // Continue with Cognito deletion even if DB check fails
         }
       }
@@ -178,22 +200,22 @@ router.delete('/:userType/:username', async (req, res) => {
     // Step 4: Delete mapped customer document if it exists (only if Cognito deletion succeeded)
     if (userType === 'client' && mappedCustomer) {
       try {
-        console.log('🗑️ Deleting mapped customer document...');
+        logger.debug('🗑️ Deleting mapped customer document...');
         const customersCollection = await getCustomersCollection();
         const deleteResult = await customersCollection.deleteOne({ _id: mappedCustomer._id });
         
         if (deleteResult.deletedCount === 1) {
-          console.log('✅ Successfully deleted customer document');
+          logger.debug('✅ Successfully deleted customer document');
           result.deletedCustomerDocument = true;
           result.deletedCustomer = {
             customerId: mappedCustomer._id,
             raisonSociale: mappedCustomer.raisonSociale
           };
         } else {
-          console.log('⚠️ Customer document not found during deletion (may have been deleted already)');
+          logger.debug('⚠️ Customer document not found during deletion (may have been deleted already)');
         }
       } catch (dbError) {
-        console.error('❌ Error deleting customer document:', dbError);
+        logger.error('❌ Error deleting customer document:', dbError);
         // Don't fail the entire operation - Cognito user is already deleted
         result.customerDeletionError = 'Failed to delete customer document: ' + dbError.message;
       }
@@ -207,7 +229,7 @@ router.delete('/:userType/:username', async (req, res) => {
     res.json(result);
     
   } catch (error) {
-    console.error('Error deleting account:', error);
+    logger.error('Error deleting account:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while deleting the account',
@@ -217,7 +239,7 @@ router.delete('/:userType/:username', async (req, res) => {
 });
 
 // Update account status (enable/disable)
-router.patch('/:userType/:username/status', async (req, res) => {
+router.patch('/:userType/:username/status', requireAdminAPIAuth, async (req, res) => {
   try {
     const { userType, username } = req.params;
     const { enabled } = req.body;
@@ -236,7 +258,7 @@ router.patch('/:userType/:username/status', async (req, res) => {
       });
     }
 
-    console.log(`${enabled ? 'Enabling' : 'Disabling'} ${userType} account:`, username);
+    logger.debug(`${enabled ? 'Enabling' : 'Disabling'} ${userType} account:`, username);
 
     const result = await cognitoService.toggleUserStatus(userType, username, enabled);
 
@@ -247,7 +269,7 @@ router.patch('/:userType/:username/status', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Error updating account status:', error);
+    logger.error('Error updating account status:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while updating the account status',
@@ -257,7 +279,7 @@ router.patch('/:userType/:username/status', async (req, res) => {
 });
 
 // Update account details
-router.put('/:userType/:username', async (req, res) => {
+router.put('/:userType/:username', requireAdminAPIAuth, async (req, res) => {
   try {
     const { userType, username } = req.params;
     const { name, email } = req.body;
@@ -280,7 +302,7 @@ router.put('/:userType/:username', async (req, res) => {
       });
     }
 
-    console.log(`Updating ${userType} account:`, username, updates);
+    logger.debug(`Updating ${userType} account:`, username, updates);
 
     const result = await cognitoService.updateUser(userType, username, updates);
 
@@ -291,7 +313,7 @@ router.put('/:userType/:username', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Error updating account:', error);
+    logger.error('Error updating account:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while updating the account',
@@ -301,7 +323,7 @@ router.put('/:userType/:username', async (req, res) => {
 });
 
 // Get specific account details
-router.get('/:userType/:username', async (req, res) => {
+router.get('/:userType/:username', requireAdminAPIAuth, async (req, res) => {
   try {
     const { userType, username } = req.params;
     
@@ -312,7 +334,7 @@ router.get('/:userType/:username', async (req, res) => {
       });
     }
 
-    console.log(`Fetching ${userType} account details:`, username);
+    logger.debug(`Fetching ${userType} account details:`, username);
 
     const result = await cognitoService.getUser(userType, username);
     
@@ -340,7 +362,7 @@ router.get('/:userType/:username', async (req, res) => {
         }
         
       } catch (dbError) {
-        console.error('Error checking customer mapping:', dbError);
+        logger.error('Error checking customer mapping:', dbError);
         result.user.customerMapping = null;
         result.user.hasMappedCustomer = false;
         result.user.customerMappingError = 'Could not check customer mapping';
@@ -350,7 +372,7 @@ router.get('/:userType/:username', async (req, res) => {
     res.json(result);
     
   } catch (error) {
-    console.error('Error fetching account details:', error);
+    logger.error("Error fetching account details", { error: error.message });
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching account details',
@@ -360,7 +382,7 @@ router.get('/:userType/:username', async (req, res) => {
 });
 
 // Get credentials for a newly created account (returns username and temporary password info)
-router.get('/:userType/:username/credentials', async (req, res) => {
+router.get('/:userType/:username/credentials', requireAdminAPIAuth, async (req, res) => {
   try {
     const { userType, username } = req.params;
     
@@ -371,7 +393,7 @@ router.get('/:userType/:username/credentials', async (req, res) => {
       });
     }
 
-    console.log(`Fetching credentials for ${userType} account:`, username);
+    logger.debug(`Fetching credentials for ${userType} account:`, username);
 
     const result = await cognitoService.getUser(userType, username);
     
@@ -396,7 +418,7 @@ router.get('/:userType/:username/credentials', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error fetching account credentials:', error);
+    logger.error("Error fetching account credentials", { error: error.message });
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching account credentials',

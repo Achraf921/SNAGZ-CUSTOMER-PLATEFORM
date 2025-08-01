@@ -34,7 +34,7 @@ const validateUserId = (req, res, next) => {
     });
   }
   
-  console.log('✅ SECURITY: UserId validation passed for:', req.path);
+  logger.debug('✅ SECURITY: UserId validation passed for:', req.path);
   next();
 };
 
@@ -54,8 +54,8 @@ const logCustomerAccess = (customer, requestedUserId, req) => {
   
   // Critical security check
   if (customer.userId !== requestedUserId) {
-    console.error('🚨 CRITICAL SECURITY BREACH: Customer userId mismatch!');
-    console.error('This indicates a serious privacy leak - user accessing wrong customer data');
+    logger.error('🚨 CRITICAL SECURITY BREACH: Customer userId mismatch!');
+    logger.error('This indicates a serious privacy leak - user accessing wrong customer data');
     throw new Error('SECURITY_BREACH_CUSTOMER_MISMATCH');
   }
 };

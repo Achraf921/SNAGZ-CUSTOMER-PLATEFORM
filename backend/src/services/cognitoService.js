@@ -12,6 +12,7 @@ const {
 } = require('@aws-sdk/client-cognito-identity-provider');
 
 const crypto = require('crypto');
+const { logger } = require('../utils/secureLogger');
 
 class CognitoService {
   constructor() {
@@ -57,7 +58,7 @@ class CognitoService {
   async testUserPoolAccess(userType) {
     try {
       const config = this.getPoolConfig(userType);
-      console.log(`Testing access to ${userType} user pool:`, config.userPoolId);
+      logger.debug(`Testing access to ${userType} user pool:`, config.userPoolId);
       
       const listParams = {
         UserPoolId: config.userPoolId,
@@ -66,10 +67,10 @@ class CognitoService {
       
       const listCommand = new ListUsersCommand(listParams);
       await this.cognitoClient.send(listCommand);
-      console.log('✅ User pool access test successful');
+      logger.debug('✅ User pool access test successful');
       return true;
     } catch (error) {
-      console.error('❌ User pool access test failed:', error);
+      logger.error('❌ User pool access test failed:', error);
       return false;
     }
   }
@@ -122,13 +123,13 @@ class CognitoService {
         createUserParams.MessageAction = 'SUPPRESS'; // Always suppress Cognito's default email
       }
 
-      console.log(`Creating ${userType} user in Cognito:`, { email, name });
-      console.log('Create user params:', JSON.stringify(createUserParams, null, 2));
+      logger.debug(`Creating ${userType} user in Cognito:`, { email, name });
+      logger.debug('Create user params:', JSON.stringify(createUserParams, null, 2));
 
       const createCommand = new AdminCreateUserCommand(createUserParams);
       const createResult = await this.cognitoClient.send(createCommand);
       
-      console.log('User created successfully:', createResult.User?.Username);
+      logger.debug('User created successfully:', createResult.User?.Username);
       
       // Add small delay to handle eventual consistency
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -136,7 +137,7 @@ class CognitoService {
       // If we provided a custom password and don't want to send welcome email,
       // set it as permanent password
       if (password && !sendWelcomeEmail) {
-        console.log('Setting permanent password for user:', email);
+        logger.debug('Setting permanent password for user:', email);
         const setPasswordParams = {
           UserPoolId: config.userPoolId,
           Username: email,
@@ -147,15 +148,15 @@ class CognitoService {
         try {
           const setPasswordCommand = new AdminSetUserPasswordCommand(setPasswordParams);
           await this.cognitoClient.send(setPasswordCommand);
-          console.log('Password set successfully for user:', email);
+          logger.debug('Password set successfully for user:', email);
         } catch (passwordError) {
-          console.error('Error setting password:', passwordError);
+          logger.error('Error setting password:', passwordError);
           throw passwordError;
         }
       }
 
       // Get the created user details
-      console.log('Getting user details for:', email);
+      logger.debug('Getting user details for:', email);
       const getUserParams = {
         UserPoolId: config.userPoolId,
         Username: email
@@ -164,15 +165,15 @@ class CognitoService {
       try {
         const getUserCommand = new AdminGetUserCommand(getUserParams);
         const userDetails = await this.cognitoClient.send(getUserCommand);
-        console.log('User details retrieved successfully');
+        logger.debug('User details retrieved successfully');
         
         // Send custom account creation email for all users when requested
         if (sendWelcomeEmail) {
           try {
             await this.sendCustomAccountCreationEmail(email, name, password, userType);
-            console.log(`Custom account creation email sent successfully for ${userType} user`);
+            logger.debug(`Custom account creation email sent successfully for ${userType} user`);
           } catch (emailError) {
-            console.error('Failed to send custom account creation email:', emailError);
+            logger.error('Failed to send custom account creation email:', emailError);
             // Don't fail user creation if email fails
           }
         }
@@ -183,7 +184,7 @@ class CognitoService {
           message: 'User created successfully'
         };
       } catch (getUserError) {
-        console.error('Error getting user details:', getUserError);
+        logger.error('Error getting user details:', getUserError);
         // User was created but we can't get details - still return success with basic info
         return {
           success: true,
@@ -202,7 +203,7 @@ class CognitoService {
 
 
     } catch (error) {
-      console.error(`Error creating ${userType} user:`, error);
+      logger.error(`Error creating ${userType} user:`, error);
       return {
         success: false,
         error: error.message,
@@ -221,7 +222,7 @@ class CognitoService {
         Username: username
       };
 
-      console.log(`Deleting ${userType} user from Cognito:`, username);
+      logger.debug(`Deleting ${userType} user from Cognito:`, username);
 
       const deleteCommand = new AdminDeleteUserCommand(deleteParams);
       await this.cognitoClient.send(deleteCommand);
@@ -232,7 +233,7 @@ class CognitoService {
       };
 
     } catch (error) {
-      console.error(`Error deleting ${userType} user:`, error);
+      logger.error(`Error deleting ${userType} user:`, error);
       return {
         success: false,
         error: error.message,
@@ -251,7 +252,7 @@ class CognitoService {
         Limit: limit
       };
 
-      console.log(`Listing ${userType} users from Cognito`);
+      logger.debug(`Listing ${userType} users from Cognito`);
 
       const listCommand = new ListUsersCommand(listParams);
       const result = await this.cognitoClient.send(listCommand);
@@ -265,7 +266,7 @@ class CognitoService {
       };
 
     } catch (error) {
-      console.error(`Error listing ${userType} users:`, error);
+      logger.error(`Error listing ${userType} users:`, error);
       return {
         success: false,
         error: error.message,
@@ -296,7 +297,7 @@ class CognitoService {
       };
 
     } catch (error) {
-      console.error(`Error ${enable ? 'enabling' : 'disabling'} user:`, error);
+      logger.error(`Error ${enable ? 'enabling' : 'disabling'} user:`, error);
       return {
         success: false,
         error: error.message,
@@ -348,7 +349,7 @@ class CognitoService {
       };
 
     } catch (error) {
-      console.error(`Error updating ${userType} user:`, error);
+      logger.error(`Error updating ${userType} user:`, error);
       return {
         success: false,
         error: error.message,
@@ -376,7 +377,7 @@ class CognitoService {
       };
 
     } catch (error) {
-      console.error(`Error getting ${userType} user:`, error);
+      logger.error(`Error getting ${userType} user:`, error);
       return {
         success: false,
         error: error.message,
@@ -440,7 +441,7 @@ class CognitoService {
 
     // Send custom account creation email for all account types
   async sendCustomAccountCreationEmail(email, name, temporaryPassword, accountType) {
-    console.log(`📧 Sending custom account creation email to: ${email} (${accountType})`);
+    logger.debug(`📧 Sending custom account creation email to: ${email} (${accountType})`);
 
     // Import and use the email service
     const emailService = require('./emailService');
@@ -449,18 +450,14 @@ class CognitoService {
       const result = await emailService.sendAccountCreationEmail(email, name, temporaryPassword, accountType);
       
       if (result.success) {
-        console.log('✅ Account creation email sent successfully:', {
-          recipient: result.recipient,
-          messageId: result.messageId,
-          accountType: result.accountType
-        });
+        // Email logging removed for security
         return result;
       } else {
-        console.error('❌ Failed to send account creation email:', result.error);
+        logger.error('❌ Failed to send account creation email:', result.error);
         return result;
       }
     } catch (error) {
-      console.error('❌ Error in sendCustomAccountCreationEmail:', error);
+      logger.error('❌ Error in sendCustomAccountCreationEmail:', error);
       return {
         success: false,
         error: error.message,
@@ -473,7 +470,7 @@ class CognitoService {
   // Change user password
   async changePassword(userType, username, currentPassword, newPassword) {
     try {
-      console.log(`🔐 Changing password for ${userType} user: ${username}`);
+      logger.debug(`🔐 Changing password for ${userType} user: ${username}`);
       
       const config = this.getPoolConfig(userType);
       
@@ -505,7 +502,7 @@ class CognitoService {
         Permanent: true
       }));
 
-      console.log(`✅ Password changed successfully for user: ${username}`);
+      logger.debug(`✅ Password changed successfully for user: ${username}`);
       
       return {
         success: true,
@@ -513,7 +510,7 @@ class CognitoService {
       };
       
     } catch (error) {
-      console.error(`❌ Error changing password for ${username}:`, error);
+      logger.error(`❌ Error changing password for ${username}:`, error);
       
       let errorMessage = 'Failed to change password';
       

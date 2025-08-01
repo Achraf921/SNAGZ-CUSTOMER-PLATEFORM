@@ -663,7 +663,7 @@ class BulkModal extends HTMLElement {
             this.innerHTML = sourceQty.innerHTML;
           })
           .catch((e) => {
-            console.error(e);
+            logger.error(e);
           });
       }
     };
@@ -1170,7 +1170,7 @@ class ProductRecommendations extends HTMLElement {
         }
       })
       .catch((e) => {
-        console.error(e);
+        logger.error(e);
       });
   }
 }

@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const { logger } = require('../utils/secureLogger');
 const { createSession, getSession, deleteSession } = require('./shopifySessionManager');
 
 // Simple delay helper
@@ -19,7 +20,7 @@ async function startDevStore(storeName, meta) {
 
   // Store validation data globally for access during the automation process
   global.currentShopValidation = { meta, storeName };
-  console.log('[DevStore] Données de validation stockées:', { shopId: meta?.shopId, customerId: meta?.customerId });
+  logger.debug('[DevStore] Données de validation stockées:', { shopId: meta?.shopId, customerId: meta?.customerId });
 
   // Launch chromium in headless mode (can be switched off for debugging)
   const browser = await puppeteer.launch({
@@ -39,11 +40,11 @@ async function startDevStore(storeName, meta) {
   try {
     /* 1. Start from Shopify homepage and navigate to login */
     const homepageUrl = 'https://www.shopify.com/fr';
-    console.log('[DevStore] ouverture page d\'accueil Shopify', homepageUrl);
+    logger.debug('[DevStore] ouverture page d\'accueil Shopify', homepageUrl);
     await page.goto(homepageUrl);
 
     // Look for and click the "Se connecter" (Log in) button
-    console.log('[DevStore] recherche du bouton "Se connecter"');
+    logger.info("DevStore: recherche du bouton "Se connecter"");
     const loginButtonClicked = await page.evaluate(() => {
       // Look for login button with various possible selectors
       const possibleSelectors = [
@@ -62,7 +63,7 @@ async function startDevStore(storeName, meta) {
       for (const element of elements) {
         const text = (element.innerText || element.textContent || '').trim().toLowerCase();
         if (text === 'se connecter' || text === 'log in' || text === 'connexion') {
-          console.log('[DevStore] Trouvé bouton login:', text);
+          logger.debug('[DevStore] Trouvé bouton login:', text);
           element.click();
           return true;
         }
@@ -72,7 +73,7 @@ async function startDevStore(storeName, meta) {
       for (const selector of possibleSelectors) {
         const element = document.querySelector(selector);
         if (element) {
-          console.log('[DevStore] Trouvé bouton login via sélecteur:', selector);
+          logger.debug('[DevStore] Trouvé bouton login via sélecteur:', selector);
           element.click();
           return true;
         }
@@ -82,26 +83,26 @@ async function startDevStore(storeName, meta) {
     });
 
     if (loginButtonClicked) {
-      console.log('[DevStore] bouton login cliqué, attente navigation...');
+      logger.debug("DevStore: bouton login cliqué, attente navigation");
       try {
         await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
-        console.log('[DevStore] navigation réussie vers:', page.url());
+        logger.debug('[DevStore] navigation réussie vers:', page.url());
       } catch (err) {
-        console.warn('[DevStore] timeout navigation après clic login:', err.message);
+        logger.warn('[DevStore] timeout navigation après clic login:', err.message);
       }
     } else {
-      console.warn('[DevStore] bouton login non trouvé, tentative navigation directe...');
+      logger.warn('[DevStore] bouton login non trouvé, tentative navigation directe...');
       // Fallback: try direct navigation to accounts page
       await page.goto('https://accounts.shopify.com/lookup');
     }
 
-    console.log('[DevStore] page de login atteinte:', page.url());
+    logger.debug('[DevStore] page de login atteinte:', page.url());
 
     /* ------------------------------------------------------------------
        Étape de connexion – ignorée si déjà loggé                     
     ------------------------------------------------------------------*/
     if (await page.$('input#account_email')) {
-      console.log('[DevStore] saisie email');
+      logger.info("DevStore: saisie email");
       await page.type('input#account_email', email);
       await page.click('button[type="submit"]'); // bouton "Continuer / Next"
 
@@ -114,14 +115,14 @@ async function startDevStore(storeName, meta) {
       });
 
       if (captchaLoadError) {
-        console.log('[DevStore] CAPTCHA loading error detected - refreshing page and streaming current window');
+        logger.info("DevStore: CAPTCHA loading error detected - refreshing page and streaming current window");
         
         // Refresh the page to fix the CAPTCHA loading issue
         await page.reload({ waitUntil: 'networkidle0' });
         await sleep(2000);
         
         // The page should now show the working CAPTCHA - stream this current window to user
-        console.log('[DevStore] Page refreshed - streaming current window with working CAPTCHA to user');
+        logger.info("DevStore: Page refreshed - streaming current window with working CAPTCHA to user");
         const sessionId = createSession(page, { ...meta, storeName, step: 'captcha_reload' });
         return { 
           requiresCaptcha: true, 
@@ -170,10 +171,10 @@ async function startDevStore(storeName, meta) {
 
         if (isCaptcha) {
           captchaDetected = true;
-          console.log('[DevStore] REAL CAPTCHA detected at URL:', currentUrl);
-          console.log('[DevStore] CAPTCHA in URL:', hasCaptchaInUrl);
-          console.log('[DevStore] CAPTCHA elements found:', hasCaptchaElements);
-          console.log('[DevStore] Password field exists:', !!passwordFieldExists);
+          logger.debug('[DevStore] REAL CAPTCHA detected at URL:', currentUrl);
+          logger.debug('[DevStore] CAPTCHA in URL:', hasCaptchaInUrl);
+          logger.debug('[DevStore] CAPTCHA elements found:', hasCaptchaElements);
+          logger.debug('[DevStore] Password field exists:', !!passwordFieldExists);
           
           // Debug: check what's actually on the page
           const pageContent = await page.evaluate(() => {
@@ -185,7 +186,7 @@ async function startDevStore(storeName, meta) {
               bodyText: document.body.innerText.substring(0, 200)
             };
           });
-          console.log('[DevStore] Page content debug:', pageContent);
+          logger.debug('[DevStore] Page content debug:', pageContent);
           
           break;
         }
@@ -193,13 +194,13 @@ async function startDevStore(storeName, meta) {
         // Check if password field appeared (normal flow)
         if (passwordFieldExists) {
           passwordFieldFound = true;
-          console.log('[DevStore] Password field found - proceeding with normal flow');
+          logger.info("DevStore: Password field found - proceeding with normal flow");
           break;
         }
       }
 
       if (captchaDetected) {
-        console.log('[DevStore] CAPTCHA required → creating session for manual solving');
+        logger.info("DevStore: CAPTCHA required → creating session for manual solving");
         const sessionId = createSession(page, { ...meta, storeName, step: 'captcha' });
         return { 
           requiresCaptcha: true, 
@@ -218,7 +219,7 @@ async function startDevStore(storeName, meta) {
         }
       }
 
-      console.log('[DevStore] saisie password');
+      logger.info("DevStore: saisie password");
       await page.type('input#account_password', password);
       // Cliquez puis attendez soit le dashboard, soit la demande OTP (race)
       await page.click('button[type="submit"]');
@@ -239,7 +240,7 @@ async function startDevStore(storeName, meta) {
         }
       }
 
-      console.log('[DevStore] 2FA detected ?', twoFA, 'after', Date.now() - startTs2FA, 'ms');
+      logger.info("DevStore: 2FA detected ?', twoFA, 'after', Date.now() - startTs2FA, 'ms");
 
       if (twoFA) {
         const sessionId = createSession(page, { ...meta, storeName });
@@ -247,23 +248,23 @@ async function startDevStore(storeName, meta) {
       }
 
       // Si navigation sans OTP => connecté
-      console.log('[DevStore] authentification réussie (sans 2FA)');
+      logger.info("DevStore: authentification réussie (sans 2FA)");
     } else {
-      console.log('[DevStore] déjà authentifié');
+      logger.info("DevStore: déjà authentifié");
     }
 
     /* Après authentification, navigation directe vers la page de création */
-    console.log('[DevStore] authentification réussie, navigation vers page de création...');
+    logger.debug("DevStore: authentification réussie, navigation vers page de création");
     
     // Force navigate to the specific admin page with no_redirect
     await page.goto('https://admin.shopify.com/?no_redirect=true');
-    console.log('[DevStore] navigation vers admin avec no_redirect, URL:', page.url());
+    logger.debug('[DevStore] navigation vers admin avec no_redirect, URL:', page.url());
     
     await page.waitForSelector('body', { timeout: 20000 });
     await sleep(2000); // Wait for page to fully load
 
     /* 2. Look for "Créer une boutique" button */
-    console.log('[DevStore] recherche bouton "Créer une boutique"...');
+    logger.debug("DevStore: recherche bouton "Créer une boutique"");
     
     // Look for "Créer une boutique" button specifically
     const createStoreClicked = await page.evaluate(() => {
@@ -272,14 +273,14 @@ async function startDevStore(storeName, meta) {
       for (const element of elements) {
         const text = (element.innerText || element.textContent || '').trim().toLowerCase();
         
-        console.log('[DevStore] Checking element:', text.substring(0, 50));
+        logger.debug('[DevStore] Checking element:', text.substring(0, 50));
         
         if (text === 'créer une boutique' || 
             text === 'create store' ||
             text === 'create a store' ||
             text.includes('créer une boutique') ||
             text.includes('create store')) {
-          console.log('[DevStore] Trouvé "Créer une boutique":', text);
+          logger.debug('[DevStore] Trouvé "Créer une boutique":', text);
           element.click();
           return true;
         }
@@ -290,27 +291,27 @@ async function startDevStore(storeName, meta) {
         const text = (element.innerText || element.textContent || '').trim().toLowerCase();
         
         if (text.includes('créer') && text.includes('boutique')) {
-          console.log('[DevStore] Trouvé bouton création avec "créer" et "boutique":', text);
+          logger.debug('[DevStore] Trouvé bouton création avec "créer" et "boutique":', text);
           element.click();
           return true;
         }
       }
       
-      console.log('[DevStore] "Créer une boutique" non trouvé');
+      logger.info("DevStore: "Créer une boutique" non trouvé");
       return false;
     });
 
     if (createStoreClicked) {
-      console.log('[DevStore] bouton "Créer une boutique" cliqué, attente navigation...');
+      logger.debug("DevStore: bouton "Créer une boutique" cliqué, attente navigation");
       try {
         await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
-        console.log('[DevStore] navigation réussie vers:', page.url());
+        logger.debug('[DevStore] navigation réussie vers:', page.url());
       } catch (err) {
-        console.warn('[DevStore] timeout navigation, mais continuons:', err.message);
+        logger.warn('[DevStore] timeout navigation, mais continuons:', err.message);
       }
     } else {
       // If button not found, log what's available on the page for debugging
-      console.warn('[DevStore] bouton "Créer une boutique" non trouvé');
+      logger.warn('[DevStore] bouton "Créer une boutique" non trouvé');
       
       const pageContent = await page.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('a, button, div[role="button"]'));
@@ -320,7 +321,7 @@ async function startDevStore(storeName, meta) {
           buttonTexts: buttons.map(b => (b.innerText || b.textContent || '').trim()).filter(t => t.length > 0).slice(0, 10)
         };
       });
-      console.log('[DevStore] Debug - contenu de la page:', pageContent);
+      logger.debug('[DevStore] Debug - contenu de la page:', pageContent);
       
       // Try to find any button related to store creation as fallback
       const fallbackClicked = await page.evaluate(() => {
@@ -333,7 +334,7 @@ async function startDevStore(storeName, meta) {
               text.includes('store') ||
               text.includes('développement') ||
               text.includes('development')) {
-            console.log('[DevStore] Fallback: clic sur', text);
+            logger.debug('[DevStore] Fallback: clic sur', text);
             element.click();
             return true;
           }
@@ -349,7 +350,7 @@ async function startDevStore(storeName, meta) {
     // Check if we're on a signup page first
     const currentUrl = page.url();
     if (currentUrl.includes('/signup/') || currentUrl.includes('signup_types')) {
-      console.log('[DevStore] Detected signup page, handling signup form first...');
+      logger.debug("DevStore: Detected signup page, handling signup form first");
       
       // Wait for signup form to load
       await page.waitForSelector('body', { timeout: 15000 }); // Reduced timeout from 20000ms
@@ -365,7 +366,7 @@ async function startDevStore(storeName, meta) {
           
           if (placeholder.includes('nom') || placeholder.includes('name') || 
               name.includes('name') || name.includes('store')) {
-            console.log('[DevStore] Remplissage nom boutique signup:', storeName);
+            logger.debug('[DevStore] Remplissage nom boutique signup:', storeName);
             input.value = storeName;
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -389,7 +390,7 @@ async function startDevStore(storeName, meta) {
                 text.includes('continuer') || text.includes('continue') ||
                 text.includes('suivant') || text.includes('next') ||
                 button.type === 'submit') {
-              console.log('[DevStore] Soumission formulaire signup:', text);
+              logger.debug('[DevStore] Soumission formulaire signup:', text);
               button.click();
               return true;
             }
@@ -398,11 +399,11 @@ async function startDevStore(storeName, meta) {
         });
         
         if (signupSubmitted) {
-          console.log('[DevStore] Formulaire signup soumis, attente navigation...');
+          logger.debug("DevStore: Formulaire signup soumis, attente navigation");
           try {
             await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 15000 }); // Reduced timeout from 30000ms
           } catch (err) {
-            console.warn('[DevStore] Timeout navigation après signup');
+            logger.warn('[DevStore] Timeout navigation après signup');
           }
           await sleep(1000); // Reduced from 3000ms
         }
@@ -410,12 +411,12 @@ async function startDevStore(storeName, meta) {
     }
 
     // Handle the setup wizard sequence
-    console.log('[DevStore] gestion du wizard de configuration...');
+    logger.debug("DevStore: gestion du wizard de configuration");
     
     // Quick check if we're already in admin interface
     const pageUrl = page.url();
     if (pageUrl.includes('/admin') && !pageUrl.includes('/signup')) {
-      console.log('[DevStore] Déjà dans l\'interface admin, pas de wizard nécessaire');
+      logger.info("DevStore: Déjà dans l\'interface admin, pas de wizard nécessaire");
       await updateShopNameInSettings(page, storeName);
       return;
     }
@@ -425,7 +426,7 @@ async function startDevStore(storeName, meta) {
     
     // First, let's debug what's actually on the page
     // Quick page analysis (optimized for speed)
-    console.log('[DevStore] Analyse rapide de la page...');
+    logger.debug("DevStore: Analyse rapide de la page");
     const pageInfo = await page.evaluate(() => ({
       url: window.location.href,
       title: document.title,
@@ -435,16 +436,16 @@ async function startDevStore(storeName, meta) {
       pageText: document.body.innerText.slice(0, 200) // Get sample text
     }));
     
-    console.log('[DevStore] Page info:', pageInfo);
+    logger.debug('[DevStore] Page info:', pageInfo);
     
     // Check if this is actually a wizard page
     if (!pageInfo.hasRadios && !pageInfo.hasCheckboxes) {
-      console.log('[DevStore] Pas d\'éléments de formulaire détectés, peut-être pas une page wizard');
-      console.log('[DevStore] Texte de la page:', pageInfo.pageText);
+      logger.info("DevStore: Pas d\'éléments de formulaire détectés, peut-être pas une page wizard");
+      logger.debug('[DevStore] Texte de la page:', pageInfo.pageText);
       
       // If already on admin page, skip wizard
       if (pageInfo.url.includes('/admin') && !pageInfo.url.includes('/signup')) {
-        console.log('[DevStore] Déjà sur la page admin, mise à jour du nom...');
+        logger.debug("DevStore: Déjà sur la page admin, mise à jour du nom");
         await updateShopNameInSettings(page, storeName);
         
         const adminUrl = page.url();
@@ -458,7 +459,7 @@ async function startDevStore(storeName, meta) {
     }
     
     // Step 1: "Sur quels canaux souhaitez‑vous vendre ?" - click "Une boutique en ligne"
-    console.log('[DevStore] Étape 1: Recherche "Une boutique en ligne"...');
+    logger.debug("DevStore: Étape 1: Recherche "Une boutique en ligne"");
     
     // Try multiple approaches for Step 1 with timeout
     let boutiqueLigneClicked = false;
@@ -468,7 +469,7 @@ async function startDevStore(storeName, meta) {
       boutiqueLigneClicked = await page.evaluate(() => {
         const firstInput = document.querySelector('input[type="radio"], input[type="checkbox"]');
         if (firstInput) {
-          console.log('[DevStore] Clic rapide sur premier input disponible');
+          logger.info("DevStore: Clic rapide sur premier input disponible");
           firstInput.click();
           return true;
         }
@@ -488,7 +489,7 @@ async function startDevStore(storeName, meta) {
           
           if (combined.includes('boutique en ligne') || combined.includes('online store') ||
               combined.includes('boutique') && combined.includes('ligne')) {
-            console.log('[DevStore] Trouvé input boutique en ligne:', input.type, combined.slice(0, 100));
+            logger.debug('[DevStore] Trouvé input boutique en ligne:', input.type, combined.slice(0, 100));
             input.click();
             return true;
           }
@@ -509,7 +510,7 @@ async function startDevStore(storeName, meta) {
               (text.includes('boutique') && text.includes('ligne')) ||
               text.includes('Créez un site web entièrement personnalisable')) {
             
-            console.log('[DevStore] Trouvé élément boutique en ligne:', element.tagName, text.slice(0, 100));
+            logger.debug('[DevStore] Trouvé élément boutique en ligne:', element.tagName, text.slice(0, 100));
             
             // Try to find associated input
             const input = element.querySelector('input') || 
@@ -517,10 +518,10 @@ async function startDevStore(storeName, meta) {
                          element.closest('div')?.querySelector('input');
             
             if (input) {
-              console.log('[DevStore] Clic sur input associé:', input.type);
+              logger.debug('[DevStore] Clic sur input associé:', input.type);
               input.click();
             } else {
-              console.log('[DevStore] Clic direct sur élément');
+              logger.info("DevStore: Clic direct sur élément");
               element.click();
             }
             return true;
@@ -535,7 +536,7 @@ async function startDevStore(storeName, meta) {
       boutiqueLigneClicked = await page.evaluate(() => {
         const firstInput = document.querySelector('input[type="radio"], input[type="checkbox"]');
         if (firstInput) {
-          console.log('[DevStore] Fallback: clic sur premier input');
+          logger.info("DevStore: Fallback: clic sur premier input");
           firstInput.click();
           return true;
         }
@@ -543,13 +544,13 @@ async function startDevStore(storeName, meta) {
       });
     }
 
-    console.log('[DevStore] Étape 1 résultat:', boutiqueLigneClicked ? 'Succès' : 'Échec');
+    logger.info("DevStore: Étape 1 résultat:', boutiqueLigneClicked ? 'Succès' : 'Échec");
 
     if (boutiqueLigneClicked) {
       await sleep(500); // Reduced from 2000ms
       
       // Click "Suivant" button for step 1
-      console.log('[DevStore] Recherche bouton "Suivant" étape 1...');
+      logger.debug("DevStore: Recherche bouton "Suivant" étape 1");
       const suivantClicked1 = await page.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], div[role="button"], a'));
         
@@ -557,7 +558,7 @@ async function startDevStore(storeName, meta) {
           const text = (button.innerText || button.textContent || button.value || '').trim().toLowerCase();
           
           if (text === 'suivant' || text === 'next' || text.includes('suivant') || text.includes('continue')) {
-            console.log('[DevStore] Clic "Suivant" étape 1:', text);
+            logger.debug('[DevStore] Clic "Suivant" étape 1:', text);
             button.click();
             return true;
           }
@@ -567,7 +568,7 @@ async function startDevStore(storeName, meta) {
         for (const button of buttons) {
           const text = (button.innerText || button.textContent || button.value || '').trim();
           if (text.length > 0 && text.length < 20) { // Reasonable button text
-            console.log('[DevStore] Fallback button click:', text);
+            logger.debug('[DevStore] Fallback button click:', text);
             button.click();
             return true;
           }
@@ -576,15 +577,15 @@ async function startDevStore(storeName, meta) {
         return false;
       });
 
-      console.log('[DevStore] Bouton suivant étape 1:', suivantClicked1 ? 'Cliqué' : 'Non trouvé');
+      logger.info("DevStore: Bouton suivant étape 1:', suivantClicked1 ? 'Cliqué' : 'Non trouvé");
       
       // Continue with remaining steps only if we successfully completed step 1
       if (suivantClicked1) {
-        console.log('[DevStore] Prêt pour étape 2 - attente du chargement...');
+        logger.debug("DevStore: Prêt pour étape 2 - attente du chargement");
         await sleep(1000); // Reduced from 3000ms
         
         // Call the wizard handler for remaining steps
-        console.log('[DevStore] Continuation avec le gestionnaire de wizard...');
+        logger.debug("DevStore: Continuation avec le gestionnaire de wizard");
         const wizardResult = await handleAllWizardSteps(page, storeName);
         if (wizardResult && wizardResult.success) {
           await page.browser().close();
@@ -593,11 +594,11 @@ async function startDevStore(storeName, meta) {
         // If wizard fails, continue with fallback form handling
       }
     } else {
-      console.warn('[DevStore] Étape 1 échouée - impossible de trouver "Une boutique en ligne"');
+      logger.warn('[DevStore] Étape 1 échouée - impossible de trouver "Une boutique en ligne"');
     }
 
     // After wizard, wait for store creation form or admin page
-    console.log('[DevStore] recherche formulaire de création ou page admin finale...');
+    logger.debug("DevStore: recherche formulaire de création ou page admin finale");
     
     const storeFormFound = await page.waitForSelector([
       'input[name="development_store[name]"]',
@@ -612,7 +613,7 @@ async function startDevStore(storeName, meta) {
 
     if (!storeFormFound) {
       // If form not found, might need to look for it in different ways
-      console.log('[DevStore] formulaire standard non trouvé, recherche alternative...');
+      logger.debug("DevStore: formulaire standard non trouvé, recherche alternative");
       
       const alternativeForm = await page.evaluate(() => {
         // Look for any input that might be for store name
@@ -640,7 +641,7 @@ async function startDevStore(storeName, meta) {
     }
 
     // Input store name
-    console.log('[DevStore] saisie nom boutique:', storeName);
+    logger.debug('[DevStore] saisie nom boutique:', storeName);
     
     const nameInputted = await page.evaluate((storeName) => {
       // Try different input selectors
@@ -684,7 +685,7 @@ async function startDevStore(storeName, meta) {
     }
 
     // Submit form
-    console.log('[DevStore] soumission du formulaire');
+    logger.info("DevStore: soumission du formulaire");
     
     const submitted = await page.evaluate(() => {
       // Look for submit button
@@ -720,11 +721,11 @@ async function startDevStore(storeName, meta) {
     }
 
     // Wait for store creation completion
-    console.log('[DevStore] attente création boutique...');
+    logger.debug("DevStore: attente création boutique");
     await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 300000 }); // 5 minutes max
 
     const adminUrl = page.url();
-    console.log('[DevStore] URL finale:', adminUrl);
+    logger.debug('[DevStore] URL finale:', adminUrl);
     
     // Extract domain from admin URL
     const match = adminUrl.match(/^https:\/\/(.*?)\..*?\/admin/) || adminUrl.match(/^https:\/\/admin\.shopify\.com\/store\/(.*?)(?:\?|\/|$)/);
@@ -733,7 +734,7 @@ async function startDevStore(storeName, meta) {
     }
     
     const domain = match[1];
-    console.log('[DevStore] domaine détecté:', domain);
+    logger.debug('[DevStore] domaine détecté:', domain);
 
     await page.browser().close();
     
@@ -742,7 +743,7 @@ async function startDevStore(storeName, meta) {
     
     return { domain, adminUrl, storeName, meta };
   } catch (err) {
-    console.error('[DevStore] erreur:', err);
+    logger.error('[DevStore] erreur:', err);
     await page.browser().close();
     
     // Clean up global validation data
@@ -764,11 +765,11 @@ async function continueCaptcha(sessionId) {
   
   // Store validation data globally for access during the automation process
   global.currentShopValidation = { meta, storeName: meta.storeName };
-  console.log('[DevStore] Données de validation restaurées:', { shopId: meta?.shopId, customerId: meta?.customerId });
+  logger.debug('[DevStore] Données de validation restaurées:', { shopId: meta?.shopId, customerId: meta?.customerId });
 
   try {
     // Wait for user to solve captcha manually and page to navigate
-    console.log('[DevStore] Waiting for CAPTCHA to be solved...');
+    logger.debug("DevStore: Waiting for CAPTCHA to be solved");
     
     // Wait for navigation away from captcha page
     const waitForCaptchaSolution = async () => {
@@ -813,7 +814,7 @@ async function continueCaptcha(sessionId) {
           const passwordFieldExists = await page.$('input#account_password');
           
           if (hasEmailLoginButton || passwordFieldExists) {
-            console.log('[DevStore] CAPTCHA solved - login options available');
+            logger.info("DevStore: CAPTCHA solved - login options available");
             return true;
           }
         }
@@ -829,7 +830,7 @@ async function continueCaptcha(sessionId) {
     // After CAPTCHA is solved, look for "se connecter avec email" button
     const password = process.env.SHOPIFY_PARTNER_PASSWORD;
     
-    console.log('[DevStore] Looking for "se connecter avec email" button after CAPTCHA');
+    logger.info("DevStore: Looking for "se connecter avec email" button after CAPTCHA");
     const emailLoginClicked = await page.evaluate(() => {
       const elements = Array.from(document.querySelectorAll('a, button, div[role="button"], [role="link"]'));
       for (const element of elements) {
@@ -843,7 +844,7 @@ async function continueCaptcha(sessionId) {
             text.includes('continue with email') ||
             text === 'se connecter avec email' ||
             text === 'se connecter avec e-mail') {
-          console.log('[DevStore] Found "se connecter avec email" button:', text);
+          logger.debug('[DevStore] Found "se connecter avec email" button:', text);
           element.click();
           return true;
         }
@@ -852,16 +853,16 @@ async function continueCaptcha(sessionId) {
     });
     
     if (emailLoginClicked) {
-      console.log('[DevStore] "Se connecter avec email" button clicked');
+      logger.info("DevStore: "Se connecter avec email" button clicked");
       try {
         // Wait for password field to appear after clicking "se connecter avec email"
         await page.waitForSelector('input#account_password', { timeout: 30000 });
-        console.log('[DevStore] Password field available after clicking "se connecter avec email"');
+        logger.info("DevStore: Password field available after clicking "se connecter avec email"");
       } catch (err) {
         throw new Error('Password field not found after clicking "se connecter avec email"');
       }
     } else {
-      console.log('[DevStore] "Se connecter avec email" button not found, checking if password field is already available');
+      logger.info("DevStore: "Se connecter avec email" button not found, checking if password field is already available");
       // Check if password field is already available
       const passwordField = await page.$('input#account_password');
       if (!passwordField) {
@@ -870,7 +871,7 @@ async function continueCaptcha(sessionId) {
     }
 
     // Now continue with password entry
-    console.log('[DevStore] saisie password après résolution CAPTCHA');
+    logger.info("DevStore: saisie password après résolution CAPTCHA");
     await page.type('input#account_password', password);
     await page.click('button[type="submit"]');
 
@@ -897,11 +898,11 @@ async function continueCaptcha(sessionId) {
     }
 
     // Continue with store creation after CAPTCHA - direct navigation
-    console.log('[DevStore] continuation après CAPTCHA...');
+    logger.debug("DevStore: continuation après CAPTCHA");
     
     // Force navigate to the admin page with no_redirect
     await page.goto('https://admin.shopify.com/?no_redirect=true');
-    console.log('[DevStore] navigation vers admin après CAPTCHA, URL:', page.url());
+    logger.debug('[DevStore] navigation vers admin après CAPTCHA, URL:', page.url());
     
     await page.waitForSelector('body', { timeout: 20000 });
     await sleep(2000);
@@ -915,7 +916,7 @@ async function continueCaptcha(sessionId) {
         
         if (text === 'créer une boutique' || text.includes('créer une boutique') ||
             text === 'create store' || text.includes('create store')) {
-          console.log('[DevStore] Trouvé "Créer une boutique" après CAPTCHA:', text);
+          logger.debug('[DevStore] Trouvé "Créer une boutique" après CAPTCHA:', text);
           element.click();
           return true;
         }
@@ -927,7 +928,7 @@ async function continueCaptcha(sessionId) {
       try {
         await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
       } catch (err) {
-        console.warn('[DevStore] timeout navigation après CAPTCHA');
+        logger.warn('[DevStore] timeout navigation après CAPTCHA');
       }
     }
 
@@ -1022,7 +1023,7 @@ async function continueDevStore(sessionId, code) {
   
   // Store validation data globally for access during the automation process
   global.currentShopValidation = { meta, storeName: meta.storeName };
-  console.log('[DevStore] Données de validation restaurées:', { shopId: meta?.shopId, customerId: meta?.customerId });
+  logger.debug('[DevStore] Données de validation restaurées:', { shopId: meta?.shopId, customerId: meta?.customerId });
   const rootPage = page; // conserve la page principale
 
   try {
@@ -1042,7 +1043,7 @@ async function continueDevStore(sessionId, code) {
     }
 
     if (!otpInput) {
-      console.warn('[DevStore] OTP input non trouvé, tentative de saisie directe');
+      logger.warn('[DevStore] OTP input non trouvé, tentative de saisie directe');
       let injected = false;
       for (const frame of rootPage.frames()) {
         injected = await frame.evaluate((c) => {
@@ -1090,7 +1091,7 @@ async function continueDevStore(sessionId, code) {
     // Vérifier si nous sommes toujours sur une page two-factor / lookup
     let currentUrl = rootPage.url();
     if (/lookup|two-factor/.test(currentUrl)) {
-      console.log('[DevStore] Still on 2FA page after code entry, code was incorrect');
+      logger.info("DevStore: Still on 2FA page after code entry, code was incorrect");
       // Instead of throwing and closing session, return a specific error that keeps session alive
       return {
         error: 'OTP_INCORRECT',
@@ -1100,11 +1101,11 @@ async function continueDevStore(sessionId, code) {
     }
 
     // After 2FA, direct navigation to admin page
-    console.log('[DevStore] après 2FA, navigation directe vers admin...');
+    logger.debug("DevStore: après 2FA, navigation directe vers admin");
     
     // Force navigate to the admin page with no_redirect
     await rootPage.goto('https://admin.shopify.com/?no_redirect=true');
-    console.log('[DevStore] navigation vers admin après 2FA, URL:', rootPage.url());
+    logger.debug('[DevStore] navigation vers admin après 2FA, URL:', rootPage.url());
     
     await rootPage.waitForSelector('body', { timeout: 20000 });
     await sleep(2000);
@@ -1118,7 +1119,7 @@ async function continueDevStore(sessionId, code) {
         
         if (text === 'créer une boutique' || text.includes('créer une boutique') ||
             text === 'create store' || text.includes('create store')) {
-          console.log('[DevStore] Trouvé "Créer une boutique" après 2FA:', text);
+          logger.debug('[DevStore] Trouvé "Créer une boutique" après 2FA:', text);
           element.click();
           return true;
         }
@@ -1130,7 +1131,7 @@ async function continueDevStore(sessionId, code) {
       try {
         await rootPage.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
       } catch (err) {
-        console.warn('[DevStore] timeout navigation après 2FA');
+        logger.warn('[DevStore] timeout navigation après 2FA');
       }
     }
 
@@ -1138,7 +1139,7 @@ async function continueDevStore(sessionId, code) {
     currentUrl = rootPage.url();
     
     if (currentUrl.includes('/signup/') || currentUrl.includes('signup_types')) {
-      console.log('[DevStore] Page signup détectée, traitement du wizard...');
+      logger.debug("DevStore: Page signup détectée, traitement du wizard");
       
       // Handle signup page - fill store name
       const storeNameFilled = await rootPage.evaluate((storeName) => {
@@ -1149,7 +1150,7 @@ async function continueDevStore(sessionId, code) {
             input.value = storeName;
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log('[DevStore] Store name filled:', storeName);
+            logger.debug('[DevStore] Store name filled:', storeName);
             return true;
           }
         }
@@ -1166,7 +1167,7 @@ async function continueDevStore(sessionId, code) {
             if (button.type === 'submit' || 
                 text.includes('créer') || text.includes('create') ||
                 text.includes('submit') || text.includes('continuer') || text.includes('continue')) {
-              console.log('[DevStore] Signup form submitted');
+              logger.info("DevStore: Signup form submitted");
               button.click();
               return true;
             }
@@ -1180,7 +1181,7 @@ async function continueDevStore(sessionId, code) {
       }
 
       // Handle the setup wizard sequence
-      console.log('[DevStore] gestion du wizard de configuration...');
+      logger.debug("DevStore: gestion du wizard de configuration");
       
       // Wait a bit more for wizard to fully load
       await sleep(3000);
@@ -1263,29 +1264,29 @@ async function continueDevStore(sessionId, code) {
         return debugInfo;
       });
       
-      console.log('[DevStore] DEBUG INFO:');
-      console.log('Page URL:', pageDebugInfo.url);
-      console.log('Page Title:', pageDebugInfo.title);
-      console.log('Checkboxes found:', pageDebugInfo.checkboxes.length);
+      logger.info("DevStore: DEBUG INFO:");
+      logger.debug('Page URL:', pageDebugInfo.url);
+      logger.debug('Page Title:', pageDebugInfo.title);
+      logger.debug('Checkboxes found:', pageDebugInfo.checkboxes.length);
       pageDebugInfo.checkboxes.forEach(cb => {
-        console.log(`  Checkbox ${cb.index}: ${cb.label || cb.parentText}`);
+        logger.debug(`  Checkbox ${cb.index}: ${cb.label || cb.parentText}`);
       });
-      console.log('Radio buttons found:', pageDebugInfo.radios.length);
+      logger.debug('Radio buttons found:', pageDebugInfo.radios.length);
       pageDebugInfo.radios.forEach(radio => {
-        console.log(`  Radio ${radio.index}: ${radio.label || radio.parentText}`);
+        logger.debug(`  Radio ${radio.index}: ${radio.label || radio.parentText}`);
       });
-      console.log('Buttons found:', pageDebugInfo.buttons.length);
+      logger.debug('Buttons found:', pageDebugInfo.buttons.length);
       pageDebugInfo.buttons.forEach(btn => {
-        console.log(`  Button ${btn.index}: "${btn.text}"`);
+        logger.debug(`  Button ${btn.index}: "${btn.text}"`);
       });
-      console.log('Relevant clickable elements:', pageDebugInfo.allClickableElements.length);
+      logger.debug('Relevant clickable elements:', pageDebugInfo.allClickableElements.length);
       pageDebugInfo.allClickableElements.forEach(el => {
-        console.log(`  ${el.tagName} (hasInput: ${el.hasInput}, inputType: ${el.inputType}): "${el.text}"`);
+        logger.debug(`  ${el.tagName} (hasInput: ${el.hasInput}, inputType: ${el.inputType}): "${el.text}"`);
       });
-      console.log('Page text preview:', pageDebugInfo.pageText);
+      logger.debug('Page text preview:', pageDebugInfo.pageText);
       
       // Step 1: "Sur quels canaux souhaitez‑vous vendre ?" - click "Une boutique en ligne"
-      console.log('[DevStore] Étape 1: Recherche "Une boutique en ligne"...');
+      logger.debug("DevStore: Étape 1: Recherche "Une boutique en ligne"");
       
       // Try multiple approaches for Step 1
       let boutiqueLigneClicked = false;
@@ -1301,7 +1302,7 @@ async function continueDevStore(sessionId, code) {
           
           if (combined.includes('boutique en ligne') || combined.includes('online store') ||
               combined.includes('boutique') && combined.includes('ligne')) {
-            console.log('[DevStore] Trouvé input boutique en ligne:', input.type, combined.slice(0, 100));
+            logger.debug('[DevStore] Trouvé input boutique en ligne:', input.type, combined.slice(0, 100));
             input.click();
             return true;
           }
@@ -1321,7 +1322,7 @@ async function continueDevStore(sessionId, code) {
                 (text.includes('boutique') && text.includes('ligne')) ||
                 text.includes('Créez un site web entièrement personnalisable')) {
               
-              console.log('[DevStore] Trouvé élément boutique en ligne:', element.tagName, text.slice(0, 100));
+              logger.debug('[DevStore] Trouvé élément boutique en ligne:', element.tagName, text.slice(0, 100));
               
               // Try to find associated input
               const input = element.querySelector('input') || 
@@ -1329,10 +1330,10 @@ async function continueDevStore(sessionId, code) {
                            element.closest('div')?.querySelector('input');
               
               if (input) {
-                console.log('[DevStore] Clic sur input associé:', input.type);
+                logger.debug('[DevStore] Clic sur input associé:', input.type);
                 input.click();
               } else {
-                console.log('[DevStore] Clic direct sur élément');
+                logger.info("DevStore: Clic direct sur élément");
                 element.click();
               }
               return true;
@@ -1347,7 +1348,7 @@ async function continueDevStore(sessionId, code) {
         boutiqueLigneClicked = await rootPage.evaluate(() => {
           const firstInput = document.querySelector('input[type="radio"], input[type="checkbox"]');
           if (firstInput) {
-            console.log('[DevStore] Fallback: clic sur premier input');
+            logger.info("DevStore: Fallback: clic sur premier input");
             firstInput.click();
             return true;
           }
@@ -1355,13 +1356,13 @@ async function continueDevStore(sessionId, code) {
         });
       }
   
-      console.log('[DevStore] Étape 1 résultat:', boutiqueLigneClicked ? 'Succès' : 'Échec');
+      logger.info("DevStore: Étape 1 résultat:', boutiqueLigneClicked ? 'Succès' : 'Échec");
   
       if (boutiqueLigneClicked) {
         await sleep(1000);
         
         // Click "Suivant" to go to step 2
-        console.log('[DevStore] Recherche bouton "Suivant" étape 1...');
+        logger.debug("DevStore: Recherche bouton "Suivant" étape 1");
         const suivantClicked1 = await rootPage.evaluate(() => {
           const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], div[role="button"]'));
           
@@ -1369,7 +1370,7 @@ async function continueDevStore(sessionId, code) {
             const text = (button.innerText || button.textContent || button.value || '').trim().toLowerCase();
             
             if (text === 'suivant' || text === 'next') {
-              console.log('[DevStore] Clic "Suivant" étape 1');
+              logger.info("DevStore: Clic "Suivant" étape 1");
               button.click();
               return true;
             }
@@ -1378,7 +1379,7 @@ async function continueDevStore(sessionId, code) {
         });
         
         if (suivantClicked1) {
-          console.log('[DevStore] Navigation vers étape 2...');
+          logger.debug("DevStore: Navigation vers étape 2");
           await sleep(2000); // Wait for slide transition
           
           // Now handle all remaining steps sequentially
@@ -1386,7 +1387,7 @@ async function continueDevStore(sessionId, code) {
           
           // Check if the wizard completed successfully with shop validation
           if (wizardResult && wizardResult.shopValidated) {
-            console.log('[DevStore] 🎉 Processus terminé via wizard avec validation automatique!');
+            logger.info("DevStore: 🎉 Processus terminé via wizard avec validation automatique!");
             deleteSession(sessionId);
             global.currentShopValidation = null;
             return { 
@@ -1398,7 +1399,7 @@ async function continueDevStore(sessionId, code) {
           }
         }
       } else {
-        console.warn('[DevStore] Étape 1 échouée - impossible de trouver "Une boutique en ligne"');
+        logger.warn('[DevStore] Étape 1 échouée - impossible de trouver "Une boutique en ligne"');
       }
       
       // Wait for final navigation after wizard completion
@@ -1406,7 +1407,7 @@ async function continueDevStore(sessionId, code) {
       
     } else {
       // Original logic for direct store creation form
-      console.log('[DevStore] Page creation directe détectée...');
+      logger.debug("DevStore: Page creation directe détectée");
       
       // Wait for store creation form
       await rootPage.waitForSelector([
@@ -1479,7 +1480,7 @@ async function continueDevStore(sessionId, code) {
   } catch (err) {
     // Check if this is our success signal
     if (err.message === 'SHOP_CREATED_SUCCESSFULLY') {
-      console.log('[DevStore] 🎉 Processus terminé avec succès et validation automatique!');
+      logger.info("DevStore: 🎉 Processus terminé avec succès et validation automatique!");
       deleteSession(sessionId);
       global.currentShopValidation = null;
       
@@ -1510,14 +1511,14 @@ async function continueDevStore(sessionId, code) {
 
 async function updateShopNameInSettings(page, storeName) {
   try {
-    console.log('[DevStore] Navigation vers les paramètres...');
-    console.log('[DevStore] URL courante:', page.url());
+    logger.debug("DevStore: Navigation vers les paramètres");
+    logger.debug('[DevStore] URL courante:', page.url());
     
     // Log and normalize the project name to ensure it is a string
     const projectName = String(storeName || '');
-    console.log('[DevStore] Nom du projet pour mise à jour:', projectName);
+    logger.debug('[DevStore] Nom du projet pour mise à jour:', projectName);
     if (!projectName) {
-      console.warn('[DevStore] ⚠️ Le nom du projet est vide ou indéfini.');
+      logger.warn('[DevStore] ⚠️ Le nom du projet est vide ou indéfini.');
     }
     
     // Wait for admin page to fully load
@@ -1525,7 +1526,7 @@ async function updateShopNameInSettings(page, storeName) {
     
     // Look for "Paramètres" in the left sidebar with better targeting
     const parametresClicked = await page.evaluate(() => {
-      console.log('[DevStore] Recherche "Paramètres" dans la sidebar...');
+      logger.debug("DevStore: Recherche "Paramètres" dans la sidebar");
       
       // First, try to find sidebar navigation
       const sidebarElements = Array.from(document.querySelectorAll('nav a, nav button, [data-testid*="sidebar"] a, [data-testid*="navigation"] a, aside a, .sidebar a'));
@@ -1534,7 +1535,7 @@ async function updateShopNameInSettings(page, storeName) {
         const text = (element.innerText || element.textContent || '').trim();
         
         if (text === 'Paramètres' || text === 'Settings') {
-          console.log('[DevStore] Trouvé "Paramètres" dans sidebar');
+          logger.info("DevStore: Trouvé "Paramètres" dans sidebar");
           element.click();
           return true;
         }
@@ -1547,7 +1548,7 @@ async function updateShopNameInSettings(page, storeName) {
         const text = (element.innerText || element.textContent || '').trim();
         
         if (text === 'Paramètres' || text === 'Settings') {
-          console.log('[DevStore] Trouvé "Paramètres" (fallback)');
+          logger.info("DevStore: Trouvé "Paramètres" (fallback)");
           element.click();
           return true;
         }
@@ -1558,26 +1559,26 @@ async function updateShopNameInSettings(page, storeName) {
         const text = (element.innerText || element.textContent || '').trim().toLowerCase();
         
         if (text.includes('paramètre') || text.includes('setting')) {
-          console.log('[DevStore] Trouvé élément paramètres (partial match)');
+          logger.info("DevStore: Trouvé élément paramètres (partial match)");
           element.click();
           return true;
         }
       }
       
-      console.log('[DevStore] Aucun élément "Paramètres" trouvé');
+      logger.info("DevStore: Aucun élément "Paramètres" trouvé");
       return false;
     });
     
     if (parametresClicked) {
-      console.log('[DevStore] Navigation vers paramètres réussie');
+      logger.info("DevStore: Navigation vers paramètres réussie");
       await sleep(2000); // Wait for settings page to load
       
       // Look for "Détails de la boutique" section and the pencil icon
-      console.log('[DevStore] Recherche section "Détails de la boutique" et icône crayon...');
+      logger.debug("DevStore: Recherche section "Détails de la boutique" et icône crayon");
       
       // First, try hovering over elements that might contain shop details
       try {
-        console.log('[DevStore] Tentative hover sur éléments potentiels...');
+        logger.debug("DevStore: Tentative hover sur éléments potentiels");
         
         // Try to hover over elements containing shop details
         const shopDetailElements = await page.$$eval('div', (divs) => {
@@ -1592,11 +1593,11 @@ async function updateShopNameInSettings(page, storeName) {
           return results;
         });
         
-        console.log('[DevStore] Éléments avec détails boutique trouvés:', shopDetailElements.length);
+        logger.debug('[DevStore] Éléments avec détails boutique trouvés:', shopDetailElements.length);
         
         for (const elementIndex of shopDetailElements.slice(0, 3)) {
           try {
-            console.log(`[DevStore] Hover sur élément ${elementIndex}...`);
+            logger.debug(`[DevStore] Hover sur élément ${elementIndex}...`);
             
             const element = await page.evaluateHandle((index) => {
               const divs = Array.from(document.querySelectorAll('div'));
@@ -1606,7 +1607,7 @@ async function updateShopNameInSettings(page, storeName) {
             await element.hover();
             await sleep(1000); // Wait for hover effect
             
-            console.log('[DevStore] Recherche icône crayon après hover...');
+            logger.debug("DevStore: Recherche icône crayon après hover");
             // Now look for edit icons that appeared
             const editIcons = await page.$$eval('button, svg', (elements) => {
               return elements.filter(el => {
@@ -1624,10 +1625,10 @@ async function updateShopNameInSettings(page, storeName) {
               }).length;
             });
             
-            console.log(`[DevStore] Icônes edit trouvées après hover: ${editIcons}`);
+            logger.debug(`[DevStore] Icônes edit trouvées après hover: ${editIcons}`);
             
             if (editIcons > 0) {
-              console.log('[DevStore] Tentative clic sur icône edit...');
+              logger.debug("DevStore: Tentative clic sur icône edit");
               const clicked = await page.evaluate(() => {
                 const editElements = Array.from(document.querySelectorAll('button, svg')).filter(el => {
                   const className = (el.className || '').toString();
@@ -1646,37 +1647,37 @@ async function updateShopNameInSettings(page, storeName) {
                 for (const el of editElements) {
                   try {
                     el.click();
-                    console.log('[DevStore] Clic sur icône edit réussi!');
+                    logger.info("DevStore: Clic sur icône edit réussi!");
                     return true;
                   } catch (e) {
-                    console.log('[DevStore] Erreur clic:', e.message);
+                    logger.debug('[DevStore] Erreur clic:', e.message);
                   }
                 }
                 return false;
               });
               
               if (clicked) {
-                console.log('[DevStore] Icône edit cliquée avec succès!');
+                logger.info("DevStore: Icône edit cliquée avec succès!");
                 break;
               }
             }
           } catch (e) {
-            console.log(`[DevStore] Erreur hover élément ${elementIndex}:`, e.message);
+            logger.debug(`[DevStore] Erreur hover élément ${elementIndex}:`, e.message);
           }
         }
       } catch (e) {
-        console.log('[DevStore] Erreur lors du hover:', e.message);
+        logger.debug('[DevStore] Erreur lors du hover:', e.message);
       }
       
       // Fallback: try to find and click any edit button on the page
       const editClicked = await page.evaluate(() => {
-        console.log('[DevStore] === RECHERCHE DÉTAILS DE LA BOUTIQUE ===');
-        console.log('[DevStore] Page URL:', window.location.href);
-        console.log('[DevStore] Page title:', document.title);
+        logger.info("DevStore: === RECHERCHE DÉTAILS DE LA BOUTIQUE ===");
+        logger.debug('[DevStore] Page URL:', window.location.href);
+        logger.debug('[DevStore] Page title:', document.title);
         
         // Debug: Show page content preview
         const pageText = document.body.innerText || '';
-        console.log('[DevStore] Page content preview:', pageText.substring(0, 800));
+        logger.debug('[DevStore] Page content preview:', pageText.substring(0, 800));
         
         // First, find the "Détails de la boutique" section
         const allElements = Array.from(document.querySelectorAll('*'));
@@ -1686,14 +1687,14 @@ async function updateShopNameInSettings(page, storeName) {
           const text = (element.innerText || element.textContent || '').trim();
           
           if (text.includes('Détails de la boutique') || text.includes('Store details')) {
-            console.log('[DevStore] Trouvé section "Détails de la boutique"');
+            logger.info("DevStore: Trouvé section "Détails de la boutique"");
             detailsBoutiqueSection = element;
             break;
           }
         }
         
         if (!detailsBoutiqueSection) {
-          console.log('[DevStore] Section "Détails de la boutique" non trouvée, recherche alternative...');
+          logger.debug("DevStore: Section "Détails de la boutique" non trouvée, recherche alternative");
           
           // Alternative: look for elements containing shop name, email, phone patterns
           for (const element of allElements) {
@@ -1703,7 +1704,7 @@ async function updateShopNameInSettings(page, storeName) {
             if (text.includes('Aucun numéro de téléphone') || 
                 text.includes('No phone number') ||
                 text.includes('@') && text.includes('.')) {
-              console.log('[DevStore] Trouvé élément avec téléphone/email:', text.substring(0, 100));
+              logger.debug('[DevStore] Trouvé élément avec téléphone/email:', text.substring(0, 100));
               detailsBoutiqueSection = element.closest('div, section');
               break;
             }
@@ -1711,7 +1712,7 @@ async function updateShopNameInSettings(page, storeName) {
         }
         
         if (detailsBoutiqueSection) {
-          console.log('[DevStore] Section détails trouvée, recherche du div supérieur avec icône boutique...');
+          logger.debug("DevStore: Section détails trouvée, recherche du div supérieur avec icône boutique");
           
           // Look for the upper div with shop icon (contains name, email, phone)
           const childDivs = Array.from(detailsBoutiqueSection.querySelectorAll('div'));
@@ -1723,10 +1724,10 @@ async function updateShopNameInSettings(page, storeName) {
              if ((divText.includes('@') || divText.includes('Aucun numéro de téléphone')) && 
                  divText.length > 20 && divText.length < 500) {
                
-               console.log('[DevStore] Trouvé div avec détails boutique:', divText.substring(0, 150));
+               logger.debug('[DevStore] Trouvé div avec détails boutique:', divText.substring(0, 150));
                
                // IMPORTANT: Hover over the div first to make the pencil icon appear
-               console.log('[DevStore] Hover sur le div pour faire apparaître l\'icône crayon...');
+               logger.debug("DevStore: Hover sur le div pour faire apparaître l\'icône crayon");
                div.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
                div.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
                
@@ -1755,11 +1756,11 @@ async function updateShopNameInSettings(page, storeName) {
                         ariaLabel.includes('modifier');
                });
                
-               console.log('[DevStore] Icônes crayon trouvées après hover:', pencilElements.length);
+               logger.debug('[DevStore] Icônes crayon trouvées après hover:', pencilElements.length);
                
                for (let i = 0; i < pencilElements.length; i++) {
                  const pencil = pencilElements[i];
-                 console.log(`[DevStore] Crayon ${i}:`, pencil.tagName, pencil.className, pencil.getAttribute('aria-label'));
+                 logger.debug(`[DevStore] Crayon ${i}:`, pencil.tagName, pencil.className, pencil.getAttribute('aria-label'));
                  
                  try {
                    // Get the position to check if it's on the right side
@@ -1768,35 +1769,35 @@ async function updateShopNameInSettings(page, storeName) {
                    
                    // Check if pencil is on the right side of the div
                    if (pencilRect.left > divRect.left + (divRect.width * 0.7)) {
-                     console.log('[DevStore] Crayon trouvé sur le côté droit, tentative de clic...');
+                     logger.debug("DevStore: Crayon trouvé sur le côté droit, tentative de clic");
                      pencil.click();
-                     console.log('[DevStore] Clic sur icône crayon réussi!');
+                     logger.info("DevStore: Clic sur icône crayon réussi!");
                      return true;
                    }
                  } catch (e) {
-                   console.log('[DevStore] Erreur lors du clic sur crayon', i, ':', e.message);
+                   logger.debug('[DevStore] Erreur lors du clic sur crayon', i, ':', e.message);
                  }
                }
                
                // Fallback: try clicking any pencil/edit element in this div
                if (pencilElements.length > 0) {
                  try {
-                   console.log('[DevStore] Tentative de clic sur premier élément crayon...');
+                   logger.debug("DevStore: Tentative de clic sur premier élément crayon");
                    pencilElements[0].click();
-                   console.log('[DevStore] Clic fallback réussi!');
+                   logger.info("DevStore: Clic fallback réussi!");
                    return true;
                  } catch (e) {
-                   console.log('[DevStore] Erreur clic fallback:', e.message);
+                   logger.debug('[DevStore] Erreur clic fallback:', e.message);
                  }
                }
                
                // If no pencil found, try hovering over potential parent containers
-               console.log('[DevStore] Aucun crayon trouvé, tentative hover sur conteneurs parents...');
+               logger.debug("DevStore: Aucun crayon trouvé, tentative hover sur conteneurs parents");
                const parentContainers = [div.parentElement, div.closest('section'), div.closest('article'), div.closest('[class*="card"]')];
                
                for (const container of parentContainers) {
                  if (container) {
-                   console.log('[DevStore] Hover sur conteneur parent...');
+                   logger.debug("DevStore: Hover sur conteneur parent");
                                        container.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
                     container.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
                     
@@ -1811,13 +1812,13 @@ async function updateShopNameInSettings(page, storeName) {
                    for (const pencil of newPencils) {
                      try {
                        if (pencil.getBoundingClientRect().width > 0) { // Check if visible
-                         console.log('[DevStore] Tentative clic sur nouveau crayon après hover parent...');
+                         logger.debug("DevStore: Tentative clic sur nouveau crayon après hover parent");
                          pencil.click();
-                         console.log('[DevStore] Clic sur crayon parent réussi!');
+                         logger.info("DevStore: Clic sur crayon parent réussi!");
                          return true;
                        }
                      } catch (e) {
-                       console.log('[DevStore] Erreur clic crayon parent:', e.message);
+                       logger.debug('[DevStore] Erreur clic crayon parent:', e.message);
                      }
                    }
                  }
@@ -1826,25 +1827,25 @@ async function updateShopNameInSettings(page, storeName) {
           }
           
           // Final fallback: look for any pencil/edit icons in the entire section
-          console.log('[DevStore] Recherche fallback de toute icône crayon dans la section...');
+          logger.debug("DevStore: Recherche fallback de toute icône crayon dans la section");
           const allPencils = Array.from(detailsBoutiqueSection.querySelectorAll('svg, button, [class*="edit"], [class*="pencil"], [class*="icon"]'));
           
           for (const pencil of allPencils) {
             try {
-              console.log('[DevStore] Tentative clic crayon fallback:', pencil.tagName, pencil.className);
+              logger.debug('[DevStore] Tentative clic crayon fallback:', pencil.tagName, pencil.className);
               pencil.click();
-              console.log('[DevStore] Clic crayon fallback réussi!');
+              logger.info("DevStore: Clic crayon fallback réussi!");
               return true;
             } catch (e) {
-              console.log('[DevStore] Erreur clic crayon fallback:', e.message);
+              logger.debug('[DevStore] Erreur clic crayon fallback:', e.message);
             }
                      }
          }
          
          // Ultimate fallback: since we're on settings page, look for ANY edit icons
-         console.log('[DevStore] Recherche ultime fallback: tous les éléments éditables sur la page...');
+         logger.debug("DevStore: Recherche ultime fallback: tous les éléments éditables sur la page");
          const allEditElements = Array.from(document.querySelectorAll('button, svg, [role="button"], [class*="edit"], [class*="icon"], [aria-label*="edit"], [aria-label*="modifier"]'));
-         console.log('[DevStore] Éléments éditables trouvés sur toute la page:', allEditElements.length);
+         logger.debug('[DevStore] Éléments éditables trouvés sur toute la page:', allEditElements.length);
          
          for (let i = 0; i < Math.min(allEditElements.length, 10); i++) {
            const el = allEditElements[i];
@@ -1853,9 +1854,7 @@ async function updateShopNameInSettings(page, storeName) {
            const ariaLabel = el.getAttribute('aria-label') || '';
            const text = (el.innerText || el.textContent || '').trim();
            
-           console.log(`[DevStore] Edit element ${i}:`, {
-             tagName,
-             className: className.substring(0, 50),
+           logger.debug("DevStore operation");,
              ariaLabel,
              text: text.substring(0, 30)
            });
@@ -1864,26 +1863,26 @@ async function updateShopNameInSettings(page, storeName) {
            if ((tagName === 'button' || tagName === 'svg') && 
                (className.includes('edit') || ariaLabel.includes('edit') || ariaLabel.includes('modifier'))) {
              try {
-               console.log(`[DevStore] Tentative clic sur élément ${i}...`);
+               logger.debug(`[DevStore] Tentative clic sur élément ${i}...`);
                el.click();
-               console.log(`[DevStore] Clic réussi sur élément ${i}!`);
+               logger.debug(`[DevStore] Clic réussi sur élément ${i}!`);
                return true;
              } catch (e) {
-               console.log(`[DevStore] Erreur clic élément ${i}:`, e.message);
+               logger.debug(`[DevStore] Erreur clic élément ${i}:`, e.message);
              }
            }
          }
          
-         console.log('[DevStore] Aucune icône crayon cliquable trouvée');
+         logger.info("DevStore: Aucune icône crayon cliquable trouvée");
          return false;
       });
       
       if (editClicked) {
-        console.log('[DevStore] Icône modifier cliquée');
+        logger.info("DevStore: Icône modifier cliquée");
         await sleep(1500); // Wait for edit form to appear
         
         // Clear and update the shop name field in the "Modifier le profil" dialog
-        console.log('[DevStore] Mise à jour du champ "Nom de la boutique"...');
+        logger.debug("DevStore: Mise à jour du champ "Nom de la boutique"");
         
         // Wait longer for modal to fully load
         await sleep(2000);
@@ -1891,7 +1890,7 @@ async function updateShopNameInSettings(page, storeName) {
         // Try Puppeteer typing approach first (like email/password)
         let nameUpdated = false;
         
-        console.log('[DevStore] Essai méthode Puppeteer typing...');
+        logger.debug("DevStore: Essai méthode Puppeteer typing");
         
         try {
           // Wait for modal to be ready
@@ -1908,13 +1907,13 @@ async function updateShopNameInSettings(page, storeName) {
             }));
           });
           
-          console.log('[DevStore] Inputs analysés:', shopNameInputs);
+          logger.debug('[DevStore] Inputs analysés:', shopNameInputs);
           
           // Find the one with "Ma boutique"
           const maBoutiqueIndex = shopNameInputs.findIndex(input => input.value === 'Ma boutique');
           
           if (maBoutiqueIndex !== -1) {
-            console.log('[DevStore] ✅ Champ "Ma boutique" trouvé à l\'index:', maBoutiqueIndex);
+            logger.debug('[DevStore] ✅ Champ "Ma boutique" trouvé à l\'index:', maBoutiqueIndex);
             
             // Get all inputs and select the right one
             const inputs = await page.$$('input[type="text"], textarea');
@@ -1936,11 +1935,11 @@ async function updateShopNameInSettings(page, storeName) {
                // Blur the field to ensure Shopify enables the save button
                await page.keyboard.press('Tab');
                
-               console.log('[DevStore] ✅ Nom saisi avec Puppeteer typing');
+               logger.info("DevStore: ✅ Nom saisi avec Puppeteer typing");
                nameUpdated = true;
              }
           } else {
-            console.log('[DevStore] Champ "Ma boutique" non trouvé, essai première input...');
+            logger.debug("DevStore: Champ "Ma boutique" non trouvé, essai première input");
             
                          // Try the first visible text input
              const inputs = await page.$$('input[type="text"], textarea');
@@ -1956,27 +1955,27 @@ async function updateShopNameInSettings(page, storeName) {
                // Blur the field to ensure Shopify enables the save button
                await page.keyboard.press('Tab');
                
-               console.log('[DevStore] ✅ Nom saisi dans la première input disponible');
+               logger.info("DevStore: ✅ Nom saisi dans la première input disponible");
                nameUpdated = true;
              }
           }
         } catch (error) {
-          console.log('[DevStore] Erreur Puppeteer typing:', error.message);
+          logger.debug('[DevStore] Erreur Puppeteer typing:', error.message);
         }
         
         // Fallback to page.evaluate if Puppeteer typing failed
         if (!nameUpdated) {
-          console.log('[DevStore] Fallback vers page.evaluate...');
+          logger.debug("DevStore: Fallback vers page.evaluate");
           nameUpdated = await page.evaluate((newStoreName) => {
-          console.log('[DevStore] === MODAL "MODIFIER LE PROFIL" DEBUG ===');
-          console.log('[DevStore] Recherche du modal "Modifier le profil"...');
-          console.log('[DevStore] Nom à insérer:', newStoreName);
+          logger.info("DevStore: === MODAL "MODIFIER LE PROFIL" DEBUG ===");
+          logger.debug("DevStore: Recherche du modal "Modifier le profil"");
+          logger.debug('[DevStore] Nom à insérer:', newStoreName);
           const projectName = newStoreName; // alias for consistency with outer scope variable name changes
-          console.log('[DevStore] Page URL:', window.location.href);
-          console.log('[DevStore] Page title:', document.title);
+          logger.debug('[DevStore] Page URL:', window.location.href);
+          logger.debug('[DevStore] Page title:', document.title);
           
           // Look for the "Modifier le profil" modal specifically
-          console.log('[DevStore] Recherche du modal "Modifier le profil"...');
+          logger.debug("DevStore: Recherche du modal "Modifier le profil"");
           
           let modalElement = null;
           
@@ -1986,11 +1985,11 @@ async function updateShopNameInSettings(page, storeName) {
             return text.includes('Modifier le profil');
           });
           
-          console.log('[DevStore] Éléments contenant "Modifier le profil":', modifierElements.length);
+          logger.debug('[DevStore] Éléments contenant "Modifier le profil":', modifierElements.length);
           
           // Find the modal container for "Modifier le profil"
           for (const element of modifierElements) {
-            console.log('[DevStore] Trouvé "Modifier le profil":', element.textContent.substring(0, 100));
+            logger.debug('[DevStore] Trouvé "Modifier le profil":', element.textContent.substring(0, 100));
             
             // Look for the modal container (parent elements that might be the modal)
             let currentElement = element;
@@ -2006,7 +2005,7 @@ async function updateShopNameInSettings(page, storeName) {
                   (style.position === 'fixed' || style.position === 'absolute' || 
                    parseInt(style.zIndex) > 10 || 
                    style.backgroundColor !== 'rgba(0, 0, 0, 0)')) {
-                console.log('[DevStore] Trouvé modal "Modifier le profil":', currentElement);
+                logger.debug('[DevStore] Trouvé modal "Modifier le profil":', currentElement);
                 modalElement = currentElement;
                 break;
               }
@@ -2016,12 +2015,12 @@ async function updateShopNameInSettings(page, storeName) {
           
           // Fallback: Look for any modal with "Ma boutique" input
           if (!modalElement) {
-            console.log('[DevStore] Fallback: recherche modal avec input "Ma boutique"...');
+            logger.debug("DevStore: Fallback: recherche modal avec input "Ma boutique"");
             const allInputs = Array.from(document.querySelectorAll('input[type="text"], textarea'));
             
             for (const input of allInputs) {
               if (input.value === 'Ma boutique') {
-                console.log('[DevStore] Trouvé input "Ma boutique":', input);
+                logger.debug('[DevStore] Trouvé input "Ma boutique":', input);
                 
                 // Find the modal container for this input
                 let currentElement = input;
@@ -2035,7 +2034,7 @@ async function updateShopNameInSettings(page, storeName) {
                   if (rect.width > 300 && rect.height > 200 &&
                       (style.position === 'fixed' || style.position === 'absolute' || 
                        parseInt(style.zIndex) > 10)) {
-                    console.log('[DevStore] Trouvé modal contenant "Ma boutique":', currentElement);
+                    logger.debug('[DevStore] Trouvé modal contenant "Ma boutique":', currentElement);
                     modalElement = currentElement;
                     break;
                   }
@@ -2046,17 +2045,17 @@ async function updateShopNameInSettings(page, storeName) {
           }
           
           if (modalElement) {
-            console.log('[DevStore] Modal trouvé! Recherche du champ dans le modal...');
+            logger.debug("DevStore: Modal trouvé! Recherche du champ dans le modal");
             
             // Look for input fields specifically inside the modal
             const modalInputs = Array.from(modalElement.querySelectorAll('input, textarea, select'));
-            console.log('[DevStore] Champs dans le modal:', modalInputs.length);
+            logger.debug('[DevStore] Champs dans le modal:', modalInputs.length);
           } else {
-            console.log('[DevStore] Aucun modal trouvé, recherche dans toute la page...');
+            logger.debug("DevStore: Aucun modal trouvé, recherche dans toute la page");
             
             // Fallback: look in the entire page
           const allInputs = Array.from(document.querySelectorAll('input, textarea, select'));
-          console.log('[DevStore] TOUS les champs input trouvés:', allInputs.length);
+          logger.debug('[DevStore] TOUS les champs input trouvés:', allInputs.length);
             
             modalInputs = allInputs;
           }
@@ -2065,32 +2064,22 @@ async function updateShopNameInSettings(page, storeName) {
             Array.from(modalElement.querySelectorAll('input, textarea, select')) : 
             Array.from(document.querySelectorAll('input, textarea, select'));
           
-          console.log('[DevStore] Champs à analyser:', allInputs.length);
+          logger.debug('[DevStore] Champs à analyser:', allInputs.length);
           
           // Debug: show ALL inputs found
           allInputs.forEach((inp, idx) => {
             const rect = inp.getBoundingClientRect();
-            console.log(`[DevStore] Input ${idx} details:`, {
-              tagName: inp.tagName,
-              value: inp.value,
-              placeholder: inp.placeholder,
-              name: inp.name,
-              id: inp.id,
-              type: inp.type,
-              className: inp.className,
-              visible: rect.width > 0 && rect.height > 0,
-              rect: `${rect.width}x${rect.height}`
-            });
+            logger.debug("DevStore operation");
           });
           
           // Also check for any labels within the modal
           const labelScope = modalElement || document;
           const labels = Array.from(labelScope.querySelectorAll('label'));
-          console.log('[DevStore] Labels trouvés dans le scope:', labels.length);
+          logger.debug('[DevStore] Labels trouvés dans le scope:', labels.length);
           labels.forEach((label, idx) => {
             const text = label.textContent || '';
             if (text.toLowerCase().includes('nom') || text.toLowerCase().includes('boutique') || text.toLowerCase().includes('store')) {
-              console.log(`[DevStore] Label ${idx} pertinent:`, text);
+              logger.debug(`[DevStore] Label ${idx} pertinent:`, text);
             }
           });
           
@@ -2100,13 +2089,13 @@ async function updateShopNameInSettings(page, storeName) {
             const text = (el.innerText || '').trim().toLowerCase();
             return text.includes('nom') && text.length < 100;
           });
-          console.log('[DevStore] Éléments contenant "nom" dans le scope:', textElements.length);
+          logger.debug('[DevStore] Éléments contenant "nom" dans le scope:', textElements.length);
           textElements.slice(0, 5).forEach((el, idx) => {
-            console.log(`[DevStore] Text ${idx}:`, (el.innerText || '').trim());
+            logger.debug(`[DevStore] Text ${idx}:`, (el.innerText || '').trim());
           });
           
           // Look specifically for the "Ma boutique" input field
-          console.log('[DevStore] Recherche spécifique du champ "Ma boutique"...');
+          logger.debug("DevStore: Recherche spécifique du champ "Ma boutique"");
           
           // First, try to find input with value "Ma boutique" directly
           const maBoutiqueInputs = allInputs.filter(inp => {
@@ -2114,7 +2103,7 @@ async function updateShopNameInSettings(page, storeName) {
             return inp.value === 'Ma boutique' && rect.width > 0 && rect.height > 0;
           });
           
-          console.log('[DevStore] Champs "Ma boutique" trouvés:', maBoutiqueInputs.length);
+          logger.debug('[DevStore] Champs "Ma boutique" trouvés:', maBoutiqueInputs.length);
           
           if (maBoutiqueInputs.length > 0) {
             const targetInput = maBoutiqueInputs[0];
@@ -2126,7 +2115,7 @@ async function updateShopNameInSettings(page, storeName) {
             });
             
             try {
-              console.log('[DevStore] Mise à jour du champ "Ma boutique"...');
+              logger.debug("DevStore: Mise à jour du champ "Ma boutique"");
               
               // Step 1: Focus on the field
               targetInput.focus();
@@ -2181,15 +2170,15 @@ async function updateShopNameInSettings(page, storeName) {
               targetInput.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
               
               // Step 10: Verify the value was set
-              console.log('[DevStore] Valeur finale dans le champ:', targetInput.value);
-              console.log('[DevStore] Valeur attendue:', projectName);
-              console.log('[DevStore] Valeurs identiques?', targetInput.value === projectName);
+              logger.debug('[DevStore] Valeur finale dans le champ:', targetInput.value);
+              logger.debug('[DevStore] Valeur attendue:', projectName);
+              logger.debug('[DevStore] Valeurs identiques?', targetInput.value === projectName);
               
               if (targetInput.value === projectName) {
-                console.log('[DevStore] ✅ Champ "Ma boutique" mis à jour avec succès!');
+                logger.info("DevStore: ✅ Champ "Ma boutique" mis à jour avec succès!");
                 return true;
               } else {
-                console.log('[DevStore] ❌ Première tentative échouée, essai avec execCommand...');
+                logger.debug("DevStore: ❌ Première tentative échouée, essai avec execCommand");
                 
                 // Alternative approach: use execCommand for stubborn React forms
                 targetInput.focus();
@@ -2212,13 +2201,13 @@ async function updateShopNameInSettings(page, storeName) {
                 targetInput.dispatchEvent(new Event('input', { bubbles: true }));
                 targetInput.dispatchEvent(new Event('change', { bubbles: true }));
                 
-                console.log('[DevStore] Valeur après execCommand:', targetInput.value);
+                logger.debug('[DevStore] Valeur après execCommand:', targetInput.value);
                 
                 if (targetInput.value === projectName) {
-                  console.log('[DevStore] ✅ Mise à jour réussie avec execCommand!');
+                  logger.info("DevStore: ✅ Mise à jour réussie avec execCommand!");
                   return true;
                 } else {
-                  console.log('[DevStore] ❌ execCommand échoué aussi, tentative de typing simulation...');
+                  logger.debug("DevStore: ❌ execCommand échoué aussi, tentative de typing simulation");
                   
                   // Final attempt: Simulate real typing character by character
                   targetInput.focus();
@@ -2242,24 +2231,24 @@ async function updateShopNameInSettings(page, storeName) {
                   // Final change event
                   targetInput.dispatchEvent(new Event('change', { bubbles: true }));
                   
-                  console.log('[DevStore] Valeur après typing simulation:', targetInput.value);
+                  logger.debug('[DevStore] Valeur après typing simulation:', targetInput.value);
                   
                   if (targetInput.value === projectName) {
-                    console.log('[DevStore] ✅ Mise à jour réussie avec typing simulation!');
+                    logger.info("DevStore: ✅ Mise à jour réussie avec typing simulation!");
                     return true;
                   }
                 }
               }
             } catch (e) {
-              console.log('[DevStore] Erreur lors de la mise à jour du champ "Ma boutique":', e.message);
+              logger.debug('[DevStore] Erreur lors de la mise à jour du champ "Ma boutique":', e.message);
             }
           }
           
           // If we have a modal and no "Ma boutique" inputs, show modal content for debugging
           if (modalElement && maBoutiqueInputs.length === 0) {
-            console.log('[DevStore] Modal trouvé mais aucun input "Ma boutique". Contenu du modal:');
-            console.log('[DevStore] Modal innerHTML (first 500 chars):', modalElement.innerHTML.substring(0, 500));
-            console.log('[DevStore] Modal textContent:', modalElement.textContent.substring(0, 300));
+            logger.info("DevStore: Modal trouvé mais aucun input "Ma boutique". Contenu du modal:");
+            logger.debug('[DevStore] Modal innerHTML (first 500 chars):', modalElement.innerHTML.substring(0, 500));
+            logger.debug('[DevStore] Modal textContent:', modalElement.textContent.substring(0, 300));
           }
           
           // Filter all visible text inputs for fallback
@@ -2267,7 +2256,7 @@ async function updateShopNameInSettings(page, storeName) {
             const rect = inp.getBoundingClientRect();
             return (inp.type === 'text' || inp.tagName === 'TEXTAREA') && rect.width > 0 && rect.height > 0;
           });
-          console.log('[DevStore] Tous les champs text visibles:', nameInputs.length);
+          logger.debug('[DevStore] Tous les champs text visibles:', nameInputs.length);
           
           for (let i = 0; i < nameInputs.length; i++) {
             const input = nameInputs[i];
@@ -2281,13 +2270,7 @@ async function updateShopNameInSettings(page, storeName) {
             const parentContainer = input.closest('div, fieldset, form');
             const nearbyText = parentContainer?.textContent || '';
             
-            console.log(`[DevStore] Input ${i}:`, {
-              label,
-              placeholder,
-              name,
-              value,
-              id,
-              nearbyText: nearbyText.substring(0, 100)
+            logger.debug("DevStore operation");
             });
             
             // Check if this is the shop name field - more flexible matching
@@ -2303,7 +2286,7 @@ async function updateShopNameInSettings(page, storeName) {
               
             if (isShopNameField) {
               
-              console.log('[DevStore] Trouvé champ "Nom de la boutique" (index:', i, '):', input);
+              logger.debug('[DevStore] Trouvé champ "Nom de la boutique" (index:', i, '):', input);
               
               try {
                 console.log('[DevStore] Tentative mise à jour du champ:', {
@@ -2333,7 +2316,7 @@ async function updateShopNameInSettings(page, storeName) {
                   input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
                 
-                console.log('[DevStore] Champ vidé. Valeur après clearing:', input.value);
+                logger.debug('[DevStore] Champ vidé. Valeur après clearing:', input.value);
                 
                 // Step 4: Set the new value using multiple approaches
                 nativeInputValueSetter.call(input, projectName);
@@ -2351,13 +2334,13 @@ async function updateShopNameInSettings(page, storeName) {
                   input.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }));
                 }
                 
-                console.log('[DevStore] Valeur finale après mise à jour:', input.value);
+                logger.debug('[DevStore] Valeur finale après mise à jour:', input.value);
                 
                 if (input.value === projectName) {
-                  console.log('[DevStore] Nom de la boutique mis à jour avec succès:', projectName);
+                  logger.debug('[DevStore] Nom de la boutique mis à jour avec succès:', projectName);
                   return true;
                 } else {
-                  console.log('[DevStore] La valeur n\'a pas été mise à jour correctement, tentative avec execCommand...');
+                  logger.debug("DevStore: La valeur n\'a pas été mise à jour correctement, tentative avec execCommand");
                   
                   // Fallback: Try with execCommand
                   input.focus();
@@ -2365,31 +2348,31 @@ async function updateShopNameInSettings(page, storeName) {
                   document.execCommand('delete');
                   document.execCommand('insertText', false, projectName);
                   
-                  console.log('[DevStore] Valeur après execCommand:', input.value);
+                  logger.debug('[DevStore] Valeur après execCommand:', input.value);
                   
                   if (input.value === projectName) {
-                    console.log('[DevStore] Mise à jour réussie avec execCommand');
+                    logger.info("DevStore: Mise à jour réussie avec execCommand");
                     return true;
                   }
                 }
                 
                 return false;
               } catch (e) {
-                console.log('[DevStore] Erreur lors de la mise à jour:', e.message);
+                logger.debug('[DevStore] Erreur lors de la mise à jour:', e.message);
                 return false;
               }
             }
           }
           
           // Fallback 1: Look for any input that currently contains "boutique" anywhere in its value
-          console.log('[DevStore] Fallback 1: recherche champ contenant "boutique"...');
+          logger.debug("DevStore: Fallback 1: recherche champ contenant "boutique"");
           for (let i = 0; i < nameInputs.length; i++) {
             const input = nameInputs[i];
             if (input.value && input.value.toLowerCase().includes('boutique')) {
-              console.log('[DevStore] Trouvé champ avec "boutique":', input.value);
+              logger.debug('[DevStore] Trouvé champ avec "boutique":', input.value);
               
               try {
-                console.log('[DevStore] Tentative mise à jour fallback 1...');
+                logger.debug("DevStore: Tentative mise à jour fallback 1");
                 input.focus();
                 input.select();
                 
@@ -2418,10 +2401,10 @@ async function updateShopNameInSettings(page, storeName) {
                   input.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }));
                 }
                 
-                console.log('[DevStore] Fallback 1 - Valeur après mise à jour:', input.value);
+                logger.debug('[DevStore] Fallback 1 - Valeur après mise à jour:', input.value);
                 
                 if (input.value === projectName) {
-                  console.log('[DevStore] ✅ Fallback 1 réussi!');
+                  logger.info("DevStore: ✅ Fallback 1 réussi!");
                   return true;
                 } else {
                   // Try execCommand for this fallback too
@@ -2434,21 +2417,21 @@ async function updateShopNameInSettings(page, storeName) {
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
                 
-                  console.log('[DevStore] Fallback 1 execCommand - Valeur:', input.value);
+                  logger.debug('[DevStore] Fallback 1 execCommand - Valeur:', input.value);
                 
                 if (input.value === projectName) {
-                    console.log('[DevStore] ✅ Fallback 1 réussi avec execCommand!');
+                    logger.info("DevStore: ✅ Fallback 1 réussi avec execCommand!");
                   return true;
                   }
                 }
               } catch (e) {
-                console.log('[DevStore] Erreur fallback 1:', e.message);
+                logger.debug('[DevStore] Erreur fallback 1:', e.message);
               }
             }
           }
           
           // Fallback 2: Try the first text input in the modal/scope (as mentioned by user)
-          console.log('[DevStore] Fallback 2: utilisation du premier champ text dans le modal...');
+          logger.debug("DevStore: Fallback 2: utilisation du premier champ text dans le modal");
           if (nameInputs.length > 0) {
             const firstInput = nameInputs[0];
             console.log('[DevStore] Premier champ text trouvé:', {
@@ -2459,7 +2442,7 @@ async function updateShopNameInSettings(page, storeName) {
             });
             
             try {
-              console.log('[DevStore] Tentative mise à jour fallback 2 (premier champ)...');
+              logger.debug("DevStore: Tentative mise à jour fallback 2 (premier champ)");
               firstInput.focus();
               firstInput.select();
               
@@ -2486,10 +2469,10 @@ async function updateShopNameInSettings(page, storeName) {
                 firstInput.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }));
               }
               
-              console.log('[DevStore] Fallback 2 - Valeur après mise à jour:', firstInput.value);
+              logger.debug('[DevStore] Fallback 2 - Valeur après mise à jour:', firstInput.value);
               
               if (firstInput.value === projectName) {
-                console.log('[DevStore] Fallback 2 réussi!');
+                logger.info("DevStore: Fallback 2 réussi!");
                 return true;
               } else {
                 // Try execCommand
@@ -2502,30 +2485,30 @@ async function updateShopNameInSettings(page, storeName) {
                 firstInput.dispatchEvent(new Event('input', { bubbles: true }));
                 firstInput.dispatchEvent(new Event('change', { bubbles: true }));
                 
-                console.log('[DevStore] Fallback 2 execCommand - Valeur:', firstInput.value);
+                logger.debug('[DevStore] Fallback 2 execCommand - Valeur:', firstInput.value);
                 
                 if (firstInput.value === projectName) {
-                  console.log('[DevStore] Fallback 2 réussi avec execCommand!');
+                  logger.info("DevStore: Fallback 2 réussi avec execCommand!");
                   return true;
                 }
               }
             } catch (e) {
-              console.log('[DevStore] Erreur fallback 2:', e.message);
+              logger.debug('[DevStore] Erreur fallback 2:', e.message);
             }
           }
           
           // Fallback 3: Look specifically for input right after "Nom de la boutique" text
-          console.log('[DevStore] Fallback 3: recherche champ après texte "Nom de la boutique"...');
+          logger.debug("DevStore: Fallback 3: recherche champ après texte "Nom de la boutique"");
           const scope = modalElement || document;
           const boutiqueTitleElements = Array.from(scope.querySelectorAll('*')).filter(el => {
             const text = (el.textContent || '').trim();
             return text.includes('Nom de la boutique') || text.includes('Store name');
           });
           
-          console.log('[DevStore] Éléments contenant "Nom de la boutique":', boutiqueTitleElements.length);
+          logger.debug('[DevStore] Éléments contenant "Nom de la boutique":', boutiqueTitleElements.length);
           
           for (const titleEl of boutiqueTitleElements) {
-            console.log('[DevStore] Titre trouvé:', titleEl.textContent.trim());
+            logger.debug('[DevStore] Titre trouvé:', titleEl.textContent.trim());
             
             // Look for the next input field after this title
             let nextElement = titleEl.nextElementSibling;
@@ -2536,10 +2519,10 @@ async function updateShopNameInSettings(page, storeName) {
                            (nextElement.tagName === 'INPUT' && nextElement.type === 'text' ? nextElement : null);
               
               if (input) {
-                console.log('[DevStore] Input trouvé après titre "Nom de la boutique":', input);
+                logger.debug('[DevStore] Input trouvé après titre "Nom de la boutique":', input);
                 
                 try {
-                  console.log('[DevStore] Tentative mise à jour fallback 3...');
+                  logger.debug("DevStore: Tentative mise à jour fallback 3");
                   input.focus();
                   input.select();
                   
@@ -2566,10 +2549,10 @@ async function updateShopNameInSettings(page, storeName) {
                     input.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }));
                   }
                   
-                  console.log('[DevStore] Fallback 3 - Valeur après mise à jour:', input.value);
+                  logger.debug('[DevStore] Fallback 3 - Valeur après mise à jour:', input.value);
                   
                   if (input.value === projectName) {
-                    console.log('[DevStore] Fallback 3 réussi!');
+                    logger.info("DevStore: Fallback 3 réussi!");
                     return true;
                   } else {
                     // Try execCommand
@@ -2582,15 +2565,15 @@ async function updateShopNameInSettings(page, storeName) {
                     input.dispatchEvent(new Event('input', { bubbles: true }));
                     input.dispatchEvent(new Event('change', { bubbles: true }));
                     
-                    console.log('[DevStore] Fallback 3 execCommand - Valeur:', input.value);
+                    logger.debug('[DevStore] Fallback 3 execCommand - Valeur:', input.value);
                     
                     if (input.value === projectName) {
-                      console.log('[DevStore] Fallback 3 réussi avec execCommand!');
+                      logger.info("DevStore: Fallback 3 réussi avec execCommand!");
                       return true;
                     }
                   }
                 } catch (e) {
-                  console.log('[DevStore] Erreur fallback 3:', e.message);
+                  logger.debug('[DevStore] Erreur fallback 3:', e.message);
                 }
                 break;
               }
@@ -2600,7 +2583,7 @@ async function updateShopNameInSettings(page, storeName) {
             }
           }
           
-          console.log('[DevStore] Champ "Nom de la boutique" non trouvé');
+          logger.info("DevStore: Champ "Nom de la boutique" non trouvé");
           return false;
         }, projectName);
         }
@@ -2609,51 +2592,51 @@ async function updateShopNameInSettings(page, storeName) {
           await sleep(1000);
           
           // Look for save button with enhanced debugging
-          console.log('[DevStore] Recherche bouton "Enregistrer/Sauvegarder" dans le modal...');
-          console.log('[DevStore] Démarrage de la détection du bouton de sauvegarde...');
+          logger.debug("DevStore: Recherche bouton "Enregistrer/Sauvegarder" dans le modal");
+          logger.debug("DevStore: Démarrage de la détection du bouton de sauvegarde");
           
           // First, let's check what's on the page from the outside
-          console.log('[DevStore] === DEBUG EXTERNE AVANT page.evaluate() ===');
-          console.log('[DevStore] URL courante:', page.url());
+          logger.info("DevStore: === DEBUG EXTERNE AVANT page.evaluate() ===");
+          logger.debug('[DevStore] URL courante:', page.url());
           
           try {
             const pageTitle = await page.title();
-            console.log('[DevStore] Titre de la page:', pageTitle);
+            logger.debug('[DevStore] Titre de la page:', pageTitle);
           } catch (e) {
-            console.log('[DevStore] Erreur récupération titre:', e.message);
+            logger.debug('[DevStore] Erreur récupération titre:', e.message);
           }
           
           // Simple test to see if page.evaluate works at all
           try {
             const simpleTest = await page.evaluate(() => {
-              console.log('[DevStore] TEST SIMPLE: page.evaluate fonctionne');
+              logger.info("DevStore: TEST SIMPLE: page.evaluate fonctionne");
               return 'test-ok';
             });
-            console.log('[DevStore] Résultat test simple:', simpleTest);
+            logger.debug('[DevStore] Résultat test simple:', simpleTest);
           } catch (e) {
-            console.log('[DevStore] ERREUR TEST SIMPLE:', e.message);
+            logger.debug('[DevStore] ERREUR TEST SIMPLE:', e.message);
           }
           
           let saveClicked = false;
           
           try {
-            console.log('[DevStore] Lancement de page.evaluate() pour recherche bouton...');
+            logger.debug("DevStore: Lancement de page.evaluate() pour recherche bouton");
             saveClicked = await page.evaluate(() => {
               // Force return false to disable the false positive
-              console.log('[DevStore] === FORÇAGE DEBUG SIMPLE ===');
-              console.log('[DevStore] Forcing return false to stop false positives');
+              logger.info("DevStore: === FORÇAGE DEBUG SIMPLE ===");
+              logger.info("DevStore: Forcing return false to stop false positives");
               return false;
             });
           } catch (error) {
-            console.log('[DevStore] ❌ ERREUR dans page.evaluate():', error.message);
-            console.log('[DevStore] Stack trace:', error.stack);
+            logger.debug('[DevStore] ❌ ERREUR dans page.evaluate():', error.message);
+            logger.debug('[DevStore] Stack trace:', error.stack);
             saveClicked = false;
           }
           
-          console.log('[DevStore] Résultat page.evaluate() saveClicked:', saveClicked);
+          logger.debug('[DevStore] Résultat page.evaluate() saveClicked:', saveClicked);
           
           // EXTERNAL DEBUGGING: Use Puppeteer to find buttons from outside
-          console.log('[DevStore] === DEBUGGING EXTERNE AVEC PUPPETEER ===');
+          logger.info("DevStore: === DEBUGGING EXTERNE AVEC PUPPETEER ===");
           
           try {
             // Get all button text using Puppeteer
@@ -2671,18 +2654,18 @@ async function updateShopNameInSettings(page, storeName) {
               });
             });
             
-            console.log('[DevStore] TOUS LES BOUTONS (via Puppeteer):', allButtonTexts.length);
+            logger.debug('[DevStore] TOUS LES BOUTONS (via Puppeteer):', allButtonTexts.length);
             allButtonTexts.forEach((btn, idx) => {
-              console.log(`[DevStore] Bouton ${idx}:`, btn);
+              logger.debug(`[DevStore] Bouton ${idx}:`, btn);
             });
             
             // Look specifically for "Enregistrer" buttons
             const enregistrerButtons = allButtonTexts.filter(btn => 
               btn.text === 'Enregistrer' || btn.text.toLowerCase() === 'enregistrer'
             );
-            console.log('[DevStore] BOUTONS "Enregistrer" trouvés:', enregistrerButtons.length);
+            logger.debug('[DevStore] BOUTONS "Enregistrer" trouvés:', enregistrerButtons.length);
             enregistrerButtons.forEach(btn => {
-              console.log('[DevStore] Bouton Enregistrer:', btn);
+              logger.debug('[DevStore] Bouton Enregistrer:', btn);
             });
             
                          // Try to click the first viable Enregistrer button using Puppeteer
@@ -2693,23 +2676,23 @@ async function updateShopNameInSettings(page, storeName) {
                  !btn.className.includes('Polaris-Button--disabled')
                );
                if (firstEnregistrer) {
-                console.log('[DevStore] TENTATIVE CLIC EXTERNE sur Enregistrer à l\'index:', firstEnregistrer.index);
+                logger.debug('[DevStore] TENTATIVE CLIC EXTERNE sur Enregistrer à l\'index:', firstEnregistrer.index);
                 
                 // Get the button element and click it
                 const buttons = await page.$$('button, input[type="submit"], [role="button"]');
                 if (buttons[firstEnregistrer.index]) {
                                      await buttons[firstEnregistrer.index].click();
-                   console.log('[DevStore] ✅ CLIC EXTERNE RÉUSSI sur Enregistrer!');
+                   logger.info("DevStore: ✅ CLIC EXTERNE RÉUSSI sur Enregistrer!");
                    
                    // Wait 6 seconds for modal to disappear after button click (debugging)
-                   console.log('[DevStore] ⏳ Attente de 4 secondes pour fermeture du modal (debug)...');
+                   logger.debug("DevStore: ⏳ Attente de 4 secondes pour fermeture du modal (debug)");
                    await sleep(4000);
                    
                    // Since the process is working correctly, proceed with validation and closure
-                   console.log('[DevStore] ✅ SAUVEGARDE RÉUSSIE - Fermeture du navigateur!');
+                   logger.info("DevStore: ✅ SAUVEGARDE RÉUSSIE - Fermeture du navigateur!");
                    saveClicked = true;
                    
-                   console.log('[DevStore] 🔄 Validation et fermeture en cours...');
+                   logger.debug("DevStore: 🔄 Validation et fermeture en cours");
                    
                    try {
                      // Check if browser is still connected before proceeding
@@ -2737,84 +2720,84 @@ async function updateShopNameInSettings(page, storeName) {
                                },
                              }
                            );
-                           console.log('[DevStore] ✅ Boutique validée dans le portail interne!');
+                           logger.info("DevStore: ✅ Boutique validée dans le portail interne!");
                          }
                        }
                        
                        // Close the browser immediately
-                       console.log('[DevStore] 🔒 Fermeture immédiate du navigateur...');
+                       logger.debug("DevStore: 🔒 Fermeture immédiate du navigateur");
                        await page.browser().close();
                        
                        // Clean up global validation data
                        global.currentShopValidation = null;
                        
-                       console.log('[DevStore] ✅ Processus terminé avec succès!');
+                       logger.info("DevStore: ✅ Processus terminé avec succès!");
                        
                        // Exit the function early since we're done
                        // Throw a special success signal to stop execution
                        throw new Error('SHOP_CREATED_SUCCESSFULLY');
                      } else {
-                       console.log('[DevStore] ⚠️ Navigateur déjà fermé, validation ignorée');
+                       logger.info("DevStore: ⚠️ Navigateur déjà fermé, validation ignorée");
                      }
                                         } catch (validationError) {
                        // Check if this is our success signal
                        if (validationError.message === 'SHOP_CREATED_SUCCESSFULLY') {
-                         console.log('[DevStore] ✅ Signal de succès reçu - Arrêt du processus');
+                         logger.info("DevStore: ✅ Signal de succès reçu - Arrêt du processus");
                          // Re-throw the success signal to be caught by the main handler
                          throw validationError;
                        }
                        
-                       console.error('[DevStore] ❌ Erreur lors de la validation:', validationError.message);
+                       logger.error('[DevStore] ❌ Erreur lors de la validation:', validationError.message);
                        // Still try to close browser even if validation failed
                        try {
                          if (page.browser() && page.browser().isConnected()) {
                            await page.browser().close();
                          }
                        } catch (closeError) {
-                         console.error('[DevStore] ❌ Erreur fermeture navigateur:', closeError.message);
+                         logger.error('[DevStore] ❌ Erreur fermeture navigateur:', closeError.message);
                        }
                      }
                 } else {
-                  console.log('[DevStore] ❌ Impossible de récupérer l\'élément bouton à l\'index:', firstEnregistrer.index);
+                  logger.debug('[DevStore] ❌ Impossible de récupérer l\'élément bouton à l\'index:', firstEnregistrer.index);
                 }
               } else {
-                console.log('[DevStore] ❌ Aucun bouton Enregistrer viable (visible et activé)');
+                logger.info("DevStore: ❌ Aucun bouton Enregistrer viable (visible et activé)");
               }
             } else {
-              console.log('[DevStore] ❌ Aucun bouton avec texte "Enregistrer" trouvé');
+              logger.info("DevStore: ❌ Aucun bouton avec texte "Enregistrer" trouvé");
             }
             
           } catch (debugError) {
             // Check if this is our success signal
             if (debugError.message === 'SHOP_CREATED_SUCCESSFULLY') {
-              console.log('[DevStore] ✅ Signal de succès reçu dans debugging - Propagation...');
+              logger.debug("DevStore: ✅ Signal de succès reçu dans debugging - Propagation");
               // Re-throw the success signal to be caught by the main handler
               throw debugError;
             }
-            console.log('[DevStore] ❌ Erreur debugging externe:', debugError.message);
+            logger.debug('[DevStore] ❌ Erreur debugging externe:', debugError.message);
           }
           
           if (saveClicked) {
-            console.log('[DevStore] Nom de la boutique sauvegardé avec succès!');
+            logger.info("DevStore: Nom de la boutique sauvegardé avec succès!");
             await sleep(1000);
           } else {
-            console.warn('[DevStore] Bouton sauvegarder non trouvé');
+            logger.warn('[DevStore] Bouton sauvegarder non trouvé');
           }
         } else {
-          console.warn('[DevStore] Champ nom de la boutique non trouvé');
+          logger.warn('[DevStore] Champ nom de la boutique non trouvé');
         }
       } else {
-        console.warn('[DevStore] Icône crayon non trouvée dans "Détails de la boutique"');
+        logger.warn('[DevStore] Icône crayon non trouvée dans "Détails de la boutique"');
         
         // Debug: show what we found on the page
         await page.evaluate(() => {
-          console.log('[DevStore] === DEBUG: PAGE CONTENT ===');
-          console.log('[DevStore] Title:', document.title);
-          console.log('[DevStore] URL:', window.location.href);
+          logger.info("DevStore: === DEBUG: PAGE CONTENT ===");
+          logger.debug('[DevStore] Title:', document.title);
+          logger.debug('[DevStore] URL:', window.location.href);
           
           // Show first 500 chars of page text
           const pageText = document.body.innerText || '';
-          console.log('[DevStore] Page text preview:', pageText.substring(0, 500));
+          logger.debug('[DevStore] Page text preview:', pageText.substring(0, 500));
           
           // Look for any text containing "boutique" or "détails"
           const boutique_elements = Array.from(document.querySelectorAll('*')).filter(el => {
@@ -2822,51 +2805,51 @@ async function updateShopNameInSettings(page, storeName) {
             return text.includes('boutique') || text.includes('détails') || text.includes('store') || text.includes('details');
           });
           
-          console.log('[DevStore] Éléments contenant "boutique/détails":', boutique_elements.length);
+          logger.debug('[DevStore] Éléments contenant "boutique/détails":', boutique_elements.length);
           boutique_elements.slice(0, 5).forEach((el, i) => {
-            console.log(`[DevStore] Element ${i}:`, (el.innerText || el.textContent || '').trim().substring(0, 100));
+            logger.debug(`[DevStore] Element ${i}:`, (el.innerText || el.textContent || '').trim().substring(0, 100));
           });
         });
       }
     } else {
-      console.warn('[DevStore] Navigation vers paramètres échouée - Bouton "Paramètres" non trouvé');
-      console.log('[DevStore] Éléments disponibles sur la page:');
+      logger.warn('[DevStore] Navigation vers paramètres échouée - Bouton "Paramètres" non trouvé');
+      logger.info("DevStore: Éléments disponibles sur la page:");
       
       // Debug: log available navigation elements
       await page.evaluate(() => {
         const navElements = Array.from(document.querySelectorAll('nav a, nav button, aside a, .sidebar a, [role="navigation"] a'));
-        console.log('[DevStore] Éléments de navigation trouvés:', navElements.length);
+        logger.debug('[DevStore] Éléments de navigation trouvés:', navElements.length);
         navElements.slice(0, 10).forEach((el, i) => {
-          console.log(`[DevStore] Nav ${i}: "${(el.innerText || el.textContent || '').trim()}"`);
+          logger.debug(`[DevStore] Nav ${i}: "${(el.innerText || el.textContent || '').trim()}"`);
         });
         
         // Also check for any text containing "paramètres" or "settings"
         const allText = document.body.innerText.toLowerCase();
         if (allText.includes('paramètres') || allText.includes('settings')) {
-          console.log('[DevStore] Le mot "paramètres" ou "settings" est présent sur la page');
+          logger.info("DevStore: Le mot "paramètres" ou "settings" est présent sur la page");
         } else {
-          console.log('[DevStore] Aucune mention de "paramètres" ou "settings" sur la page');
+          logger.info("DevStore: Aucune mention de "paramètres" ou "settings" sur la page");
         }
       });
     }
   } catch (error) {
     // Check if this is our success signal
     if (error.message === 'SHOP_CREATED_SUCCESSFULLY') {
-      console.log('[DevStore] ✅ Signal de succès reçu dans updateShopNameInSettings - Propagation...');
+      logger.debug("DevStore: ✅ Signal de succès reçu dans updateShopNameInSettings - Propagation");
       // Re-throw the success signal to be caught by the calling function
       throw error;
     }
-    console.error('[DevStore] Erreur lors de la mise à jour du nom:', error.message);
-    console.log('[DevStore] URL au moment de l\'erreur:', page.url());
+    logger.error('[DevStore] Erreur lors de la mise à jour du nom:', error.message);
+    logger.debug('[DevStore] URL au moment de l\'erreur:', page.url());
   }
 }
 
 async function handleAllWizardSteps(page, storeName) {
   try {
-    console.log('[DevStore] Gestion séquentielle des étapes du wizard...');
+    logger.debug("DevStore: Gestion séquentielle des étapes du wizard");
     
     // Step 2: "Entreprise existante" (current slide)
-    console.log('[DevStore] Étape 2: Recherche "Entreprise existante"...');
+    logger.debug("DevStore: Étape 2: Recherche "Entreprise existante"");
     const entrepriseExistanteClicked = await page.evaluate(() => {
       const radios = Array.from(document.querySelectorAll('input[type="radio"]'));
       
@@ -2876,7 +2859,7 @@ async function handleAllWizardSteps(page, storeName) {
         const combined = (label + ' ' + parent).toLowerCase();
         
         if (combined.includes('entreprise existante')) {
-          console.log('[DevStore] Trouvé radio "Entreprise existante"');
+          logger.info("DevStore: Trouvé radio "Entreprise existante"");
           radio.click();
           return true;
         }
@@ -2887,7 +2870,7 @@ async function handleAllWizardSteps(page, storeName) {
       for (const element of elements) {
         const text = (element.innerText || element.textContent || '').trim();
         if (text === 'Entreprise existante') {
-          console.log('[DevStore] Trouvé élément "Entreprise existante"');
+          logger.info("DevStore: Trouvé élément "Entreprise existante"");
           const radio = element.querySelector('input[type="radio"]') || 
                        element.closest('label')?.querySelector('input[type="radio"]') ||
                        element.closest('div')?.querySelector('input[type="radio"]');
@@ -2903,7 +2886,7 @@ async function handleAllWizardSteps(page, storeName) {
       return false;
     });
     
-    console.log('[DevStore] Étape 2 résultat:', entrepriseExistanteClicked ? 'Succès' : 'Échec');
+    logger.info("DevStore: Étape 2 résultat:', entrepriseExistanteClicked ? 'Succès' : 'Échec");
     
     if (entrepriseExistanteClicked) {
       await sleep(300); // Reduced from 1000ms
@@ -2914,7 +2897,7 @@ async function handleAllWizardSteps(page, storeName) {
         for (const button of buttons) {
           const text = (button.innerText || '').trim().toLowerCase();
           if (text === 'suivant' || text === 'next') {
-            console.log('[DevStore] Clic "Suivant" étape 2');
+            logger.info("DevStore: Clic "Suivant" étape 2");
             button.click();
             return true;
           }
@@ -2926,7 +2909,7 @@ async function handleAllWizardSteps(page, storeName) {
           await sleep(800); // Reduced from 2000ms - Wait for slide transition
           
           // Step 3: "Que prévoyez-vous de vendre ?" → "Produits que j'achète ou fabrique moi‑même"
-          console.log('[DevStore] Étape 3: Recherche "Produits que j\'achète ou fabrique moi‑même"...');
+          logger.debug("DevStore: Étape 3: Recherche "Produits que j\'achète ou fabrique moi‑même"");
           const produitsAcheteFabriqueClicked = await page.evaluate(() => {
             const inputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"]'));
             
@@ -2937,7 +2920,7 @@ async function handleAllWizardSteps(page, storeName) {
               
               if (combined.includes('produits que j\'achète ou fabrique moi‑même') ||
                   (combined.includes('achète ou fabrique') && combined.includes('moi'))) {
-                console.log('[DevStore] Trouvé "Produits que j\'achète ou fabrique moi‑même"');
+                logger.info("DevStore: Trouvé "Produits que j\'achète ou fabrique moi‑même"");
                 input.click();
                 return true;
               }
@@ -2949,7 +2932,7 @@ async function handleAllWizardSteps(page, storeName) {
               const text = (element.innerText || element.textContent || '').trim();
               if (text.includes('Produits que j\'achète ou fabrique moi‑même') ||
                   text.includes('Expédiés par moi-même')) {
-                console.log('[DevStore] Trouvé élément "Produits que j\'achète ou fabrique moi‑même"');
+                logger.info("DevStore: Trouvé élément "Produits que j\'achète ou fabrique moi‑même"");
                 element.click();
                 return true;
               }
@@ -2966,7 +2949,7 @@ async function handleAllWizardSteps(page, storeName) {
               for (const button of buttons) {
                 const text = (button.innerText || '').trim().toLowerCase();
                 if (text === 'suivant' || text === 'next') {
-                  console.log('[DevStore] Clic "Suivant" étape 3');
+                  logger.info("DevStore: Clic "Suivant" étape 3");
                   button.click();
                   return true;
                 }
@@ -2978,7 +2961,7 @@ async function handleAllWizardSteps(page, storeName) {
               await sleep(800); // Reduced from 2000ms - Wait for slide transition
               
               // Step 4: "Choisir un forfait" → Click "Passer"
-              console.log('[DevStore] Étape 4: Recherche bouton "Passer"...');
+              logger.debug("DevStore: Étape 4: Recherche bouton "Passer"");
               const passerClicked = await page.evaluate(() => {
                 const buttons = Array.from(document.querySelectorAll('button, div[role="button"], a'));
                 
@@ -2988,7 +2971,7 @@ async function handleAllWizardSteps(page, storeName) {
                   
                   if (text.includes('Passer') || text.includes('déciderai plus tard') || 
                       text.includes('Skip') || text.includes('later')) {
-                    console.log('[DevStore] Trouvé bouton "Passer":', text);
+                    logger.debug('[DevStore] Trouvé bouton "Passer":', text);
                     button.click();
                     return true;
                   }
@@ -3002,7 +2985,7 @@ async function handleAllWizardSteps(page, storeName) {
                   // Check if button is in top-right quadrant and has skip-like text
                   if (rect.right > window.innerWidth * 0.6 && rect.top < window.innerHeight * 0.3) {
                     if (text.includes('passer') || text.includes('skip') || text.includes('later')) {
-                      console.log('[DevStore] Trouvé bouton top-right "Passer"');
+                      logger.info("DevStore: Trouvé bouton top-right "Passer"");
                       button.click();
                       return true;
                     }
@@ -3013,21 +2996,21 @@ async function handleAllWizardSteps(page, storeName) {
               });
               
               if (passerClicked) {
-                console.log('[DevStore] Étape 4 terminée - "Passer" cliqué');
+                logger.info("DevStore: Étape 4 terminée - "Passer" cliqué");
                 await sleep(1500); // Reduced from 3000ms - Wait for navigation to admin page
-                console.log('[DevStore] Wizard terminé avec succès!');
+                logger.info("DevStore: Wizard terminé avec succès!");
                 
                 // Final step: Update shop name in settings
-                console.log('[DevStore] Étape finale: Mise à jour du nom de la boutique...');
+                logger.debug("DevStore: Étape finale: Mise à jour du nom de la boutique");
                 // Wait for redirect to admin page
                 await sleep(1500); // Reduced from 3000ms
-                console.log('[DevStore] Page courante après wizard:', page.url());
+                logger.debug('[DevStore] Page courante après wizard:', page.url());
                 
                 try {
                   await updateShopNameInSettings(page, storeName);
                 } catch (error) {
                   if (error.message === 'SHOP_CREATED_SUCCESSFULLY') {
-                    console.log('[DevStore] ✅ Boutique créée et validée avec succès!');
+                    logger.info("DevStore: ✅ Boutique créée et validée avec succès!");
                     // Extract domain from current URL before returning
                     const adminUrl = page.url();
                     const match = adminUrl.match(/^https:\/\/(.*?)\..*?\/admin/) || adminUrl.match(/^https:\/\/admin\.shopify\.com\/store\/(.*?)(?:\?|\/|$)/);
@@ -3045,7 +3028,7 @@ async function handleAllWizardSteps(page, storeName) {
                 
                 // Extract domain and return success
                 const adminUrl = page.url();
-                console.log('[DevStore] URL finale:', adminUrl);
+                logger.debug('[DevStore] URL finale:', adminUrl);
                 
                 const match = adminUrl.match(/^https:\/\/(.*?)\..*?\/admin/) || adminUrl.match(/^https:\/\/admin\.shopify\.com\/store\/(.*?)(?:\?|\/|$)/);
                 if (!match) {
@@ -3053,11 +3036,11 @@ async function handleAllWizardSteps(page, storeName) {
                 }
                 
                 const domain = match[1];
-                console.log('[DevStore] domaine détecté:', domain);
+                logger.debug('[DevStore] domaine détecté:', domain);
                 
                 return { domain, adminUrl, storeName, success: true };
               } else {
-                console.warn('[DevStore] Bouton "Passer" non trouvé à l\'étape 4');
+                logger.warn('[DevStore] Bouton "Passer" non trouvé à l\'étape 4');
                 
                 // Continue with remaining steps in case this isn't the final step
                 const suivant4 = await page.evaluate(() => {
@@ -3065,7 +3048,7 @@ async function handleAllWizardSteps(page, storeName) {
                   for (const button of buttons) {
                     const text = (button.innerText || '').trim().toLowerCase();
                     if (text === 'suivant' || text === 'next') {
-                      console.log('[DevStore] Fallback: Clic "Suivant" étape 4');
+                      logger.info("DevStore: Fallback: Clic "Suivant" étape 4");
                       button.click();
                       return true;
                     }
@@ -3077,7 +3060,7 @@ async function handleAllWizardSteps(page, storeName) {
                   await sleep(800); // Reduced from 2000ms - Wait for slide transition
                   
                   // Step 5: "Vendez-vous actuellement sur d'autres plateformes ?" → "Non, je n'utilise aucune plateforme"
-                  console.log('[DevStore] Étape 5: Recherche "Non, je n\'utilise aucune plateforme"...');
+                  logger.debug("DevStore: Étape 5: Recherche "Non, je n\'utilise aucune plateforme"");
                   const aucunePlateformeClicked = await page.evaluate(() => {
                     const inputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"]'));
                     
@@ -3087,7 +3070,7 @@ async function handleAllWizardSteps(page, storeName) {
                       const combined = (label + ' ' + parent).toLowerCase();
                       
                       if (combined.includes('aucune plateforme') || combined.includes('je n\'utilise aucune')) {
-                        console.log('[DevStore] Trouvé "Aucune plateforme"');
+                        logger.info("DevStore: Trouvé "Aucune plateforme"");
                         input.click();
                         return true;
                       }
@@ -3098,7 +3081,7 @@ async function handleAllWizardSteps(page, storeName) {
                     for (const element of elements) {
                       const text = (element.innerText || element.textContent || '').trim();
                       if (text.includes('Non, je n\'utilise aucune plateforme')) {
-                        console.log('[DevStore] Trouvé élément "Aucune plateforme"');
+                        logger.info("DevStore: Trouvé élément "Aucune plateforme"");
                         element.click();
                         return true;
                       }
@@ -3115,7 +3098,7 @@ async function handleAllWizardSteps(page, storeName) {
                       for (const button of buttons) {
                         const text = (button.innerText || '').trim().toLowerCase();
                         if (text === 'suivant' || text === 'next') {
-                          console.log('[DevStore] Clic "Suivant" étape 5');
+                          logger.info("DevStore: Clic "Suivant" étape 5");
                           button.click();
                           return true;
                         }
@@ -3127,7 +3110,7 @@ async function handleAllWizardSteps(page, storeName) {
                     await sleep(800); // Reduced from 2000ms - Wait for slide transition
                     
                     // Step 6: "Passer, je déciderai plus tard"
-                    console.log('[DevStore] Étape 6: Recherche "Passer, je déciderai plus tard"...');
+                    logger.debug("DevStore: Étape 6: Recherche "Passer, je déciderai plus tard"");
                     const passerClicked = await page.evaluate(() => {
                       const buttons = Array.from(document.querySelectorAll('button, div[role="button"], a'));
                       
@@ -3136,7 +3119,7 @@ async function handleAllWizardSteps(page, storeName) {
                         
                         if (text.includes('Passer') || text.includes('déciderai plus tard') || 
                             text.includes('Skip') || text.includes('later')) {
-                          console.log('[DevStore] Trouvé "Passer":', text);
+                          logger.debug('[DevStore] Trouvé "Passer":', text);
                           button.click();
                           return true;
                         }
@@ -3149,7 +3132,7 @@ async function handleAllWizardSteps(page, storeName) {
                         
                         if (rect.right > window.innerWidth * 0.6 && rect.top < window.innerHeight * 0.3) {
                           if (text.includes('passer') || text.includes('skip')) {
-                            console.log('[DevStore] Trouvé bouton top-right "Passer"');
+                            logger.info("DevStore: Trouvé bouton top-right "Passer"");
                             button.click();
                             return true;
                           }
@@ -3159,12 +3142,12 @@ async function handleAllWizardSteps(page, storeName) {
                     });
                     
                     if (passerClicked) {
-                      console.log('[DevStore] Wizard terminé avec succès!');
+                      logger.info("DevStore: Wizard terminé avec succès!");
                       
                       // Wait for admin page and extract domain
                       await sleep(2000);
                       const adminUrl = page.url();
-                      console.log('[DevStore] URL finale:', adminUrl);
+                      logger.debug('[DevStore] URL finale:', adminUrl);
                       
                       const match = adminUrl.match(/^https:\/\/(.*?)\..*?\/admin/) || adminUrl.match(/^https:\/\/admin\.shopify\.com\/store\/(.*?)(?:\?|\/|$)/);
                       if (!match) {
@@ -3172,11 +3155,11 @@ async function handleAllWizardSteps(page, storeName) {
                       }
                       
                       const domain = match[1];
-                      console.log('[DevStore] domaine détecté:', domain);
+                      logger.debug('[DevStore] domaine détecté:', domain);
                       
                       return { domain, adminUrl, storeName, success: true };
                     } else {
-                      console.warn('[DevStore] Bouton "Passer" non trouvé');
+                      logger.warn('[DevStore] Bouton "Passer" non trouvé');
                     }
                   }
                 }
@@ -3187,7 +3170,7 @@ async function handleAllWizardSteps(page, storeName) {
       }
     }
   } catch (error) {
-    console.error('[DevStore] Erreur dans handleAllWizardSteps:', error.message);
+    logger.error('[DevStore] Erreur dans handleAllWizardSteps:', error.message);
   }
 }
 

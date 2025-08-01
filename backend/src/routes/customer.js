@@ -1796,8 +1796,8 @@ router.get('/clients/:clientId/shops/:shopId', async (req, res) => {
   }
 });
 
-// Route to update shop documentation status
-router.post('/shop/:shopId/documentation', async (req, res) => {
+// Route to update shop documentation status - REQUIRES AUTHENTICATION
+router.post('/shop/:shopId/documentation', validateAuthentication, async (req, res) => {
   console.log('Received request to update shop documentation status');
   console.log('Params:', req.params);
   console.log('Body:', req.body);

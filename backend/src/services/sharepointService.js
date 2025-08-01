@@ -1,4 +1,5 @@
 const { ClientSecretCredential } = require("@azure/identity");
+const { logger } = require('../utils/secureLogger');
 const { Client } = require("@microsoft/microsoft-graph-client");
 const { Document, Packer, Paragraph, TextRun } = require("docx");
 const ExcelJS = require("exceljs");
@@ -32,31 +33,31 @@ const graphClient = Client.init({
 
 async function getSite() {
   try {
-    console.log('Attempting to get SharePoint site...');
+    logger.debug('Attempting to get SharePoint site...');
     const site = await graphClient.api(`/sites/${hostname}:${sitePath}`).get();
-    console.log('Successfully retrieved SharePoint site');
+    logger.debug('Successfully retrieved SharePoint site');
     return site;
   } catch (error) {
-    console.error('Error getting SharePoint site:', error);
+    logger.error('Error getting SharePoint site:', error);
     throw error;
   }
 }
 
 async function getDrive(siteId) {
   try {
-    console.log('Attempting to get SharePoint drive for site:', siteId);
+    logger.debug('Attempting to get SharePoint drive for site:', siteId);
     const drive = await graphClient.api(`/sites/${siteId}/drive`).get();
-    console.log('Successfully retrieved SharePoint drive');
+    logger.debug('Successfully retrieved SharePoint drive');
     return drive;
   } catch (error) {
-    console.error('Error getting SharePoint drive:', error);
+    logger.error('Error getting SharePoint drive:', error);
     throw error;
   }
 }
 
 async function getOrCreateFolder(driveId, parentFolderId, folderName) {
   try {
-    console.log('Creating/Getting folder:', folderName);
+    logger.debug('Creating/Getting folder:', folderName);
     const childrenApi = parentFolderId
       ? `/drives/${driveId}/items/${parentFolderId}/children`
       : `/drives/${driveId}/root/children`;
@@ -67,19 +68,19 @@ async function getOrCreateFolder(driveId, parentFolderId, folderName) {
     );
     
     if (found) {
-      console.log('Found existing folder');
+      logger.debug('Found existing folder');
       return found;
     }
     
-    console.log('Creating new folder');
+    logger.debug('Creating new folder');
     const folder = await graphClient
       .api(childrenApi)
       .post({ name: folderName, folder: {}, "@microsoft.graph.conflictBehavior": "rename" });
     
-    console.log('Successfully created folder');
+    logger.debug('Successfully created folder');
     return folder;
   } catch (error) {
-    console.error('Error with folder operation:', error);
+    logger.error('Error with folder operation:', error);
     throw error;
   }
 }
@@ -104,16 +105,16 @@ function getMimeType(fileName) {
 
 async function uploadFile(driveId, parentId, fileName, content, contentType, retryCount = 0) {
   try {
-    console.log('Uploading file:', fileName);
+    logger.debug('Uploading file:', fileName);
     const url = `/drives/${driveId}/items/${parentId}:/${fileName}:/content`;
     await graphClient.api(url).headers({ "Content-Type": contentType }).put(content);
-    console.log('Successfully uploaded file');
+    logger.debug('Successfully uploaded file');
   } catch (error) {
-    console.error('Error uploading file:', error);
+    logger.error('Error uploading file:', error);
     
     // If it's a resource locked error and we haven't retried too many times
     if (error.statusCode === 423 && retryCount < 3) {
-      console.log(`File locked, retrying in ${(retryCount + 1) * 2} seconds...`);
+      logger.debug(`File locked, retrying in ${(retryCount + 1) * 2} seconds...`);
       await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
       return uploadFile(driveId, parentId, fileName, content, contentType, retryCount + 1);
     }
@@ -124,10 +125,10 @@ async function uploadFile(driveId, parentId, fileName, content, contentType, ret
 
 async function findExistingCustomerFolder(driveId, compteClientNumber) {
   try {
-    console.log(`Searching for existing customer folder containing: ${compteClientNumber}`);
+    logger.debug(`Searching for existing customer folder containing: ${compteClientNumber}`);
     
     if (!compteClientNumber || compteClientNumber === 'NOCLIENTNUM') {
-      console.log('No valid CompteClientNumber provided, skipping search');
+      logger.debug('No valid CompteClientNumber provided, skipping search');
       return null;
     }
     
@@ -135,7 +136,7 @@ async function findExistingCustomerFolder(driveId, compteClientNumber) {
     const response = await graphClient.api(`/drives/${driveId}/root/children`).get();
     const folders = response.value.filter(item => item.folder);
     
-    console.log(`Found ${folders.length} folders in SharePoint root`);
+    logger.debug(`Found ${folders.length} folders in SharePoint root`);
     
     // Search for a folder that contains the CompteClientNumber in its name
     const matchingFolder = folders.find(folder => 
@@ -143,14 +144,14 @@ async function findExistingCustomerFolder(driveId, compteClientNumber) {
     );
     
     if (matchingFolder) {
-      console.log(`Found existing customer folder: ${matchingFolder.name}`);
+      logger.debug(`Found existing customer folder: ${matchingFolder.name}`);
       return matchingFolder;
     } else {
-      console.log(`No existing folder found containing CompteClientNumber: ${compteClientNumber}`);
+      logger.debug(`No existing folder found containing CompteClientNumber: ${compteClientNumber}`);
       return null;
     }
   } catch (error) {
-    console.error('Error searching for existing customer folder:', error);
+    logger.error('Error searching for existing customer folder:', error);
     // Don't throw error, just return null to fall back to creating new folder
     return null;
   }
@@ -159,16 +160,16 @@ async function findExistingCustomerFolder(driveId, compteClientNumber) {
 // Helper function to find existing shop folder by name within customer folder
 async function findExistingShopFolder(driveId, customerFolderId, shopFolderName) {
   try {
-    console.log(`Searching for existing shop folder: ${shopFolderName} in customer folder: ${customerFolderId}`);
+    logger.debug(`Searching for existing shop folder: ${shopFolderName} in customer folder: ${customerFolderId}`);
     
     // Get all folders in customer folder
     const response = await graphClient.api(`/drives/${driveId}/items/${customerFolderId}/children`).get();
     
-    console.log(`Found ${response.value.length} items in customer folder`);
+    logger.debug(`Found ${response.value.length} items in customer folder`);
     
     // Log all folder names for debugging
     const folderNames = response.value.filter(item => item.folder).map(item => item.name);
-    console.log(`Available shop folders: ${JSON.stringify(folderNames)}`);
+    logger.debug(`Available shop folders: ${JSON.stringify(folderNames)}`);
     
     // Find shop folder by exact name match
     let shopFolder = response.value.find(item => 
@@ -177,11 +178,11 @@ async function findExistingShopFolder(driveId, customerFolderId, shopFolderName)
     
     // If exact match not found, try partial match (for backward compatibility)
     if (!shopFolder) {
-      console.log(`Exact match not found for: ${shopFolderName}, trying partial match...`);
+      logger.debug(`Exact match not found for: ${shopFolderName}, trying partial match...`);
       
       // Try different matching strategies
       const compteNumber = shopFolderName.split('_')[0]; // Extract the compte number
-      console.log(`Looking for folders containing compte number: ${compteNumber}`);
+      logger.debug(`Looking for folders containing compte number: ${compteNumber}`);
       
       shopFolder = response.value.find(item => 
         item.folder && item.name.includes(compteNumber)
@@ -199,22 +200,22 @@ async function findExistingShopFolder(driveId, customerFolderId, shopFolderName)
     }
     
     if (shopFolder) {
-      console.log(`Found existing shop folder: ${shopFolder.name}`);
+      logger.debug(`Found existing shop folder: ${shopFolder.name}`);
       return shopFolder;
     }
     
-    console.log(`No existing shop folder found for: ${shopFolderName}`);
+    logger.debug(`No existing shop folder found for: ${shopFolderName}`);
     return null;
     
   } catch (error) {
-    console.error('Error searching for shop folder:', error);
+    logger.error('Error searching for shop folder:', error);
     return null;
   }
 }
 
 async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) {
   try {
-    console.log('Creating Box Media folder structure...');
+    logger.debug('Creating Box Media folder structure...');
     
     // Helper function to format dates as YYYY/MM/DD 
     const formatDateYYYYMMDD = (dateString) => {
@@ -288,18 +289,18 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
       // Process the Web-Design DOCX file using Python script
       await new Promise((resolve, reject) => {
         const command = `python3 "${path.join(__dirname, 'docx_processor.py')}" "${webDesignTemplatePath}" "${encodedWebDesignData}" "${processedWebDesignPath}"`;
-        console.log(`Processing Web-Design DOCX: ${command}`);
+        logger.debug(`Processing Web-Design DOCX: ${command}`);
 
         exec(command, (error, stdout, stderr) => {
           if (error) {
-            console.error(`Web-Design DOCX processing error: ${error}`);
-            console.error(`Python stderr: ${stderr}`);
+            logger.error(`Web-Design DOCX processing error: ${error}`);
+            logger.error(`Python stderr: ${stderr}`);
             return reject(`Failed to process Web-Design DOCX: ${error.message}`);
           }
           if (stderr) {
-            console.warn(`Python stderr: ${stderr}`);
+            logger.warn(`Python stderr: ${stderr}`);
           }
-          console.log(`Python stdout: ${stdout}`);
+          logger.debug(`Python stdout: ${stdout}`);
           resolve();
         });
       });
@@ -314,11 +315,11 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
           processedWebDesignContent,
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         );
-        console.log('Processed Web-Design template file uploaded successfully');
+        logger.debug('Processed Web-Design template file uploaded successfully');
         // Clean up temporary file
         fs.unlinkSync(processedWebDesignPath);
       } else {
-        console.warn(`Processed Web-Design file not found at ${processedWebDesignPath}`);
+        logger.warn(`Processed Web-Design file not found at ${processedWebDesignPath}`);
       }
     }
     
@@ -362,18 +363,18 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
       // Process the Web-Merchandising XLSX file using specialized merchandising Python script
       await new Promise((resolve, reject) => {
         const command = `python3 "${path.join(__dirname, 'merch_xlsx_processor.py')}" "${webMerchTemplatePath}" "${encodedWebMerchData}" "${processedWebMerchPath}"`;
-        console.log(`Processing Web-Merchandising XLSX with products: ${command}`);
+        logger.debug(`Processing Web-Merchandising XLSX with products: ${command}`);
 
         exec(command, (error, stdout, stderr) => {
           if (error) {
-            console.error(`Web-Merchandising XLSX processing error: ${error}`);
-            console.error(`Python stderr: ${stderr}`);
+            logger.error(`Web-Merchandising XLSX processing error: ${error}`);
+            logger.error(`Python stderr: ${stderr}`);
             return reject(`Failed to process Web-Merchandising XLSX: ${error.message}`);
           }
           if (stderr) {
-            console.warn(`Python stderr: ${stderr}`);
+            logger.warn(`Python stderr: ${stderr}`);
           }
-          console.log(`Python stdout: ${stdout}`);
+          logger.debug(`Python stdout: ${stdout}`);
           resolve();
         });
       });
@@ -388,7 +389,7 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
           processedWebMerchContent,
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         );
-        console.log('Processed Web-Merchandising template file uploaded successfully');
+        logger.debug('Processed Web-Merchandising template file uploaded successfully');
         
         // Mark all products as documented after successful merchandising generation
         if (shop.products && shop.products.length > 0) {
@@ -415,12 +416,12 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
             );
             
             if (result.modifiedCount > 0) {
-              console.log(`Successfully marked ${shop.products.length} products as documented for shop ${shop.shopId}`);
+              logger.debug(`Successfully marked ${shop.products.length} products as documented for shop ${shop.shopId}`);
             } else {
-              console.warn(`Failed to update product documentation status for shop ${shop.shopId}`);
+              logger.warn(`Failed to update product documentation status for shop ${shop.shopId}`);
             }
           } catch (updateError) {
-            console.error('Error updating product documentation status:', updateError);
+            logger.error('Error updating product documentation status:', updateError);
             // Don't throw error - continue with documentation generation
           }
         }
@@ -428,7 +429,7 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
         // Clean up temporary file
         fs.unlinkSync(processedWebMerchPath);
       } else {
-        console.warn(`Processed Web-Merchandising file not found at ${processedWebMerchPath}`);
+        logger.warn(`Processed Web-Merchandising file not found at ${processedWebMerchPath}`);
       }
     }
     
@@ -455,7 +456,7 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
     
     if (fs.existsSync(importantDir)) {
       const importantFiles = fs.readdirSync(importantDir);
-      console.log(`Found ${importantFiles.length} files in ImportantSharePoint directory`);
+      logger.debug(`Found ${importantFiles.length} files in ImportantSharePoint directory`);
       
       for (const fileName of importantFiles) {
         const filePath = path.join(importantDir, fileName);
@@ -472,7 +473,7 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
             fileContent,
             mimeType
           );
-          console.log(`Uploaded ${fileName} to IMPORTANT folder`);
+          logger.debug(`Uploaded ${fileName} to IMPORTANT folder`);
         }
       }
     }
@@ -483,7 +484,7 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
     
     if (fs.existsSync(contenuDir)) {
       const contenuFiles = fs.readdirSync(contenuDir);
-      console.log(`Found ${contenuFiles.length} files in ContenuSharePoint directory`);
+      logger.debug(`Found ${contenuFiles.length} files in ContenuSharePoint directory`);
       
       for (const fileName of contenuFiles) {
         const filePath = path.join(contenuDir, fileName);
@@ -500,22 +501,22 @@ async function createBoxMediaStructure(driveId, parentFolderId, customer, shop) 
             fileContent,
             mimeType
           );
-          console.log(`Uploaded ${fileName} to CONTENU - Pages d'information folder`);
+          logger.debug(`Uploaded ${fileName} to CONTENU - Pages d'information folder`);
         }
       }
     }
     
-    console.log('Box Media folder structure created successfully');
+    logger.debug('Box Media folder structure created successfully');
     return boxMediaFolder;
   } catch (error) {
-    console.error('Error creating Box Media structure:', error);
+    logger.error('Error creating Box Media structure:', error);
     throw error;
   }
 }
 
 async function createCGVFolder(driveId, parentFolderId) {
   try {
-    console.log('Creating CGV & Politiques folder...');
+    logger.debug('Creating CGV & Politiques folder...');
     
     // Create CGV & Politiques folder
     const cgvFolder = await getOrCreateFolder(driveId, parentFolderId, 'CGV & Politiques');
@@ -535,41 +536,41 @@ async function createCGVFolder(driveId, parentFolderId) {
           cgvContent,
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         );
-        console.log('CGV document uploaded successfully');
+        logger.debug('CGV document uploaded successfully');
       } else {
-        console.log('CGV document not found in local directory, skipping upload');
+        logger.debug('CGV document not found in local directory, skipping upload');
       }
     } catch (uploadError) {
-      console.error('Error uploading CGV document:', uploadError);
+      logger.error('Error uploading CGV document:', uploadError);
       // Continue execution even if document upload fails
     }
     
-    console.log('CGV & Politiques folder created successfully');
+    logger.debug('CGV & Politiques folder created successfully');
     return cgvFolder;
   } catch (error) {
-    console.error('Error creating CGV folder:', error);
+    logger.error('Error creating CGV folder:', error);
     throw error;
   }
 }
 
 async function createContratFolder(driveId, parentFolderId) {
   try {
-    console.log('Creating CONTRAT folder...');
+    logger.debug('Creating CONTRAT folder...');
     
     // Create CONTRAT folder (renamed from CONTRAT SIGNÉ) with grey color
     const contratFolder = await getOrCreateFolder(driveId, parentFolderId, 'CONTRAT');
     
-    console.log('CONTRAT folder created successfully');
+    logger.debug('CONTRAT folder created successfully');
     return contratFolder;
   } catch (error) {
-    console.error('Error creating CONTRAT folder:', error);
+    logger.error('Error creating CONTRAT folder:', error);
     throw error;
   }
 }
 
 async function createRetroplanningFolder(driveId, parentFolderId) {
   try {
-    console.log('Creating OFFRE RETROPLANNING D2C folder...');
+    logger.debug('Creating OFFRE RETROPLANNING D2C folder...');
     
     // Create OFFRE RETROPLANNING D2C folder (green)
     const retroplanningFolder = await getOrCreateFolder(driveId, parentFolderId, 'OFFRE RETROPLANNING D2C');
@@ -580,7 +581,7 @@ async function createRetroplanningFolder(driveId, parentFolderId) {
     try {
       if (fs.existsSync(retroplanningDir)) {
         const files = fs.readdirSync(retroplanningDir);
-        console.log(`Found ${files.length} files in RetroplanningSharePoint directory`);
+        logger.debug(`Found ${files.length} files in RetroplanningSharePoint directory`);
         
         for (const fileName of files) {
           const filePath = path.join(retroplanningDir, fileName);
@@ -597,21 +598,21 @@ async function createRetroplanningFolder(driveId, parentFolderId) {
               fileContent,
               mimeType
             );
-            console.log(`Uploaded ${fileName} to OFFRE RETROPLANNING D2C folder`);
+            logger.debug(`Uploaded ${fileName} to OFFRE RETROPLANNING D2C folder`);
           }
         }
       } else {
-        console.log('RetroplanningSharePoint directory not found, skipping file uploads');
+        logger.debug('RetroplanningSharePoint directory not found, skipping file uploads');
       }
     } catch (uploadError) {
-      console.error('Error uploading RetroplanningSharePoint files:', uploadError);
+      logger.error('Error uploading RetroplanningSharePoint files:', uploadError);
       // Continue execution even if file uploads fail
     }
     
-    console.log('OFFRE RETROPLANNING D2C folder created successfully');
+    logger.debug('OFFRE RETROPLANNING D2C folder created successfully');
     return retroplanningFolder;
   } catch (error) {
-    console.error('Error creating OFFRE RETROPLANNING D2C folder:', error);
+    logger.error('Error creating OFFRE RETROPLANNING D2C folder:', error);
     throw error;
   }
 }
@@ -619,7 +620,7 @@ async function createRetroplanningFolder(driveId, parentFolderId) {
 
 async function checkDocumentationExists(customer, shop) {
   try {
-    console.log('Checking if documentation already exists...');
+    logger.debug('Checking if documentation already exists...');
     
     // Get site and drive
     const site = await getSite();
@@ -639,7 +640,7 @@ async function checkDocumentationExists(customer, shop) {
     // Check if customer folder exists
     let clientFolder = await findExistingCustomerFolder(drive.id, compteClientNumber);
     if (!clientFolder) {
-      console.log('No customer folder found, documentation does not exist');
+      logger.debug('No customer folder found, documentation does not exist');
       return false;
     }
 
@@ -651,7 +652,7 @@ async function checkDocumentationExists(customer, shop) {
       );
       
       if (!shopFolder) {
-        console.log('No shop folder found, documentation does not exist');
+        logger.debug('No shop folder found, documentation does not exist');
         return false;
       }
 
@@ -668,20 +669,20 @@ async function checkDocumentationExists(customer, shop) {
       const ficheProjetExists = files.some(file => file.name === ficheProjetFilename);
       
       if (ficheProjetExists) {
-        console.log('FICHE PROJET file found, documentation exists');
+        logger.debug('FICHE PROJET file found, documentation exists');
         return true;
       } else {
-        console.log('FICHE PROJET file not found, documentation does not exist');
+        logger.debug('FICHE PROJET file not found, documentation does not exist');
         return false;
       }
       
     } catch (error) {
-      console.log('Error checking shop folder contents, assuming documentation does not exist');
+      logger.debug('Error checking shop folder contents, assuming documentation does not exist');
       return false;
     }
     
   } catch (error) {
-    console.error('Error checking documentation existence:', error);
+    logger.error('Error checking documentation existence:', error);
     // If we can't check, assume it doesn't exist to be safe
     return false;
   }
@@ -689,7 +690,7 @@ async function checkDocumentationExists(customer, shop) {
 
 async function generateDocumentation(customer, shop, forceOverwrite = false) {
   try {
-    console.log('Starting documentation generation...');
+    logger.debug('Starting documentation generation...');
     
     // Check if documentation already exists and forceOverwrite is not set
     if (!forceOverwrite) {
@@ -719,10 +720,10 @@ async function generateDocumentation(customer, shop, forceOverwrite = false) {
     
     if (!clientFolder) {
       // No existing folder found, create a new one
-      console.log(`Creating new customer folder: ${clientFolderName}`);
+      logger.debug(`Creating new customer folder: ${clientFolderName}`);
       clientFolder = await getOrCreateFolder(drive.id, null, clientFolderName);
     } else {
-      console.log(`Using existing customer folder: ${clientFolder.name}`);
+      logger.debug(`Using existing customer folder: ${clientFolder.name}`);
     }
     
     const shopFolder = await getOrCreateFolder(drive.id, clientFolder.id, shopFolderName);
@@ -802,18 +803,18 @@ async function generateDocumentation(customer, shop, forceOverwrite = false) {
     // Execute the Python script to process the DOCX
     await new Promise((resolve, reject) => {
       const command = `python3 "${path.join(__dirname, 'docx_processor.py')}" "${docxTemplatePath}" "${encodedShopData}" "${processedDocxPath}"`;
-      console.log(`Executing Python command: ${command}`);
+      logger.debug(`Executing Python command: ${command}`);
 
       exec(command, (error, stdout, stderr) => {
         if (error) {
-          console.error(`exec error: ${error}`);
-          console.error(`Python stderr: ${stderr}`);
+          logger.error(`exec error: ${error}`);
+          logger.error(`Python stderr: ${stderr}`);
           return reject(`Failed to process DOCX: ${error.message}`);
         }
         if (stderr) {
-          console.warn(`Python stderr: ${stderr}`);
+          logger.warn(`Python stderr: ${stderr}`);
         }
-        console.log(`Python stdout: ${stdout}`);
+        logger.debug(`Python stdout: ${stdout}`);
         resolve();
       });
     });
@@ -828,11 +829,11 @@ async function generateDocumentation(customer, shop, forceOverwrite = false) {
         processedDocxContent,
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       );
-      console.log(`Processed DOCX '${outputFilename}' uploaded successfully.`);
+      logger.debug(`Processed DOCX '${outputFilename}' uploaded successfully.`);
       // Clean up the temporary processed DOCX file
       fs.unlinkSync(processedDocxPath);
     } else {
-      console.warn(`Processed DOCX file not found at ${processedDocxPath}. Skipping upload.`);
+      logger.warn(`Processed DOCX file not found at ${processedDocxPath}. Skipping upload.`);
     }
 
     // Generate Template_Questionaire_D2C.xlsx using the template from TemplateSharePoint
@@ -870,22 +871,22 @@ async function generateDocumentation(customer, shop, forceOverwrite = false) {
     const templateCommand = `python3 "${path.join(__dirname, 'template_processor.py')}" "${xlsxTemplatePath}" "${encodedTemplateData}" "${xlsxOutputPath}"`;
     
     try {
-      console.log('Executing Template D2C generation command:', templateCommand);
+      logger.debug('Executing Template D2C generation command:', templateCommand);
       const templateResult = await new Promise((resolve, reject) => {
         exec(templateCommand, (error, stdout, stderr) => {
           if (error) {
-            console.error('Template D2C generation error:', error);
-            console.error('Template stdout:', stdout);
-            console.error('Template stderr:', stderr);
+            logger.error('Template D2C generation error:', error);
+            logger.error('Template stdout:', stdout);
+            logger.error('Template stderr:', stderr);
             reject(error);
           } else {
-            console.log('Template D2C generation completed successfully');
+            logger.debug('Template D2C generation completed successfully');
             resolve(stdout);
           }
         });
       });
       
-      console.log('Template D2C processing result:', templateResult);
+      logger.debug('Template D2C processing result:', templateResult);
       
       // Upload the generated XLSX to SharePoint
       if (fs.existsSync(xlsxOutputPath)) {
@@ -897,13 +898,13 @@ async function generateDocumentation(customer, shop, forceOverwrite = false) {
           xlsxContent,
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         );
-        console.log('Template_Questionaire_D2C.xlsx uploaded successfully');
+        logger.debug('Template_Questionaire_D2C.xlsx uploaded successfully');
         
         // Clean up temporary file
         fs.unlinkSync(xlsxOutputPath);
       }
     } catch (templateError) {
-      console.error('Error generating Template_Questionaire_D2C.xlsx:', templateError);
+      logger.error('Error generating Template_Questionaire_D2C.xlsx:', templateError);
       // Continue with the rest of the process even if template generation fails
     }
     
@@ -919,16 +920,16 @@ async function generateDocumentation(customer, shop, forceOverwrite = false) {
           suiviTachesContent,
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         );
-        console.log('Suivi Tâches.xlsx uploaded successfully');
+        logger.debug('Suivi Tâches.xlsx uploaded successfully');
       }
     } catch (suiviError) {
-      console.error('Error uploading Suivi Tâches.xlsx:', suiviError);
+      logger.error('Error uploading Suivi Tâches.xlsx:', suiviError);
       // Continue with the rest of the process
     }
 
-    console.log('Documentation generated in SharePoint');
+    logger.debug('Documentation generated in SharePoint');
   } catch (error) {
-    console.error('Error generating documentation:', error);
+    logger.error('Error generating documentation:', error);
     throw error;
   }
 }
@@ -940,7 +941,7 @@ async function generateDocumentation(customer, shop, forceOverwrite = false) {
 // - Directory.Read.All (for authentication)
 async function appendToFichesProduitsOrCreate(customer, shop) {
   try {
-    console.log('Starting Fiches Produits append/create process...');
+    logger.debug('Starting Fiches Produits append/create process...');
     
     // Security: Validate input parameters
     if (!customer || !shop) {
@@ -961,7 +962,7 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
       site = await getSite();
       drive = await getDrive(site.id);
     } catch (error) {
-      console.error('Failed to connect to SharePoint:', error);
+      logger.error('Failed to connect to SharePoint:', error);
       throw new Error('Unable to connect to SharePoint service. Please check network connectivity.');
     }
     
@@ -974,23 +975,23 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
     const clientFolderName = `${compteClientNumber}_${raisonSociale}`.replace(/[^a-zA-Z0-9_\-]/g, '_').substring(0, 100);
     const shopFolderName = `${compteClientNumber}_${nomProjet}`.replace(/[^a-zA-Z0-9_\-]/g, '_').substring(0, 100);
     
-    console.log(`🔍 FOLDER NAMES: Client='${clientFolderName}', Shop='${shopFolderName}'`);
-    console.log(`🔍 RAW VALUES: CompteClient='${compteClientNumber}', RaisonSociale='${raisonSociale}', NomProjet='${nomProjet}'`);
+    logger.debug(`🔍 FOLDER NAMES: Client='${clientFolderName}', Shop='${shopFolderName}'`);
+    logger.debug(`🔍 RAW VALUES: CompteClient='${compteClientNumber}', RaisonSociale='${raisonSociale}', NomProjet='${nomProjet}'`);
 
-    console.log(`Looking for customer folder: ${clientFolderName} and shop folder: ${shopFolderName}`);
-    console.log(`🔍 DEBUG: Shop object keys: ${Object.keys(shop)}`);
-    console.log(`🔍 DEBUG: shop.name: '${shop.name}', shop.nomProjet: '${shop.nomProjet}', shop.shopId: '${shop.shopId}'`);
+    logger.debug(`Looking for customer folder: ${clientFolderName} and shop folder: ${shopFolderName}`);
+    logger.debug(`🔍 DEBUG: Shop object keys: ${Object.keys(shop)}`);
+    logger.debug(`🔍 DEBUG: shop.name: '${shop.name}', shop.nomProjet: '${shop.nomProjet}', shop.shopId: '${shop.shopId}'`);
 
     // Find existing customer folder with enhanced error handling
     let clientFolder;
     try {
       clientFolder = await findExistingCustomerFolder(drive.id, compteClientNumber);
       if (!clientFolder) {
-        console.error(`Customer folder not found for client: ${compteClientNumber}`);
+        logger.error(`Customer folder not found for client: ${compteClientNumber}`);
         throw new Error(`Customer documentation folder not found. Please ensure initial documentation has been generated for client ${compteClientNumber}.`);
       }
     } catch (error) {
-      console.error('Error finding customer folder:', error);
+      logger.error('Error finding customer folder:', error);
       throw new Error('Unable to locate customer documentation folder. Please contact support.');
     }
 
@@ -999,11 +1000,11 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
     try {
       shopFolder = await findExistingShopFolder(drive.id, clientFolder.id, shopFolderName);
       if (!shopFolder) {
-        console.error(`Shop folder not found for shop: ${shopFolderName} in customer: ${compteClientNumber}`);
+        logger.error(`Shop folder not found for shop: ${shopFolderName} in customer: ${compteClientNumber}`);
         throw new Error(`Shop documentation folder not found. Please ensure initial shop documentation has been generated.`);
       }
     } catch (error) {
-      console.error('Error finding shop folder:', error);
+      logger.error('Error finding shop folder:', error);
       throw new Error('Unable to locate shop documentation folder. Please contact support.');
     }
 
@@ -1011,32 +1012,32 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
     let boxMediaFolderId, webMerchFolderId;
     try {
       // First, let's see what's actually in the shop folder
-      console.log(`Examining contents of shop folder: ${shopFolder.name} (ID: ${shopFolder.id})`);
+      logger.debug(`Examining contents of shop folder: ${shopFolder.name} (ID: ${shopFolder.id})`);
       
       try {
         const shopContents = await graphClient.api(`/drives/${drive.id}/items/${shopFolder.id}/children`).get();
         const folderNames = shopContents.value.filter(item => item.folder).map(item => item.name);
         const fileNames = shopContents.value.filter(item => item.file).map(item => item.name);
         
-        console.log(`Shop folder contains ${shopContents.value.length} items:`);
-        console.log(`Folders: ${JSON.stringify(folderNames)}`);
-        console.log(`Files: ${JSON.stringify(fileNames.slice(0, 10))}${fileNames.length > 10 ? ' ...' : ''}`);
+        logger.debug(`Shop folder contains ${shopContents.value.length} items:`);
+        logger.debug(`Folders: ${JSON.stringify(folderNames)}`);
+        logger.debug(`Files: ${JSON.stringify(fileNames.slice(0, 10))}${fileNames.length > 10 ? ' ...' : ''}`);
       } catch (listError) {
-        console.error('Error listing shop folder contents:', listError);
+        logger.error('Error listing shop folder contents:', listError);
         throw new Error('Unable to access shop folder contents. Please check SharePoint permissions.');
       }
       
       // Look for Box Media folder with proper naming convention: BOX MÉDIA _ <ClientName> _ <ShopName>
       // Note: Using accent in MÉDIA and SPACES around underscores as per actual folder structure
       const expectedBoxMediaName = `BOX MÉDIA _ ${raisonSociale} _ ${nomProjet}`;
-      console.log(`Looking for Box Media folder with name: ${expectedBoxMediaName}`);
-      console.log(`Variables: raisonSociale='${raisonSociale}', nomProjet='${nomProjet}'`);
+      logger.debug(`Looking for Box Media folder with name: ${expectedBoxMediaName}`);
+      logger.debug(`Variables: raisonSociale='${raisonSociale}', nomProjet='${nomProjet}'`);
       
       boxMediaFolderId = await findFolderByName(drive.id, shopFolder.id, expectedBoxMediaName);
       
       if (!boxMediaFolderId) {
         // Try alternative naming patterns for Box Media folder
-        console.log('Expected Box Media folder not found, trying alternative names...');
+        logger.debug('Expected Box Media folder not found, trying alternative names...');
         const alternativeNames = [
           'Box Media',
           'Box media', 
@@ -1058,76 +1059,76 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
         for (const altName of alternativeNames) {
           boxMediaFolderId = await findFolderByName(drive.id, shopFolder.id, altName);
           if (boxMediaFolderId) {
-            console.log(`Found Box Media folder with alternative name: ${altName}`);
+            logger.debug(`Found Box Media folder with alternative name: ${altName}`);
             break;
           }
         }
         
         if (!boxMediaFolderId) {
-          console.error(`Box Media folder not found in shop: ${shopFolderName}`);
-          console.error(`Expected name: ${expectedBoxMediaName}`);
+          logger.error(`Box Media folder not found in shop: ${shopFolderName}`);
+          logger.error(`Expected name: ${expectedBoxMediaName}`);
           throw new Error('Box Media folder not found. Please ensure complete initial documentation has been generated for this shop.');
         }
       }
 
       // Check Box Media folder contents
-      console.log(`Examining contents of Box Media folder (ID: ${boxMediaFolderId})`);
+      logger.debug(`Examining contents of Box Media folder (ID: ${boxMediaFolderId})`);
       try {
         const boxMediaContents = await graphClient.api(`/drives/${drive.id}/items/${boxMediaFolderId}/children`).get();
         const boxMediaFolders = boxMediaContents.value.filter(item => item.folder).map(item => item.name);
-        console.log(`Box Media contains folders: ${JSON.stringify(boxMediaFolders)}`);
+        logger.debug(`Box Media contains folders: ${JSON.stringify(boxMediaFolders)}`);
       } catch (boxListError) {
-        console.error('Error listing Box Media contents:', boxListError);
+        logger.error('Error listing Box Media contents:', boxListError);
       }
 
       webMerchFolderId = await findFolderByName(drive.id, boxMediaFolderId, 'Web-Merchandising');
       if (!webMerchFolderId) {
         // Try alternative names for Web-Merchandising folder
-        console.log('Web-Merchandising not found, trying alternative names...');
+        logger.debug('Web-Merchandising not found, trying alternative names...');
         const webMerchAltNames = ['Web-merchandising', 'WEB-MERCHANDISING', 'Web Merchandising', 'WebMerchandising', 'web-merchandising'];
         
         for (const altName of webMerchAltNames) {
           webMerchFolderId = await findFolderByName(drive.id, boxMediaFolderId, altName);
           if (webMerchFolderId) {
-            console.log(`Found Web-Merchandising folder with alternative name: ${altName}`);
+            logger.debug(`Found Web-Merchandising folder with alternative name: ${altName}`);
             break;
           }
         }
         
         if (!webMerchFolderId) {
-          console.error(`Web-Merchandising folder not found in Box Media for shop: ${shopFolderName}`);
+          logger.error(`Web-Merchandising folder not found in Box Media for shop: ${shopFolderName}`);
           throw new Error('Web-Merchandising folder not found. Please ensure complete initial documentation structure exists.');
         }
       }
     } catch (error) {
-      console.error('Error accessing required folder structure:', error);
+      logger.error('Error accessing required folder structure:', error);
       
       // Only create folders if they're genuinely missing, not if there's a permission error
       if (error.message && error.message.includes('not found')) {
-        console.log('Folders missing - attempting to create missing folder structure...');
+        logger.debug('Folders missing - attempting to create missing folder structure...');
       } else {
-        console.error('Non-folder-missing error, re-throwing:', error);
+        logger.error('Non-folder-missing error, re-throwing:', error);
         throw error; // Re-throw permission or other errors
       }
-      console.log('Attempting to create missing folder structure...');
+      logger.debug('Attempting to create missing folder structure...');
       try {
         // Create Box Media folder if it doesn't exist
         if (!boxMediaFolderId) {
-          console.log('Creating Box Media folder...');
+          logger.debug('Creating Box Media folder...');
           const boxMediaFolder = await getOrCreateFolder(drive.id, shopFolder.id, 'Box Media');
           boxMediaFolderId = boxMediaFolder.id;
         }
         
         // Create Web-Merchandising folder if it doesn't exist
         if (!webMerchFolderId) {
-          console.log('Creating Web-Merchandising folder...');
+          logger.debug('Creating Web-Merchandising folder...');
           const webMerchFolder = await getOrCreateFolder(drive.id, boxMediaFolderId, 'Web-Merchandising');
           webMerchFolderId = webMerchFolder.id;
         }
         
-        console.log('Successfully created missing folder structure');
+        logger.debug('Successfully created missing folder structure');
       } catch (createError) {
-        console.error('Error creating folder structure:', createError);
+        logger.error('Error creating folder structure:', createError);
         throw new Error('Unable to access or create required documentation folders. Please check SharePoint permissions or contact support.');
       }
     }
@@ -1136,17 +1137,17 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
     const fichesProduitsFileName = `FICHES.PRODUITS_SHOPIFY_${raisonSociale}_${nomProjet}.xlsx`;
     let existingFileId = null;
     
-    console.log(`Expected file name: ${fichesProduitsFileName}`);
+    logger.debug(`Expected file name: ${fichesProduitsFileName}`);
     
-    console.log(`🔍 DETAILED SEARCH: Looking for existing file: ${fichesProduitsFileName}`);
-    console.log(`🔍 DETAILED SEARCH: In Web-Merchandising folder ID: ${webMerchFolderId}`);
-    console.log(`🔍 DETAILED SEARCH: Customer: ${raisonSociale}, Project: ${nomProjet}`);
+    logger.debug(`🔍 DETAILED SEARCH: Looking for existing file: ${fichesProduitsFileName}`);
+    logger.debug(`🔍 DETAILED SEARCH: In Web-Merchandising folder ID: ${webMerchFolderId}`);
+    logger.debug(`🔍 DETAILED SEARCH: Customer: ${raisonSociale}, Project: ${nomProjet}`);
 
     // If webMerchFolderId is null/undefined, this is a critical error
     if (!webMerchFolderId) {
-      console.error('❌ CRITICAL: Web-Merchandising folder ID is null/undefined!');
-      console.error('This means the folder structure detection failed completely.');
-      console.error('Searching entire shop folder as emergency fallback...');
+      logger.error('❌ CRITICAL: Web-Merchandising folder ID is null/undefined!');
+      logger.error('This means the folder structure detection failed completely.');
+      logger.error('Searching entire shop folder as emergency fallback...');
       
       try {
         const shopContents = await graphClient.api(`/drives/${drive.id}/items/${shopFolder.id}/children`).get();
@@ -1154,11 +1155,11 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
         const allFolders = shopContents.value.filter(item => item.folder);
         const fichesFiles = allFiles.filter(file => file.name.includes('FICHES.PRODUITS_SHOPIFY'));
         
-        console.log(`🔍 EMERGENCY SEARCH: Found ${allFolders.length} folders in shop:`);
-        allFolders.forEach(folder => console.log(`  📁 ${folder.name}`));
+        logger.debug(`🔍 EMERGENCY SEARCH: Found ${allFolders.length} folders in shop:`);
+        allFolders.forEach(folder => logger.debug(`  📁 ${folder.name}`));
         
-        console.log(`🔍 EMERGENCY SEARCH: Found ${fichesFiles.length} Fiches Produits files in shop folder:`);
-        fichesFiles.forEach(file => console.log(`  📄 ${file.name}`));
+        logger.debug(`🔍 EMERGENCY SEARCH: Found ${fichesFiles.length} Fiches Produits files in shop folder:`);
+        fichesFiles.forEach(file => logger.debug(`  📄 ${file.name}`));
         
         // Try to find the specific one for this shop
         const matchingFile = fichesFiles.find(file => 
@@ -1167,37 +1168,37 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
         
         if (matchingFile) {
           existingFileId = matchingFile.id;
-          console.log(`✅ EMERGENCY: Found existing Fiches Produits file in shop root: ${matchingFile.name}`);
+          logger.debug(`✅ EMERGENCY: Found existing Fiches Produits file in shop root: ${matchingFile.name}`);
         } else {
-          console.error(`❌ EMERGENCY: No matching Fiches Produits file found even in shop root`);
+          logger.error(`❌ EMERGENCY: No matching Fiches Produits file found even in shop root`);
         }
       } catch (shopSearchError) {
-        console.error('❌ EMERGENCY SEARCH FAILED:', shopSearchError);
+        logger.error('❌ EMERGENCY SEARCH FAILED:', shopSearchError);
       }
     }
 
         if (webMerchFolderId && !existingFileId) {
       try {
-        console.log(`🔍 SEARCHING Web-Merchandising folder (ID: ${webMerchFolderId})...`);
+        logger.debug(`🔍 SEARCHING Web-Merchandising folder (ID: ${webMerchFolderId})...`);
         const folderContents = await graphClient.api(`/drives/${drive.id}/items/${webMerchFolderId}/children`).get();
       
-        console.log(`📂 Web-Merchandising folder contains ${folderContents.value.length} items:`);
+        logger.debug(`📂 Web-Merchandising folder contains ${folderContents.value.length} items:`);
         const fileNames = folderContents.value.filter(item => item.file).map(item => item.name);
         const folderNames = folderContents.value.filter(item => item.folder).map(item => item.name);
         
-        console.log(`📄 Files in Web-Merchandising: ${JSON.stringify(fileNames)}`);
-        console.log(`📁 Folders in Web-Merchandising: ${JSON.stringify(folderNames)}`);
+        logger.debug(`📄 Files in Web-Merchandising: ${JSON.stringify(fileNames)}`);
+        logger.debug(`📁 Folders in Web-Merchandising: ${JSON.stringify(folderNames)}`);
         
         // Try exact match first
-        console.log(`🎯 Looking for EXACT match: "${fichesProduitsFileName}"`);
+        logger.debug(`🎯 Looking for EXACT match: "${fichesProduitsFileName}"`);
         let existingFile = folderContents.value.find(item => 
           item.name === fichesProduitsFileName && item.file
         );
         
         // If exact match not found, try partial match
         if (!existingFile) {
-          console.log(`❌ Exact match not found for: ${fichesProduitsFileName}`);
-          console.log(`🔍 Trying partial match with pattern: FICHES.PRODUITS_SHOPIFY + ${raisonSociale} + .xlsx`);
+          logger.debug(`❌ Exact match not found for: ${fichesProduitsFileName}`);
+          logger.debug(`🔍 Trying partial match with pattern: FICHES.PRODUITS_SHOPIFY + ${raisonSociale} + .xlsx`);
           
           existingFile = folderContents.value.find(item => 
             item.file && 
@@ -1207,39 +1208,39 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
           );
           
           if (existingFile) {
-            console.log(`✅ Found existing file with partial match: ${existingFile.name}`);
+            logger.debug(`✅ Found existing file with partial match: ${existingFile.name}`);
           } else {
-            console.log(`❌ No partial match found either`);
+            logger.debug(`❌ No partial match found either`);
             
             // Show all FICHES.PRODUITS files for debugging
             const allFichesFiles = folderContents.value.filter(item => 
               item.file && item.name.includes('FICHES.PRODUITS')
             );
-            console.log(`🔍 All FICHES.PRODUITS files found: ${JSON.stringify(allFichesFiles.map(f => f.name))}`);
+            logger.debug(`🔍 All FICHES.PRODUITS files found: ${JSON.stringify(allFichesFiles.map(f => f.name))}`);
           }
         } else {
-          console.log(`✅ EXACT MATCH FOUND: ${existingFile.name}`);
+          logger.debug(`✅ EXACT MATCH FOUND: ${existingFile.name}`);
         }
         
         if (existingFile) {
           existingFileId = existingFile.id;
-          console.log(`✅ FINAL RESULT: Found existing Fiches Produits file: ${existingFile.name} (ID: ${existingFileId})`);
+          logger.debug(`✅ FINAL RESULT: Found existing Fiches Produits file: ${existingFile.name} (ID: ${existingFileId})`);
         } else {
-          console.error(`❌ FINAL RESULT: No existing Fiches Produits file found matching any pattern`);
+          logger.error(`❌ FINAL RESULT: No existing Fiches Produits file found matching any pattern`);
         }
       } catch (error) {
-        console.error('❌ Error searching for existing Fiches Produits file:', error);
-        console.error('This will cause the append operation to fail');
+        logger.error('❌ Error searching for existing Fiches Produits file:', error);
+        logger.error('This will cause the append operation to fail');
       }
     }
 
     if (existingFileId) {
       // APPROACH: Delete existing file and recreate with ALL products (existing + new)
       try {
-        console.log('Found existing Fiches Produits file - will delete and recreate with all products...');
+        logger.debug('Found existing Fiches Produits file - will delete and recreate with all products...');
         
         // Step 1: Download existing file to extract ALL current products
-        console.log('Downloading existing file content from SharePoint...');
+        logger.debug('Downloading existing file content from SharePoint...');
         const fileStream = await graphClient.api(`/drives/${drive.id}/items/${existingFileId}/content`).get();
         
         // Convert ReadableStream to Buffer
@@ -1251,10 +1252,10 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
         
         const tempDownloadPath = path.join(__dirname, 'temp', `existing_${Date.now()}.xlsx`);
         fs.writeFileSync(tempDownloadPath, fileContent);
-        console.log(`Successfully downloaded and saved existing file to: ${tempDownloadPath}`);
+        logger.debug(`Successfully downloaded and saved existing file to: ${tempDownloadPath}`);
         
         // Step 2: Get ALL products that should be in the final file from MongoDB (with complete data)
-        console.log('Getting all documented products from MongoDB database...');
+        logger.debug('Getting all documented products from MongoDB database...');
         
         const customersCollection = await getCustomersCollection();
         const fullCustomer = await customersCollection.findOne({
@@ -1265,11 +1266,11 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
         
         // Get all currently documented products (these should remain in the file)
         const allDocumentedProducts = fullShop?.products?.filter(p => p.documented === true) || [];
-        console.log(`Found ${allDocumentedProducts.length} already documented products in database`);
+        logger.debug(`Found ${allDocumentedProducts.length} already documented products in database`);
         
         // Get the new products being added now (from the append request)
         const newProducts = shop.products || []; // These are the ones being added now
-        console.log(`Adding ${newProducts.length} new products to documentation`);
+        logger.debug(`Adding ${newProducts.length} new products to documentation`);
         
         // Step 3: Combine ALL products (existing documented + new ones)
         const newProductIds = new Set(newProducts.map(p => p.productId));
@@ -1282,12 +1283,12 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
         // Combine all products for the final file (complete data from MongoDB)
         const allProductsForFile = [...existingProductsToKeep, ...newProducts];
         
-        console.log(`Creating new file with ${existingProductsToKeep.length} existing documented + ${newProducts.length} newly documented = ${allProductsForFile.length} total products`);
+        logger.debug(`Creating new file with ${existingProductsToKeep.length} existing documented + ${newProducts.length} newly documented = ${allProductsForFile.length} total products`);
         
         // Step 5: Delete the existing file
-        console.log('Deleting existing Fiches Produits file...');
+        logger.debug('Deleting existing Fiches Produits file...');
         await graphClient.api(`/drives/${drive.id}/items/${existingFileId}`).delete();
-        console.log('Successfully deleted existing file');
+        logger.debug('Successfully deleted existing file');
         
         // Step 6: Create new file with ALL products
         const tempShopWithAllProducts = {
@@ -1302,46 +1303,46 @@ async function appendToFichesProduitsOrCreate(customer, shop) {
           fs.unlinkSync(tempDownloadPath);
         }
         
-        console.log('Successfully replaced existing file with updated version containing all products with complete data from MongoDB');
+        logger.debug('Successfully replaced existing file with updated version containing all products with complete data from MongoDB');
 
       } catch (error) {
-        console.error('Error replacing existing Fiches Produits:', error);
+        logger.error('Error replacing existing Fiches Produits:', error);
         throw new Error(`Failed to replace existing file: ${error.message}`);
       }
       
     } else {
       // No existing file found - NEVER create new folders/files in append mode
-      console.error('❌ CRITICAL ERROR: No existing Fiches Produits file found!');
-      console.error('Expected file name:', fichesProduitsFileName);
-      console.error('Expected in folder ID:', webMerchFolderId);
-      console.error('This suggests either:');
-      console.error('1. Initial documentation was never generated for this shop');
-      console.error('2. File detection logic is failing');
-      console.error('3. Files are in a different location than expected');
-      console.error('4. File naming convention has changed');
+      logger.error('❌ CRITICAL ERROR: No existing Fiches Produits file found!');
+      logger.error('Expected file name:', fichesProduitsFileName);
+      logger.error('Expected in folder ID:', webMerchFolderId);
+      logger.error('This suggests either:');
+      logger.error('1. Initial documentation was never generated for this shop');
+      logger.error('2. File detection logic is failing');
+      logger.error('3. Files are in a different location than expected');
+      logger.error('4. File naming convention has changed');
       
       // In append mode, we should NEVER create new folder structures
       // This should only work with existing documentation
       throw new Error(`Cannot append products: Existing Fiches Produits file not found. Please ensure initial documentation has been generated for this shop. Expected file: ${fichesProduitsFileName} in Web-Merchandising folder.`);
     }
 
-    console.log('Fiches Produits append/create process completed successfully');
+    logger.debug('Fiches Produits append/create process completed successfully');
 
   } catch (error) {
-    console.error('Error in appendToFichesProduitsOrCreate:', error);
+    logger.error('Error in appendToFichesProduitsOrCreate:', error);
     throw error;
   }
 }
 
 // Helper function to create new Fiches Produits file
 async function createNewFichesProduitsFile(driveId, webMerchFolderId, customer, shop, fileName) {
-  console.log(`Creating new Fiches Produits file with ${shop.products?.length || 0} products...`);
+  logger.debug(`Creating new Fiches Produits file with ${shop.products?.length || 0} products...`);
   
   if (!webMerchFolderId) {
     throw new Error('CRITICAL ERROR: webMerchFolderId is null/undefined. Cannot create file without proper folder structure.');
   }
   
-  console.log(`Target folder ID for new file: ${webMerchFolderId}`);
+  logger.debug(`Target folder ID for new file: ${webMerchFolderId}`);
   
   const webMerchTemplatePath = path.join(__dirname, 'FileWebMerch', 'FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx');
   const processedWebMerchPath = path.join(__dirname, 'temp', `NEW_${fileName}`);
@@ -1364,18 +1365,18 @@ async function createNewFichesProduitsFile(driveId, webMerchFolderId, customer, 
   // Process the template with new products
   await new Promise((resolve, reject) => {
     const command = `python3 "${path.join(__dirname, 'merch_xlsx_processor.py')}" "${webMerchTemplatePath}" "${encodedWebMerchData}" "${processedWebMerchPath}"`;
-    console.log(`Creating new Fiches Produits: ${command}`);
+    logger.debug(`Creating new Fiches Produits: ${command}`);
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.error(`New Fiches Produits creation error: ${error}`);
-        console.error(`Python stderr: ${stderr}`);
+        logger.error(`New Fiches Produits creation error: ${error}`);
+        logger.error(`Python stderr: ${stderr}`);
         return reject(`Failed to create new Fiches Produits: ${error.message}`);
       }
       if (stderr) {
-        console.warn(`Python stderr: ${stderr}`);
+        logger.warn(`Python stderr: ${stderr}`);
       }
-      console.log(`Python stdout: ${stdout}`);
+      logger.debug(`Python stdout: ${stdout}`);
       resolve();
     });
   });
@@ -1392,7 +1393,7 @@ async function createNewFichesProduitsFile(driveId, webMerchFolderId, customer, 
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
     
-    console.log(`Successfully created new Fiches Produits file: ${fileName}`);
+    logger.debug(`Successfully created new Fiches Produits file: ${fileName}`);
     
     // Clean up temporary file
     fs.unlinkSync(processedWebMerchPath);
@@ -1406,7 +1407,7 @@ async function findFolderByName(driveId, parentFolderId, folderName) {
     const folder = response.value.find(item => item.name === folderName && item.folder);
     return folder ? folder.id : null;
   } catch (error) {
-    console.error(`Error finding folder ${folderName}:`, error);
+    logger.error(`Error finding folder ${folderName}:`, error);
     return null;
   }
 }

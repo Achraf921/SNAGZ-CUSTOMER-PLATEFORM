@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { logger } = require('../utils/secureLogger');
 
 class CaptchaService {
   constructor() {
@@ -10,11 +11,11 @@ class CaptchaService {
   async verifyToken(token, userIP = null) {
     try {
       if (!this.secretKey) {
-        console.warn('⚠️ reCAPTCHA secret key not configured. Set RECAPTCHA_SECRET_KEY in environment variables.');
+        logger.warn('⚠️ reCAPTCHA secret key not configured. Set RECAPTCHA_SECRET_KEY in environment variables.');
         
         // In development, if no secret key is set, we'll allow requests to pass through
         if (process.env.NODE_ENV === 'development') {
-          console.log('🔧 Development mode: Bypassing reCAPTCHA verification');
+          logger.debug('🔧 Development mode: Bypassing reCAPTCHA verification');
           return {
             success: true,
             score: 1.0,
@@ -42,7 +43,7 @@ class CaptchaService {
 
       // Handle development bypass token
       if (token === 'development-bypass-token') {
-        console.log('🔧 Development mode: Accepting bypass token');
+        logger.debug('🔧 Development mode: Accepting bypass token');
         return {
           success: true,
           score: 1.0,
@@ -53,7 +54,7 @@ class CaptchaService {
         };
       }
 
-      console.log(`🔍 Verifying reCAPTCHA token: ${token.substring(0, 20)}...`);
+      logger.debug(`🔍 Verifying reCAPTCHA token: ${token.substring(0, 20)}...`);
 
       // Prepare request data
       const requestData = {
@@ -77,17 +78,10 @@ class CaptchaService {
 
       const result = response.data;
 
-      console.log(`📊 reCAPTCHA verification result:`, {
-        success: result.success,
-        score: result.score,
-        action: result.action,
-        challenge_ts: result.challenge_ts,
-        hostname: result.hostname,
-        error_codes: result['error-codes']
-      });
+      logger.debug("reCAPTCHA verification completed");
 
       if (result.success) {
-        console.log('✅ reCAPTCHA verification successful');
+        logger.debug('✅ reCAPTCHA verification successful');
         return {
           success: true,
           score: result.score,
@@ -96,7 +90,7 @@ class CaptchaService {
           hostname: result.hostname
         };
       } else {
-        console.log('❌ reCAPTCHA verification failed:', result['error-codes']);
+        logger.debug('❌ reCAPTCHA verification failed:', result['error-codes']);
         
         // Map Google error codes to user-friendly messages
         const errorMessages = {
@@ -122,7 +116,7 @@ class CaptchaService {
       }
 
     } catch (error) {
-      console.error('❌ Error during reCAPTCHA verification:', error);
+      logger.error('❌ Error during reCAPTCHA verification:', error);
       
       if (error.code === 'ECONNABORTED') {
         return {
@@ -135,7 +129,7 @@ class CaptchaService {
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        console.error('reCAPTCHA API error response:', error.response.data);
+        logger.error('reCAPTCHA API error response:', error.response.data);
         return {
           success: false,
           error: 'api-error',
@@ -143,7 +137,7 @@ class CaptchaService {
         };
       } else if (error.request) {
         // The request was made but no response was received
-        console.error('reCAPTCHA API request error:', error.request);
+        logger.error('reCAPTCHA API request error:', error.request);
         return {
           success: false,
           error: 'network-error',
@@ -151,7 +145,7 @@ class CaptchaService {
         };
       } else {
         // Something happened in setting up the request that triggered an Error
-        console.error('reCAPTCHA setup error:', error.message);
+        logger.error('reCAPTCHA setup error:', error.message);
         return {
           success: false,
           error: 'setup-error',

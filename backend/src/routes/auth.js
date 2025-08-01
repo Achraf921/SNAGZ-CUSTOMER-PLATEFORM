@@ -1,10 +1,11 @@
 const express = require('express');
+const { logger } = require('../utils/secureLogger');
 const router = express.Router();
 const cognitoService = require('../services/cognitoService');
 
 // Change password endpoint
 router.post('/change-password', async (req, res) => {
-  console.log(`🔐 [AUTH ROUTES] Change password request received`);
+  logger.debug(`🔐 [AUTH ROUTES] Change password request received`);
   try {
     const { currentPassword, newPassword } = req.body;
     
@@ -44,15 +45,8 @@ router.post('/change-password', async (req, res) => {
       });
     }
 
-    console.log(`🔐 Password change request for user: ${username} (${userType})`);
-    console.log('📋 Session debug info:', {
-      hasInternalUserInfo: !!req.session?.internalUserInfo,
-      hasAdminUserInfo: !!req.session?.adminUserInfo,
-      hasUserInfo: !!req.session?.userInfo,
-      detectedUserType: userType,
-      username: username,
-      email: userInfo?.email
-    });
+    logger.debug(`🔐 Password change request for user: ${username} (${userType})`);
+    // Email logging removed for security
 
     // Validate password strength
     if (newPassword.length < 8) {
@@ -85,14 +79,14 @@ router.post('/change-password', async (req, res) => {
       const result = await cognitoService.changePassword(userType, username, currentPassword, newPassword);
       
       if (result.success) {
-        console.log(`✅ Password changed successfully for user: ${username}`);
+        logger.debug(`✅ Password changed successfully for user: ${username}`);
         
         res.json({
           success: true,
           message: 'Password changed successfully'
         });
       } else {
-        console.log(`❌ Password change failed for user: ${username}`, result.error);
+        logger.debug(`❌ Password change failed for user: ${username}`, result.error);
         
         // Handle specific Cognito errors
         if (result.error && result.error.includes('NotAuthorizedException')) {
@@ -110,7 +104,7 @@ router.post('/change-password', async (req, res) => {
         });
       }
     } catch (cognitoError) {
-      console.error('❌ Cognito error during password change:', cognitoError);
+      logger.error('❌ Cognito error during password change:', cognitoError);
       
       // Handle specific Cognito errors
       if (cognitoError.name === 'NotAuthorizedException') {
@@ -133,7 +127,7 @@ router.post('/change-password', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Error in password change:', error);
+    logger.error('❌ Error in password change:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while changing password',

@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { logger } = require('../utils/secureLogger');
 
 const isValidEAN13 = (ean) => {
   // Reject if empty, not 13 digits, or all zeros
@@ -229,7 +230,7 @@ const importItemsToEC = async (products, shop, customer, log) => {
   log(`Total items to import: ${allItems.length}`);
   
   if (allItems.length === 0) {
-    console.log('No items to import to EC.');
+    logger.debug('No items to import to EC.');
     return { success: true, message: 'No items needed to be sent.' };
   }
 
