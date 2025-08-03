@@ -1,0 +1,105 @@
+# ===============================================
+# DOCKER COMPOSE FOR PRODUCTION
+# AWS EC2 deployment configuration
+# ===============================================
+
+version: '3.8'
+
+services:
+  # ===============================================
+  # Backend Service (Production)
+  # ===============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: snagz-backend-prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Production environment variables will be set via .env file or AWS systems manager
+    volumes:
+      # Persistent uploads storage
+      - uploads_data:/app/uploads
+      # Logs for monitoring
+      - logs_data:/app/src/services/logs
+      # SSL certificates from Let's Encrypt
+      - /etc/letsencrypt:/app/ssl:ro
+    networks:
+      - snagz-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===============================================
+  # Nginx Reverse Proxy (Production)
+  # ===============================================
+  nginx:
+    image: nginx:alpine
+    container_name: snagz-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      - backend
+    networks:
+      - snagz-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===============================================
+  # Certbot for Let's Encrypt SSL
+  # ===============================================
+  certbot:
+    image: certbot/certbot
+    container_name: snagz-certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email your-email@domain.com --agree-tos --no-eff-email -d your-domain.com -d api.your-domain.com
+    networks:
+      - snagz-network
+
+# ===============================================
+# Networks
+# ===============================================
+networks:
+  snagz-network:
+    driver: bridge
+    name: snagz-network-prod
+
+# ===============================================
+# Volumes (Production)
+# ===============================================
+volumes:
+  uploads_data:
+    driver: local
+  logs_data:
+    driver: local

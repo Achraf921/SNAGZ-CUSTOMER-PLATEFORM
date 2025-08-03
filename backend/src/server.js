@@ -539,7 +539,11 @@ app.get('/api/password-reset/stats', requireInternalAPIAuth, (req, res, next) =>
   next();
 });
 
-// Health check endpoint (public)
+// Health check endpoints (public)
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });

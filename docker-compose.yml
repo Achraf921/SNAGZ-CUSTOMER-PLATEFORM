@@ -1,0 +1,93 @@
+# ===============================================
+# DOCKER COMPOSE FOR SNA GZ PLATFORM
+# Local development and testing environment
+# ===============================================
+
+version: '3.8'
+
+services:
+  # ===============================================
+  # Backend Service
+  # ===============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: snagz-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      # Database connection will use MongoDB Atlas in production
+      # For local testing, you can add local MongoDB if needed
+    volumes:
+      # Mount uploads directory for file persistence
+      - ./backend/uploads:/app/uploads
+      # Mount logs for debugging
+      - ./backend/src/services/logs:/app/src/services/logs
+    networks:
+      - snagz-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ===============================================
+  # MongoDB (Optional - for local development)
+  # ===============================================
+  # Uncomment this section if you want local MongoDB for testing
+  # mongodb:
+  #   image: mongo:6.0
+  #   container_name: snagz-mongodb
+  #   ports:
+  #     - "27017:27017"
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=admin
+  #     - MONGO_INITDB_ROOT_PASSWORD=password123
+  #     - MONGO_INITDB_DATABASE=snagz
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   networks:
+  #     - snagz-network
+  #   restart: unless-stopped
+
+  # ===============================================
+  # Nginx (Optional - for production-like setup)
+  # ===============================================
+  # Uncomment for testing with reverse proxy
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: snagz-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #     - ./ssl:/etc/nginx/ssl
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - snagz-network
+  #   restart: unless-stopped
+
+# ===============================================
+# Networks
+# ===============================================
+networks:
+  snagz-network:
+    driver: bridge
+    name: snagz-network
+
+# ===============================================
+# Volumes
+# ===============================================
+volumes:
+  # Uncomment if using local MongoDB
+  # mongodb_data:
+  #   driver: local
+  uploads_data:
+    driver: local

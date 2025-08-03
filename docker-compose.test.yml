@@ -1,0 +1,101 @@
+# ===============================================
+# DOCKER COMPOSE FOR TESTING WITH MONGODB ATLAS
+# Test our backend with real database connection
+# ===============================================
+
+version: '3.8'
+
+services:
+  # ===============================================
+  # Backend Service with Environment Variables
+  # ===============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: snagz-backend-test
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      # Database - will be provided via .env file or command line
+      - MONGODB_URI=${MONGODB_URI}
+      
+      # AWS Configuration (for testing with your existing setup)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-eu-north-1}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-snagz}
+      - AWS_S3_SENSITIVE_DOCS_BUCKET=${AWS_S3_SENSITIVE_DOCS_BUCKET}
+      - AWS_KMS_KEY_ID=${AWS_KMS_KEY_ID}
+      
+      # Authentication
+      - JWT_SECRET=${JWT_SECRET:-development-jwt-secret-change-in-production}
+      - SESSION_SECRET=${SESSION_SECRET:-development-session-secret-change-in-production}
+      
+      # Cognito Configuration (using your actual variable names)
+      - COGNITO_CLIENT_APP_SECRET=${COGNITO_CLIENT_APP_SECRET}
+      - COGNITO_INTERNAL_APP_SECRET=${COGNITO_INTERNAL_APP_SECRET}
+      - COGNITO_ADMIN_APP_SECRET=${COGNITO_ADMIN_APP_SECRET}
+      - COGNITO_CLIENT_USER_POOL_ID=${COGNITO_CLIENT_USER_POOL_ID}
+      - COGNITO_CLIENT_APP_CLIENT_ID=${COGNITO_CLIENT_APP_CLIENT_ID}
+      - COGNITO_CLIENT_DOMAIN=${COGNITO_CLIENT_DOMAIN}
+      - COGNITO_INTERNAL_USER_POOL_ID=${COGNITO_INTERNAL_USER_POOL_ID}
+      - COGNITO_INTERNAL_APP_CLIENT_ID=${COGNITO_INTERNAL_APP_CLIENT_ID}
+      - COGNITO_INTERNAL_DOMAIN=${COGNITO_INTERNAL_DOMAIN}
+      - COGNITO_ADMIN_USER_POOL_ID=${COGNITO_ADMIN_USER_POOL_ID}
+      - COGNITO_ADMIN_APP_CLIENT_ID=${COGNITO_ADMIN_APP_CLIENT_ID}
+      - COGNITO_ADMIN_DOMAIN=${COGNITO_ADMIN_DOMAIN}
+      - COGNITO_REGION=${COGNITO_REGION}
+      
+      # Shopify (for testing)
+      - SHOPIFY_PARTNER_EMAIL=${SHOPIFY_PARTNER_EMAIL}
+      - SHOPIFY_PARTNER_PASSWORD=${SHOPIFY_PARTNER_PASSWORD}
+      
+      # PayPal
+      - PAYPAL_VENDEUR_EMAIL=${PAYPAL_VENDEUR_EMAIL}
+      - PAYPAL_VENDEUR_PASSWORD=${PAYPAL_VENDEUR_PASSWORD}
+      - IBAN_VENDEUR=${IBAN_VENDEUR}
+      - PAYPAL_MANDATAIRE_EMAIL=${PAYPAL_MANDATAIRE_EMAIL}
+      - PAYPAL_MANDATAIRE_PASSWORD=${PAYPAL_MANDATAIRE_PASSWORD}
+      - IBAN_MANDATAIRE=${IBAN_MANDATAIRE}
+      
+      # Mondial Relay
+      - CODE_ENSEIGNE=${CODE_ENSEIGNE}
+      - CLE_PRIVEE=${CLE_PRIVEE}
+      - CODE_MARQUE=${CODE_MARQUE}
+      
+      # Logging
+      - LOG_LEVEL=debug
+      - ENABLE_PRODUCTION_LOGS=true
+      
+    volumes:
+      # Mount uploads for file persistence
+      - ./backend/uploads:/app/uploads
+      # Mount logs for debugging
+      - ./backend/src/services/logs:/app/src/services/logs
+    networks:
+      - snagz-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# ===============================================
+# Networks
+# ===============================================
+networks:
+  snagz-network:
+    driver: bridge
+    name: snagz-network-test
+
+# ===============================================
+# Volumes
+# ===============================================
+volumes:
+  uploads_data:
+    driver: local
