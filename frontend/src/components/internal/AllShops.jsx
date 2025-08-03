@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ShopDetails from "./ShopDetails"; // Assuming ShopDetails is in the same directory
-import {
-  FaUpload,
-  FaPlus,
-  FaTrash,
-  FaExclamationTriangle,
-} from "react-icons/fa";
+import { FaUpload, FaPlus } from "react-icons/fa";
 
 const AllShops = () => {
   const [shops, setShops] = useState([]);
@@ -14,9 +9,6 @@ const AllShops = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedRows, setExpandedRows] = useState({});
   const [uploadingImage, setUploadingImage] = useState(null); // Changed from uploadingLogo to uploadingImage
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [shopToDelete, setShopToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Function to handle image upload for any image type
   const handleImageUpload = (shopId, imageType) => {
@@ -62,7 +54,7 @@ const AllShops = () => {
       formData.append("imageType", imageType);
 
       const response = await fetch(
-        `/api/internal/shops/${shop.clientId}/${shopId}/images/upload`,
+        `/api/internal/upload/shops/${shop.clientId}/${shopId}/images/upload`,
         {
           method: "POST",
           body: formData,
@@ -186,9 +178,13 @@ const AllShops = () => {
             hasShopify: shop.hasShopify,
             documented: shop.documented,
             logoUrl: shop.logoUrl,
+            logoS3Key: shop.logoS3Key,
             desktopBannerUrl: shop.desktopBannerUrl || shop.bannerUrl, // fallback to bannerUrl
+            desktopBannerS3Key: shop.desktopBannerS3Key,
             mobileBannerUrl: shop.mobileBannerUrl,
+            mobileBannerS3Key: shop.mobileBannerS3Key,
             faviconUrl: shop.faviconUrl,
+            faviconS3Key: shop.faviconS3Key,
           }))
         );
       } catch (err) {
@@ -198,6 +194,27 @@ const AllShops = () => {
     };
     fetchAllShops();
   }, []);
+
+  const getImageSrc = (url, s3Key) => {
+    // Priority 1: If the URL is a data URI, use it directly.
+    if (url && url.startsWith("data:image")) {
+      return url;
+    }
+    // Priority 2: If there's a valid S3 key, use the proxy.
+    if (s3Key) {
+      return `/api/internal/image-proxy?imageKey=${encodeURIComponent(s3Key)}`;
+    }
+    // Priority 3: If the URL is a full, valid HTTPS URL, use it directly.
+    if (url && url.startsWith("http")) {
+      return url;
+    }
+    // Fallback: If we only have a URL that isn't a data URI or HTTPS (i.e., it might be a key), proxy it.
+    if (url) {
+      return `/api/internal/image-proxy?imageKey=${encodeURIComponent(url)}`;
+    }
+    // If no valid source, return an empty string to avoid broken image icons.
+    return "";
+  };
 
   const filteredShops = shops.filter(
     (shop) =>
@@ -218,95 +235,17 @@ const AllShops = () => {
     );
   };
 
-  // Function to initiate delete shop process
-  const initiateDeleteShop = (shop) => {
-    console.log("🗑️ [FRONTEND] Initiating delete for shop:", shop.name);
-    setShopToDelete(shop);
-    setShowDeleteModal(true);
-  };
-
-  // Function to confirm and execute shop deletion
-  const confirmDeleteShop = async () => {
-    if (!shopToDelete) return;
-
-    console.log("🗑️ [FRONTEND] Confirming delete for shop:", shopToDelete.name);
-    setIsDeleting(true);
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `/api/internal/clients/${shopToDelete.clientId}/shops/${shopToDelete.id}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message || "Erreur lors de la suppression de la boutique"
-        );
-      }
-
-      console.log("✅ [FRONTEND] Shop deleted successfully:", result);
-
-      // Show success message with details
-      const successMessage = `Boutique "${shopToDelete.name}" supprimée avec succès. ${
-        result.details?.imagesDeleted
-          ? `${result.details.imagesDeleted} image(s) supprimée(s) de S3.`
-          : ""
-      }`;
-
-      setError(null);
-
-      // Remove shop from local state
-      handleShopDelete(shopToDelete.id);
-
-      // Show success message briefly
-      setError({ type: "success", message: successMessage });
-      setTimeout(() => setError(null), 5000);
-    } catch (error) {
-      console.error("❌ [FRONTEND] Error deleting shop:", error);
-      setError({ type: "error", message: error.message });
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteModal(false);
-      setShopToDelete(null);
-    }
-  };
-
-  // Function to cancel shop deletion
-  const cancelDeleteShop = () => {
-    console.log("❌ [FRONTEND] Cancelled delete for shop:", shopToDelete?.name);
-    setShowDeleteModal(false);
-    setShopToDelete(null);
-  };
-
   if (isLoading) return <p>Chargement de toutes les boutiques...</p>;
-  if (error && typeof error === "string")
-    return <p className="text-red-500">Erreur: {error}</p>;
+  if (error) return <p className="text-red-500">Erreur: {error}</p>;
 
   return (
     <div className="w-full p-4">
       {error && (
-        <div
-          className={`mb-4 p-3 border rounded ${
-            error.type === "success"
-              ? "bg-green-100 border-green-400 text-green-700"
-              : "bg-red-100 border-red-400 text-red-700"
-          }`}
-        >
-          {error.message || error}
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
           <button
             onClick={() => setError(null)}
-            className={`ml-2 hover:opacity-70 ${
-              error.type === "success" ? "text-green-900" : "text-red-900"
-            }`}
+            className="ml-2 text-red-900 hover:text-red-700"
           >
             ×
           </button>
@@ -373,9 +312,9 @@ const AllShops = () => {
                   <tr className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <div className="flex items-center">
-                        {shop.logoUrl ? (
+                        {getImageSrc(shop.logoUrl, shop.logoS3Key) ? (
                           <img
-                            src={shop.logoUrl}
+                            src={getImageSrc(shop.logoUrl, shop.logoS3Key)}
                             alt="Logo"
                             className="h-8 w-8 rounded-full mr-3 object-cover border border-gray-200"
                           />
@@ -442,21 +381,12 @@ const AllShops = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => toggleRow(shop.id)}
-                          className="text-sna-primary hover:underline"
-                        >
-                          {expandedRows[shop.id] ? "Masquer" : "Voir Détails"}
-                        </button>
-                        <button
-                          onClick={() => initiateDeleteShop(shop)}
-                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
-                          title="Supprimer la boutique"
-                        >
-                          <FaTrash className="text-sm" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => toggleRow(shop.id)}
+                        className="text-sna-primary hover:underline"
+                      >
+                        {expandedRows[shop.id] ? "Masquer" : "Voir Détails"}
+                      </button>
                     </td>
                   </tr>
                   {expandedRows[shop.id] && (
@@ -475,9 +405,12 @@ const AllShops = () => {
                                   Logo
                                 </h5>
                                 <div className="w-24 h-24 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                                  {shop.logoUrl ? (
+                                  {getImageSrc(shop.logoUrl, shop.logoS3Key) ? (
                                     <img
-                                      src={shop.logoUrl}
+                                      src={getImageSrc(
+                                        shop.logoUrl,
+                                        shop.logoS3Key
+                                      )}
                                       alt="Logo"
                                       className="w-full h-full object-cover rounded-lg"
                                     />
@@ -513,9 +446,15 @@ const AllShops = () => {
                                   Banner Desktop
                                 </h5>
                                 <div className="w-24 h-12 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                                  {shop.desktopBannerUrl ? (
+                                  {getImageSrc(
+                                    shop.desktopBannerUrl,
+                                    shop.desktopBannerS3Key
+                                  ) ? (
                                     <img
-                                      src={shop.desktopBannerUrl}
+                                      src={getImageSrc(
+                                        shop.desktopBannerUrl,
+                                        shop.desktopBannerS3Key
+                                      )}
                                       alt="Desktop Banner"
                                       className="w-full h-full object-cover rounded-lg"
                                     />
@@ -554,9 +493,15 @@ const AllShops = () => {
                                   Banner Mobile
                                 </h5>
                                 <div className="w-16 h-24 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                                  {shop.mobileBannerUrl ? (
+                                  {getImageSrc(
+                                    shop.mobileBannerUrl,
+                                    shop.mobileBannerS3Key
+                                  ) ? (
                                     <img
-                                      src={shop.mobileBannerUrl}
+                                      src={getImageSrc(
+                                        shop.mobileBannerUrl,
+                                        shop.mobileBannerS3Key
+                                      )}
                                       alt="Mobile Banner"
                                       className="w-full h-full object-cover rounded-lg"
                                     />
@@ -595,9 +540,15 @@ const AllShops = () => {
                                   Favicon
                                 </h5>
                                 <div className="w-16 h-16 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                                  {shop.faviconUrl ? (
+                                  {getImageSrc(
+                                    shop.faviconUrl,
+                                    shop.faviconS3Key
+                                  ) ? (
                                     <img
-                                      src={shop.faviconUrl}
+                                      src={getImageSrc(
+                                        shop.faviconUrl,
+                                        shop.faviconS3Key
+                                      )}
                                       alt="Favicon"
                                       className="w-full h-full object-cover rounded-lg"
                                     />
@@ -646,58 +597,6 @@ const AllShops = () => {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                <FaExclamationTriangle className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
-                Supprimer la boutique
-              </h3>
-              <div className="mt-2 px-7 py-3">
-                <p className="text-sm text-gray-500">
-                  Êtes-vous sûr de vouloir supprimer la boutique{" "}
-                  <strong>"{shopToDelete?.name || "Sans nom"}"</strong> de{" "}
-                  <strong>{shopToDelete?.clientName}</strong> ?
-                </p>
-                <p className="text-sm text-red-600 mt-2 font-medium">
-                  ⚠️ Cette action est irréversible et supprimera également
-                  toutes les images associées du serveur S3.
-                </p>
-              </div>
-              <div className="items-center px-4 py-3">
-                <div className="flex space-x-3">
-                  <button
-                    onClick={cancelDeleteShop}
-                    disabled={isDeleting}
-                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    onClick={confirmDeleteShop}
-                    disabled={isDeleting}
-                    className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50 flex items-center justify-center"
-                  >
-                    {isDeleting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                        Suppression...
-                      </>
-                    ) : (
-                      "Supprimer"
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>

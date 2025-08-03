@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from "react";
 
 import { FaStore, FaEdit, FaExclamationTriangle } from "react-icons/fa";
+import CorruptedFileModal from "../common/CorruptedFileModal";
 
 const MesBoutiques = () => {
   const [expandedShopId, setExpandedShopId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingField, setEditingField] = useState({}); // { [shopId]: fieldName }
   const [editData, setEditData] = useState({}); // { [shopId]: { field: value } }
+
+  // Corrupted file modal state
+  const [showCorruptedFileModal, setShowCorruptedFileModal] = useState(false);
+  const [corruptedFileName, setCorruptedFileName] = useState("");
 
   // Handle field value change for a shop
   const handleEditFieldChange = (shopId, field, value) => {
@@ -203,6 +208,31 @@ const MesBoutiques = () => {
   const [imageChangeInputs, setImageChangeInputs] = useState({});
 
   const [userId, setUserId] = useState(null);
+  const [imageUrls, setImageUrls] = useState({});
+
+  // Generate stable image URLs once when shops data changes
+  useEffect(() => {
+    if (shops.length > 0 && userId) {
+      const urls = {};
+      shops.forEach((shop) => {
+        urls[shop.shopId] = {
+          logo: shop.logoS3Key
+            ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/logo?t=${Date.now()}`
+            : shop.logoUrl,
+          desktopBanner: shop.desktopBannerS3Key
+            ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/desktopBanner?t=${Date.now()}`
+            : shop.desktopBannerUrl,
+          mobileBanner: shop.mobileBannerS3Key
+            ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/mobileBanner?t=${Date.now()}`
+            : shop.mobileBannerUrl,
+          favicon: shop.faviconS3Key
+            ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/favicon?t=${Date.now()}`
+            : shop.faviconUrl,
+        };
+      });
+      setImageUrls(urls);
+    }
+  }, [shops, userId]);
 
   // Get user's sub attribute from storage when component mounts
   useEffect(() => {
@@ -295,11 +325,28 @@ const MesBoutiques = () => {
     window.location.href = "/client/boutiques/create";
   };
 
+  // Helper to read file as ArrayBuffer to prevent reference loss
+  const readFileAsArrayBuffer = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
   const handleImageChange = async (shopId, imageType, file) => {
     if (!file) return;
 
     try {
-      // Create a data URL for immediate preview only
+      console.log(
+        `📖 [IMAGE PROCESSING] Validating ${imageType} for shop ${shopId}...`
+      );
+
+      // Validate the file by attempting to read it into memory immediately
+      const arrayBuffer = await readFileAsArrayBuffer(file);
+
+      // If we get here, the file is readable - create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target.result;
@@ -325,9 +372,38 @@ const MesBoutiques = () => {
         },
       }));
 
-      console.log(`Image change triggered for ${imageType} in shop ${shopId}`);
+      console.log(
+        `✅ [IMAGE PROCESSING] ${imageType} validated successfully for shop ${shopId}`
+      );
     } catch (error) {
-      console.error(`Error handling image change for ${imageType}:`, error);
+      console.error(
+        `❌ [IMAGE PROCESSING] Failed to process ${imageType} for shop ${shopId}:`,
+        {
+          error: error,
+          errorName: error?.name,
+          errorMessage: error?.message,
+          fileInfo: {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified,
+          },
+        }
+      );
+
+      // Show modal for corrupted files and don't load them
+      if (error?.name === "NotReadableError") {
+        setCorruptedFileName(file.name);
+        setShowCorruptedFileModal(true);
+        console.warn(
+          `⚠️ [IMAGE PROCESSING] Corrupted file blocked: ${file.name}`
+        );
+      } else {
+        console.error(
+          `❌ [IMAGE PROCESSING] Unexpected error processing ${imageType}:`,
+          error.message
+        );
+      }
     }
   };
 
@@ -997,11 +1073,7 @@ const MesBoutiques = () => {
                               <div className="flex flex-col items-center">
                                 <div className="relative group">
                                   <img
-                                    src={
-                                      shop.logoS3Key
-                                        ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/logo?t=${Date.now()}`
-                                        : shop.logoUrl || ""
-                                    }
+                                    src={imageUrls[shop.shopId]?.logo || ""}
                                     alt="Logo de la boutique"
                                     className="h-20 w-20 object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
                                     onError={(e) => {
@@ -1051,9 +1123,9 @@ const MesBoutiques = () => {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         try {
-                                          const imageUrl = shop.logoS3Key
-                                            ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/logo?t=${Date.now()}`
-                                            : shop.logoUrl;
+                                          const imageUrl =
+                                            imageUrls[shop.shopId]?.logo ||
+                                            shop.logoUrl;
                                           const link =
                                             document.createElement("a");
                                           link.href = imageUrl;
@@ -1094,9 +1166,8 @@ const MesBoutiques = () => {
                                 <div className="relative group">
                                   <img
                                     src={
-                                      shop.desktopBannerS3Key
-                                        ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/desktopBanner?t=${Date.now()}`
-                                        : shop.desktopBannerUrl
+                                      imageUrls[shop.shopId]?.desktopBanner ||
+                                      ""
                                     }
                                     alt="Bannière desktop"
                                     className="h-20 w-40 object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
@@ -1134,9 +1205,9 @@ const MesBoutiques = () => {
                                         e.stopPropagation();
                                         try {
                                           const imageUrl =
-                                            shop.desktopBannerS3Key
-                                              ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/desktopBanner?t=${Date.now()}`
-                                              : shop.desktopBannerUrl;
+                                            imageUrls[shop.shopId]
+                                              ?.desktopBanner ||
+                                            shop.desktopBannerUrl;
                                           const link =
                                             document.createElement("a");
                                           link.href = imageUrl;
@@ -1178,9 +1249,7 @@ const MesBoutiques = () => {
                                 <div className="relative group">
                                   <img
                                     src={
-                                      shop.mobileBannerS3Key
-                                        ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/mobileBanner?t=${Date.now()}`
-                                        : shop.mobileBannerUrl
+                                      imageUrls[shop.shopId]?.mobileBanner || ""
                                     }
                                     alt="Bannière mobile"
                                     className="h-20 w-32 object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
@@ -1218,9 +1287,9 @@ const MesBoutiques = () => {
                                         e.stopPropagation();
                                         try {
                                           const imageUrl =
-                                            shop.mobileBannerS3Key
-                                              ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/mobileBanner?t=${Date.now()}`
-                                              : shop.mobileBannerUrl;
+                                            imageUrls[shop.shopId]
+                                              ?.mobileBanner ||
+                                            shop.mobileBannerUrl;
                                           const link =
                                             document.createElement("a");
                                           link.href = imageUrl;
@@ -1259,11 +1328,7 @@ const MesBoutiques = () => {
                               <div className="flex flex-col items-center">
                                 <div className="relative group">
                                   <img
-                                    src={
-                                      shop.faviconS3Key
-                                        ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/favicon?t=${Date.now()}`
-                                        : shop.faviconUrl
-                                    }
+                                    src={imageUrls[shop.shopId]?.favicon || ""}
                                     alt="Favicon"
                                     className="h-20 w-20 object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
                                   />
@@ -1299,9 +1364,7 @@ const MesBoutiques = () => {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         try {
-                                          const imageUrl = shop.faviconS3Key
-                                            ? `/api/customer/shops/${userId}/${shop.shopId}/image-proxy/favicon?t=${Date.now()}`
-                                            : shop.faviconUrl;
+                                          const imageUrl = imageUrls[shop.shopId]?.favicon || shop.faviconUrl;
                                           const link =
                                             document.createElement("a");
                                           link.href = imageUrl;
@@ -1347,6 +1410,13 @@ const MesBoutiques = () => {
           </div>
         )}
       </div>
+
+      {/* Corrupted File Modal */}
+      <CorruptedFileModal
+        isOpen={showCorruptedFileModal}
+        onClose={() => setShowCorruptedFileModal(false)}
+        fileName={corruptedFileName}
+      />
     </div>
   );
 };

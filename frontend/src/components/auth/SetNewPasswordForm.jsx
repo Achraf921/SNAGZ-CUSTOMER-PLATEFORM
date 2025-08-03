@@ -7,12 +7,12 @@ function SetNewPasswordForm({
   onPasswordSet,
   onCancel,
   cognitoChallengeParameters,
-  defaultRedirectUrl,
 }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const getCompletePasswordEndpoint = () => {
     switch (portalType) {
@@ -79,59 +79,33 @@ function SetNewPasswordForm({
       const data = await response.json();
 
       if (response.ok && data.success) {
-        console.log("New password set successfully for:", username);
+        // Security: Removed username logging
 
         // Set the flag to indicate this is the first login after password change
         // This will be used to show the welcome form on the dashboard
         sessionStorage.setItem("isFirstLogin", "true");
 
-        // Store the complete userInfo from the backend response
+        // Store the userInfo from the backend response
         if (data.userInfo) {
-          console.log(
-            "✅ [SECURITY] Storing user info from backend response:",
-            data.userInfo
-          );
+          console.log("Storing userInfo from backend response:", data.userInfo);
           sessionStorage.setItem("userInfo", JSON.stringify(data.userInfo));
           localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
-
-          // Also store userId for compatibility
-          const userId = data.userInfo.sub || data.userInfo.userId;
-          if (userId) {
-            sessionStorage.setItem("userId", userId);
-            localStorage.setItem("userId", userId);
-          }
-        } else {
-          console.warn(
-            "⚠️ [SECURITY] No userInfo in backend response, creating fallback"
-          );
-          // Fallback: create a simple userId based on the username
-          const userId = `user_${username
-            .replace(/[^a-zA-Z0-9]/g, "_")
-            .toLowerCase()}`;
-          sessionStorage.setItem("userId", userId);
-          localStorage.setItem("userId", userId);
         }
 
-        if (onPasswordSet) {
-          // Security check: ensure redirect URL is safe
-          const redirectUrl = data.redirectUrl;
-          const safeRedirects = [
-            "/client/dashboard",
-            "/client/compte",
-            "/internal/dashboard",
-            "/admin/client-accounts",
-          ];
+        // Store the userId in sessionStorage and localStorage for persistence
+        // This will be used to associate the welcome form submission with this user
+        // In a real implementation, you would get the actual userId from your authentication system
+        // For now, we'll create a simple userId based on the username
+        const userId = `user_${username
+          .replace(/[^a-zA-Z0-9]/g, "_")
+          .toLowerCase()}`;
+        sessionStorage.setItem("userId", userId);
+        localStorage.setItem("userId", userId);
 
-          if (
-            redirectUrl &&
-            safeRedirects.some((safe) => redirectUrl.startsWith(safe))
-          ) {
-            onPasswordSet(redirectUrl);
-          } else {
-            onPasswordSet(defaultRedirectUrl || "/");
-          }
+        if (onPasswordSet) {
+          onPasswordSet(data.redirectUrl); // Call the callback to handle redirect
         } else {
-          // Fallback redirect if onPasswordSet is not provided
+          // Fallback redirect if onPasswordSet is not provided, though it should be.
           window.location.href = data.redirectUrl || "/";
         }
       } else {
@@ -164,6 +138,15 @@ function SetNewPasswordForm({
           Bienvenue, {username} ! Veuillez définir un nouveau mot de passe pour
           continuer.
         </p>
+
+        <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-800 text-center">
+            <strong>Note importante :</strong> Après avoir défini votre mot de
+            passe, vous devrez vous reconnecter avec ce nouveau mot de passe
+            pour accéder au portail.
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label
@@ -172,16 +155,61 @@ function SetNewPasswordForm({
             >
               Nouveau mot de passe
             </label>
-            <div className="mt-1">
+            <div className="mt-1 relative">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 id={`${portalType}-new-password`}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 autoFocus
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sna-primary focus:border-sna-primary sm:text-sm"
+                className="appearance-none block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sna-primary focus:border-sna-primary sm:text-sm"
               />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                onMouseDown={() => setShowPassword(true)}
+                onMouseUp={() => setShowPassword(false)}
+                onMouseLeave={() => setShowPassword(false)}
+                onTouchStart={() => setShowPassword(true)}
+                onTouchEnd={() => setShowPassword(false)}
+              >
+                {showPassword ? (
+                  <svg
+                    className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
           <div>

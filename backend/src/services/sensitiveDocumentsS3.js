@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { logger } = require('../utils/secureLogger');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
@@ -16,6 +17,8 @@ const s3Client = new S3Client({
 // Use separate bucket for sensitive documents (or folder in existing bucket)
 const sensitiveDocumentsBucket = process.env.AWS_S3_SENSITIVE_DOCS_BUCKET || process.env.AWS_S3_BUCKET_NAME;
 const sensitiveDocsFolder = 'sensitive-documents/';
+
+
 
 /**
  * Upload a sensitive document to S3

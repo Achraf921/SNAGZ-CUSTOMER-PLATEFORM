@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import CorruptedFileModal from "../common/CorruptedFileModal";
 
 const ShopForm = ({ shop, onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,10 @@ const ShopForm = ({ shop, onClose, onSave }) => {
     bannerMobile: shop?.bannerMobile || null,
   });
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Corrupted file modal state
+  const [showCorruptedFileModal, setShowCorruptedFileModal] = useState(false);
+  const [corruptedFileName, setCorruptedFileName] = useState('');
 
   // Update form data when shop prop changes (e.g., when editing different shops)
   useEffect(() => {
@@ -66,13 +71,48 @@ const ShopForm = ({ shop, onClose, onSave }) => {
     }));
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const { name, files } = e.target;
     if (files && files[0]) {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: files[0],
-      }));
+      const file = files[0];
+      
+      // Function to clear the file input immediately
+      const clearFileInput = () => {
+        e.target.value = '';
+      };
+      
+      // Validate the file by attempting to read it
+      try {
+        const reader = new FileReader();
+        await new Promise((resolve, reject) => {
+          reader.onload = resolve;
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file);
+        });
+        
+        // If we get here, the file is readable
+        setFormData((prev) => ({
+          ...prev,
+          [name]: file,
+        }));
+      } catch (error) {
+        // IMMEDIATELY clear the file input to prevent showing corrupted file name
+        clearFileInput();
+        
+        // Clear any existing file data for this field
+        setFormData((prev) => ({
+          ...prev,
+          [name]: null,
+        }));
+        
+        // Handle corrupted or unreadable files
+        if (error?.name === 'NotReadableError' || error?.target?.error?.name === 'NotReadableError') {
+          setCorruptedFileName(file.name);
+          setShowCorruptedFileModal(true);
+        } else {
+          alert(`Erreur lors de la lecture du fichier "${file.name}": ${error.message || 'Fichier non valide'}`);
+        }
+      }
     }
   };
 
@@ -435,6 +475,13 @@ const ShopForm = ({ shop, onClose, onSave }) => {
           </div>
         </form>
       </div>
+      
+      {/* Corrupted File Modal */}
+      <CorruptedFileModal
+        isOpen={showCorruptedFileModal}
+        onClose={() => setShowCorruptedFileModal(false)}
+        fileName={corruptedFileName}
+      />
     </div>
   );
 };

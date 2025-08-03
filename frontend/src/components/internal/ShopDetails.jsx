@@ -251,11 +251,11 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
             `  ${key}: File(${value.name}, ${value.type}, ${value.size} bytes)`
           );
         } else {
-          console.log(`  ${key}: ${value}`);
+          // Security: Removed potentially sensitive form data logging
         }
       }
 
-      const uploadUrl = `/api/internal/shops/${clientId}/${shopId}/images/upload`;
+      const uploadUrl = `/api/internal/upload/shops/${clientId}/${shopId}/images/upload`;
       console.log("🌐 [SHOP DEBUG] Upload URL:", uploadUrl);
       console.log(`📤 [SHOP IMAGE REPLACE] Uploading new ${imageType}...`);
 
@@ -372,6 +372,27 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
     }
   };
 
+  const getImageSrc = (url, s3Key) => {
+    // Priority 1: If the URL is a data URI, use it directly.
+    if (url && url.startsWith("data:image")) {
+      return url;
+    }
+    // Priority 2: If there's a valid S3 key, use the proxy.
+    if (s3Key) {
+      return `/api/internal/image-proxy?imageKey=${encodeURIComponent(s3Key)}`;
+    }
+    // Priority 3: If the URL is a full, valid HTTPS URL, use it directly.
+    if (url && url.startsWith("http")) {
+      return url;
+    }
+    // Fallback: If we only have a URL that isn't a data URI or HTTPS (i.e., it might be a key), proxy it.
+    if (url) {
+      return `/api/internal/image-proxy?imageKey=${encodeURIComponent(url)}`;
+    }
+    // If no valid source, return an empty string to avoid broken image icons.
+    return "";
+  };
+
   if (isLoading) return <p>Chargement des détails de la boutique...</p>;
   if (error) return <p>Erreur: {error}</p>;
   if (!shop) return <p>Boutique non trouvée.</p>;
@@ -462,9 +483,9 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
   return (
     <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
       <div className="flex items-center mb-4">
-        {shop.logoUrl && (
+        {getImageSrc(shop.logoUrl, shop.logoS3Key) && (
           <img
-            src={shop.logoUrl}
+            src={getImageSrc(shop.logoUrl, shop.logoS3Key)}
             alt="Logo"
             className="h-12 w-12 rounded-full mr-3 object-cover"
           />
@@ -516,11 +537,15 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Logo</h4>
                 <div className="relative h-20 w-20">
                   <img
-                    src={shop.logoUrl}
+                    src={getImageSrc(shop.logoUrl, shop.logoS3Key)}
                     alt="Logo de la boutique"
                     className="h-full w-full object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
                     onClick={() =>
-                      shop.logoUrl && window.open(shop.logoUrl, "_blank")
+                      shop.logoUrl &&
+                      window.open(
+                        getImageSrc(shop.logoUrl, shop.logoS3Key),
+                        "_blank"
+                      )
                     }
                     onError={(e) => {
                       console.error("Failed to load logo image:", shop.logoUrl);
@@ -595,12 +620,21 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
                 </h4>
                 <div className="relative h-20 w-40">
                   <img
-                    src={shop.desktopBannerUrl}
+                    src={getImageSrc(
+                      shop.desktopBannerUrl,
+                      shop.desktopBannerS3Key
+                    )}
                     alt="Bannière desktop"
                     className="h-full w-full object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
                     onClick={() =>
                       shop.desktopBannerUrl &&
-                      window.open(shop.desktopBannerUrl, "_blank")
+                      window.open(
+                        getImageSrc(
+                          shop.desktopBannerUrl,
+                          shop.desktopBannerS3Key
+                        ),
+                        "_blank"
+                      )
                     }
                     onError={(e) => {
                       console.error(
@@ -684,12 +718,21 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
                 </h4>
                 <div className="relative h-20 w-32">
                   <img
-                    src={shop.mobileBannerUrl}
+                    src={getImageSrc(
+                      shop.mobileBannerUrl,
+                      shop.mobileBannerS3Key
+                    )}
                     alt="Bannière mobile"
                     className="h-full w-full object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
                     onClick={() =>
                       shop.mobileBannerUrl &&
-                      window.open(shop.mobileBannerUrl, "_blank")
+                      window.open(
+                        getImageSrc(
+                          shop.mobileBannerUrl,
+                          shop.mobileBannerS3Key
+                        ),
+                        "_blank"
+                      )
                     }
                     onError={(e) => {
                       console.error(
@@ -772,11 +815,15 @@ const ShopDetails = ({ clientId, shopId, onDelete }) => {
                 </h4>
                 <div className="relative h-20 w-20">
                   <img
-                    src={shop.faviconUrl}
+                    src={getImageSrc(shop.faviconUrl, shop.faviconS3Key)}
                     alt="Favicon de la boutique"
                     className="h-full w-full object-cover rounded-lg border cursor-pointer transition-transform hover:scale-105"
                     onClick={() =>
-                      shop.faviconUrl && window.open(shop.faviconUrl, "_blank")
+                      shop.faviconUrl &&
+                      window.open(
+                        getImageSrc(shop.faviconUrl, shop.faviconS3Key),
+                        "_blank"
+                      )
                     }
                     onError={(e) => {
                       console.error(

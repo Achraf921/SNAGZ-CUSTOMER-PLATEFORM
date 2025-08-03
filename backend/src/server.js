@@ -178,9 +178,9 @@ logger.debug('🔧 [MIDDLEWARE] Mounting upload routes before body parsers...');
 const customerUploadRoutes = require('./routes/customerUpload');
 app.use('/api/customer', customerUploadRoutes);
 
-// Mount internal upload routes before body parsers as well
+// Mount internal upload routes before body parsers as well  
 const internalUploadRoutes = require('./routes/internalUpload');
-app.use('/api/internal', internalUploadRoutes);
+app.use('/api/internal/upload', internalUploadRoutes);
 logger.debug('🔧 [MIDDLEWARE] Upload routes mounted successfully');
 
 // Conditional body parsing - skip for upload routes that handle raw streams

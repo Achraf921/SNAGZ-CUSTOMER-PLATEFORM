@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { getCustomersCollection } = require('../config/db');
-const { startDevStore, continueDevStore, continueCaptcha } = require('../services/createDevStore');
+// createDevStore service temporarily disabled - will be reimplemented later
+// const { startDevStore, continueDevStore, continueCaptcha } = require('../services/createDevStore');
 const { getSession, deleteSession, getAllSessions } = require('../services/shopifySessionManager');
 const { ObjectId } = require('mongodb');
 require('isomorphic-fetch');
@@ -118,7 +119,11 @@ router.post('/generate/:shopId', async (req, res) => {
     const storeName = `${rawName}-${Date.now()}`.replace(/\s+/g, '-').toLowerCase();
     const meta = { shopId, customerId: customer._id, nomProjet: rawName };
 
-    const result = await startDevStore(storeName, meta);
+    // TODO: Reimplement createDevStore service
+    const result = { 
+      error: 'Shopify store generation temporarily disabled',
+      message: 'This feature is being reimplemented. Please try again later.'
+    };
 
     if (result.requiresCaptcha) {
       console.log('[Shopify] CAPTCHA required → HTTP 203, session', result.sessionId);
@@ -166,7 +171,11 @@ router.post('/captcha/:sessionId', async (req, res) => {
       return res.status(404).json({ error: 'Session not found or expired' });
     }
 
-    const result = await continueCaptcha(sessionId);
+    // TODO: Reimplement createDevStore service
+    const result = { 
+      error: 'Shopify store generation temporarily disabled',
+      message: 'This feature is being reimplemented. Please try again later.'
+    };
 
     if (result.requires2FA) {
       console.log('[Shopify] CAPTCHA solved but 2FA required → HTTP 202, session', sessionId);
@@ -212,7 +221,11 @@ router.post('/2fa/:sessionId', async (req, res) => {
     }
 
     console.log('[Shopify] Reçu code 2FA pour session', sessionId);
-    const result = await continueDevStore(sessionId, code);
+    // TODO: Reimplement createDevStore service
+    const result = { 
+      error: 'Shopify store generation temporarily disabled',
+      message: 'This feature is being reimplemented. Please try again later.'
+    };
 
     // Handle CAPTCHA requirement after 2FA
     if (result && result.requiresCaptcha) {
@@ -666,7 +679,7 @@ router.get('/live/:sessionId', async (req, res) => {
 
     res.setHeader('Content-Type', 'text/html');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+    // res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
     
     // Add permissions and features for hCaptcha
     if (isPopup) {
@@ -675,7 +688,7 @@ router.get('/live/:sessionId', async (req, res) => {
       res.setHeader('Referrer-Policy', 'same-origin');
     } else {
       // For iframe mode, be more restrictive but allow hCaptcha
-      res.setHeader('Content-Security-Policy', "frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com; frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com; connect-src 'self' https://hcaptcha.com https://*.hcaptcha.com");
+      // res.setHeader('Content-Security-Policy', "frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com; frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com; connect-src 'self' https://hcaptcha.com https://*.hcaptcha.com");
     }
     
     // Set cookies from the original session
@@ -1590,7 +1603,7 @@ router.get('/parametrization-page/:shopId', async (req, res) => {
     // Set proper headers for iframe embedding
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+    // res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
     
     res.send(modifiedContent);
 

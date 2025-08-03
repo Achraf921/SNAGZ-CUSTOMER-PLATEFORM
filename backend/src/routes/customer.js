@@ -11,6 +11,7 @@ const { getSignedUrl } = require('../services/s3Service');
 const multer = require('multer');
 const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { s3 } = require('../services/s3Service');
+const { logger } = require('../utils/secureLogger');
 
 // Ensure temp directory exists
 const tempDir = path.join(__dirname, '..', 'uploads', 'temp');
@@ -22,13 +23,13 @@ if (!fs.existsSync(tempDir)) {
 const customerImageUpload = multer({
   dest: tempDir,
   fileFilter: (req, file, cb) => {
-    console.log('🔍 [CUSTOMER MULTER] Processing file:', file.originalname, file.mimetype);
+    logger.debug('Customer multer processing file', { originalname: file.originalname, mimetype: file.mimetype });
     // Only allow image files
     if (file.mimetype.startsWith('image/')) {
-      console.log('🔍 [CUSTOMER MULTER] File accepted:', file.originalname);
+      logger.debug('Customer multer file accepted', { originalname: file.originalname });
       cb(null, true);
     } else {
-      console.log('🔍 [CUSTOMER MULTER] File rejected (not an image):', file.originalname);
+      logger.warn('Customer multer file rejected - not an image', { originalname: file.originalname });
       cb(new Error('Only image files are allowed!'), false);
     }
   },
@@ -36,11 +37,11 @@ const customerImageUpload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   }
 });
-const { validateUserAccess, validateWelcomeFormAccess, validateShopUploadAccess, addRequestSecurity } = require('../middleware/authSecurity');
+const { validateAuthentication, validateUserAccess, validateWelcomeFormAccess, validateShopUploadAccess, addRequestSecurity } = require('../middleware/authSecurity');
 
 // Error handling middleware for multer file upload errors
 const handleMulterError = (err, req, res, next) => {
-  console.error('🚨 [CUSTOMER MULTER ERROR]', err.code, err.message);
+  logger.error('Customer multer error', { code: err.code, message: err.message });
   
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
@@ -106,7 +107,7 @@ const imageOperationLimiter = rateLimit({
     return req.params.userId || req.ip;
   },
   handler: (req, res) => {
-    console.log(`🔒 [SECURITY] Image operation rate limit exceeded for user: ${req.params.userId || req.ip}`);
+    logger.security('Image operation rate limit exceeded', { userId: logger.maskUserId(req.params.userId), ip: logger.maskIP(req.ip) });
     res.status(429).json({
       success: false,
       message: 'Too many image operations. Please try again later.',
@@ -121,7 +122,7 @@ const validateImageOperation = (req, res, next) => {
   
   // Validate required parameters
   if (!userId || !shopId || !productId) {
-    console.error('🔒 [SECURITY] Missing required parameters in image operation');
+    logger.security('Missing required parameters in image operation');
     return res.status(400).json({
       success: false,
       message: 'Missing required parameters',
@@ -131,7 +132,7 @@ const validateImageOperation = (req, res, next) => {
   
   // Validate userId format (should be a valid sub/ID)
   if (typeof userId !== 'string' || userId.length < 10) {
-    console.error('🔒 [SECURITY] Invalid userId format:', userId);
+    logger.security('Invalid userId format', { userId: logger.maskUserId(userId) });
     return res.status(400).json({
       success: false,
       message: 'Invalid user ID format',
@@ -141,7 +142,7 @@ const validateImageOperation = (req, res, next) => {
   
   // Validate shopId format
   if (typeof shopId !== 'string' || shopId.length < 10) {
-    console.error('🔒 [SECURITY] Invalid shopId format:', shopId);
+    logger.security('Invalid shopId format', { shopId });
     return res.status(400).json({
       success: false,
       message: 'Invalid shop ID format',
@@ -151,7 +152,7 @@ const validateImageOperation = (req, res, next) => {
   
   // Validate productId format
   if (typeof productId !== 'string' || productId.length < 10) {
-    console.error('🔒 [SECURITY] Invalid productId format:', productId);
+    logger.security('Invalid productId format', { productId });
     return res.status(400).json({
       success: false,
       message: 'Invalid product ID format',
@@ -163,7 +164,7 @@ const validateImageOperation = (req, res, next) => {
   if (imageIndex !== undefined) {
     const index = parseInt(imageIndex);
     if (isNaN(index) || index < 0) {
-      console.error('🔒 [SECURITY] Invalid imageIndex:', imageIndex);
+      logger.security('Invalid imageIndex', { imageIndex });
       return res.status(400).json({
         success: false,
         message: 'Invalid image index',
@@ -215,7 +216,7 @@ router.get('/my-shops', addRequestSecurity, validateUserAccess, async (req, res)
             const key = new URL(shop.logoUrl).pathname.substring(1);
             shopWithUrls.logoUrl = await getSignedUrl(decodeURIComponent(key));
           } catch (e) {
-            console.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
+            logger.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
           }
         }
         
@@ -234,7 +235,7 @@ router.get('/my-shops', addRequestSecurity, validateUserAccess, async (req, res)
       message: `Found ${shopsWithSignedUrls.length} shops for your account`
     });
   } catch (error) {
-    console.error("[SECURITY] Error in /my-shops:", error);
+    logger.error("[SECURITY] Error in /my-shops:", error);
     res.status(500).json({
       success: false,
       message: 'Error retrieving your shops',
@@ -278,7 +279,7 @@ router.get('/my-profile', addRequestSecurity, validateUserAccess, async (req, re
       }
     });
   } catch (error) {
-    console.error("[SECURITY] Error in /my-profile:", error);
+    logger.error("[SECURITY] Error in /my-profile:", error);
     res.status(500).json({
       success: false,
       message: 'Error retrieving your profile',
@@ -331,7 +332,7 @@ router.get('/my-products', addRequestSecurity, validateUserAccess, async (req, r
       });
     }
     
-    console.log(`[SECURITY] Customer ${userId} accessed their ${myProducts.length} products`);
+    logger.debug('Customer accessed products', { userId: logger.maskUserId(userId), productCount: myProducts.length });
     
     res.status(200).json({
       success: true,
@@ -339,7 +340,7 @@ router.get('/my-products', addRequestSecurity, validateUserAccess, async (req, r
       message: `Found ${myProducts.length} products in your shops`
     });
   } catch (error) {
-    console.error("[SECURITY] Error in /my-products:", error);
+    logger.error("[SECURITY] Error in /my-products:", error);
     res.status(500).json({
       success: false,
       message: 'Error retrieving your products',
@@ -366,11 +367,11 @@ router.post('/welcome-form', addRequestSecurity, validateWelcomeFormAccess, asyn
     
     // SECURITY: Validate that formData.userId matches the authenticated user
     if (formData.userId && formData.userId !== authenticatedUserId) {
-      console.error('🚨 SECURITY ALERT: User attempting to submit welcome form with different userId!');
-      console.error('Authenticated userId:', authenticatedUserId);
-      console.error('Form userId:', formData.userId);
-      console.error('User email:', req.session.userInfo?.email);
-      console.error('IP:', req.ip);
+      logger.security('User attempting to submit welcome form with different userId');
+      logger.security('Authenticated userId', { userId: logger.maskUserId(authenticatedUserId) });
+      logger.security('Form userId', { userId: logger.maskUserId(formData.userId) });
+      logger.security('User email', { email: logger.maskString(req.session.userInfo?.email) });
+      logger.security('IP', { ip: logger.maskIP(req.ip) });
       
       return res.status(403).json({
         success: false,
@@ -403,7 +404,7 @@ router.post('/welcome-form', addRequestSecurity, validateWelcomeFormAccess, asyn
       customerId: result.insertedId
     });
   } catch (error) {
-    console.error('Error saving welcome form:', error);
+    logger.error('Error saving welcome form:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while saving the welcome form',
@@ -459,12 +460,12 @@ router.get('/:customerId', addRequestSecurity, validateUserAccess, async (req, r
     
     // CRITICAL SECURITY: Verify the customer belongs to the authenticated user
     if (customer.userId !== authenticatedUserId) {
-      console.error('🚨 SECURITY ALERT: User attempting to access wrong customer data via MongoDB ID!');
-      console.error('Authenticated userId:', authenticatedUserId);
-      console.error('Customer userId:', customer.userId);
-      console.error('Customer MongoDB ID:', customerId);
-      console.error('User email:', req.session.userInfo?.email);
-      console.error('IP:', req.ip);
+      logger.error('🚨 SECURITY ALERT: User attempting to access wrong customer data via MongoDB ID!');
+      logger.security('Authenticated userId', { userId: logger.maskUserId(authenticatedUserId) });
+      logger.error('Customer userId:', customer.userId);
+      logger.error('Customer MongoDB ID:', customerId);
+      logger.security('User email', { email: logger.maskString(req.session.userInfo?.email) });
+      logger.security('IP', { ip: logger.maskIP(req.ip) });
       
       return res.status(403).json({
         success: false,
@@ -477,7 +478,7 @@ router.get('/:customerId', addRequestSecurity, validateUserAccess, async (req, r
       customer
     });
   } catch (error) {
-    console.error('Error fetching customer data:', error);
+    logger.error('Error fetching customer data:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching customer data',
@@ -490,26 +491,26 @@ router.get('/:customerId', addRequestSecurity, validateUserAccess, async (req, r
 router.get('/by-user-id/:userId', addRequestSecurity, validateUserAccess, async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log('==== CUSTOMER ROUTE DEBUG INFO ====');
-    console.log('Request params:', req.params);
-    console.log('Request query:', req.query);
-    console.log('Request headers:', req.headers);
-    console.log('Fetching customer with userId:', userId);
-    console.log('Timestamp:', new Date().toISOString());
+    logger.debug('Customer route debug info');
+    logger.debug('Request params', { params: req.params });
+    logger.debug('Request query', { query: req.query });
+    logger.debug('Request headers available');
+    logger.debug('Fetching customer with userId:', userId);
+    logger.debug('Timestamp:', new Date().toISOString());
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
     
     // Log all customers in the collection for debugging
-    console.log('Checking all documents in the customers collection...');
+    logger.debug('Checking all documents in the customers collection...');
     const allCustomers = await customersCollection.find({}).toArray();
-    console.log('Total documents in customers collection:', allCustomers.length);
+    logger.debug('Total documents in customers collection:', allCustomers.length);
     
     // Log the first few customers (limit to avoid excessive logging)
     const customerSample = allCustomers.slice(0, Math.min(5, allCustomers.length));
-    console.log('Sample of customers in database:');
+    logger.debug('Sample of customers in database:');
     customerSample.forEach((doc, index) => {
-      console.log(`Document ${index + 1}:`, {
+      logger.debug(`Document ${index + 1}:`, {
         _id: doc._id,
         userId: doc.userId,
         raisonSociale: doc.raisonSociale || 'N/A'
@@ -517,18 +518,18 @@ router.get('/by-user-id/:userId', addRequestSecurity, validateUserAccess, async 
     });
     
     // Use the userId directly as provided - no transformations or alternatives
-    console.log('==== CUSTOMER LOOKUP DEBUG INFO ====');
-    console.log('Searching for customer with EXACT userId:', userId);
-    console.log('This should be the sub from Cognito for the logged-in user');
-    console.log('Timestamp:', new Date().toISOString());
+    logger.debug('==== CUSTOMER LOOKUP DEBUG INFO ====');
+    logger.debug('Searching for customer with EXACT userId:', userId);
+    logger.debug('This should be the sub from Cognito for the logged-in user');
+    logger.debug('Timestamp:', new Date().toISOString());
     
     // CRITICAL SECURITY: Strict validation to prevent privacy leaks
     // Only allow exact userId matches - NO fallbacks or alternative lookups
-    console.log('🔒 SECURITY CHECK: Performing strict userId validation');
-    console.log('Looking for EXACT match with userId:', userId);
+    logger.debug('🔒 SECURITY CHECK: Performing strict userId validation');
+    logger.debug('Looking for EXACT match with userId:', userId);
     
     if (!userId || userId === 'undefined' || userId === 'null') {
-      console.error('🚨 SECURITY ALERT: Invalid userId provided:', userId);
+      logger.error('🚨 SECURITY ALERT: Invalid userId provided:', userId);
       return res.status(400).json({
         success: false,
         message: 'Invalid user identifier',
@@ -545,10 +546,10 @@ router.get('/by-user-id/:userId', addRequestSecurity, validateUserAccess, async 
     if (customer) {
       // Double-check the userId matches exactly
       if (customer.userId !== userId) {
-        console.error('🚨 CRITICAL SECURITY ALERT: UserId mismatch detected!');
-        console.error('Expected userId:', userId);
-        console.error('Found customer userId:', customer.userId);
-        console.error('Customer:', customer.raisonSociale);
+        logger.error('🚨 CRITICAL SECURITY ALERT: UserId mismatch detected!');
+        logger.error('Expected userId:', userId);
+        logger.error('Found customer userId:', customer.userId);
+        logger.error('Customer:', customer.raisonSociale);
         
         // This should never happen - indicates a serious security breach
         return res.status(500).json({
@@ -558,26 +559,26 @@ router.get('/by-user-id/:userId', addRequestSecurity, validateUserAccess, async 
         });
       }
       
-      console.log(`✅ SECURITY VALIDATED: Found customer with exact userId: ${userId}`);
-      console.log('Customer details:', {
+      logger.debug(`✅ SECURITY VALIDATED: Found customer with exact userId: ${userId}`);
+      logger.debug('Customer details:', {
         _id: customer._id,
         userId: customer.userId,
         raisonSociale: customer.raisonSociale || 'N/A'
       });
     } else {
-      console.log(`ℹ️ No customer found with userId: ${userId} (This is normal for new users)`);
+      logger.debug(`ℹ️ No customer found with userId: ${userId} (This is normal for new users)`);
     }
-    console.log('==== END CUSTOMER LOOKUP DEBUG INFO ====');
+    logger.debug('==== END CUSTOMER LOOKUP DEBUG INFO ====');
     
     // If customer not found, handle gracefully for new users
     if (!customer) {
-      console.log('ℹ️ No customer document found - likely a new user');
-      console.log('==== END DEBUG INFO ====');
+      logger.debug('ℹ️ No customer document found - likely a new user');
+      logger.debug('==== END DEBUG INFO ====');
       
       // Check if this is a valid Cognito user by checking session
       const sessionUserInfo = req.session?.userInfo;
       if (sessionUserInfo && (sessionUserInfo.sub === userId || sessionUserInfo.userId === userId)) {
-        console.log('✅ Valid new user - returning welcome form flag');
+        logger.debug('✅ Valid new user - returning welcome form flag');
         return res.status(200).json({
           success: false,
           isNewUser: true,
@@ -590,7 +591,7 @@ router.get('/by-user-id/:userId', addRequestSecurity, validateUserAccess, async 
           }
         });
       } else {
-        console.log('🚨 SECURITY: No valid session for userId');
+        logger.debug('🚨 SECURITY: No valid session for userId');
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
@@ -599,8 +600,8 @@ router.get('/by-user-id/:userId', addRequestSecurity, validateUserAccess, async 
       }
     }
     
-    console.log('Customer found with _id:', customer._id);
-    console.log('==== END DEBUG INFO ====');
+    logger.debug('Customer found with _id:', customer._id);
+    logger.debug('==== END DEBUG INFO ====');
     
     // Return the customer data
     res.status(200).json({
@@ -608,7 +609,7 @@ router.get('/by-user-id/:userId', addRequestSecurity, validateUserAccess, async 
       customer
     });
   } catch (error) {
-    console.error('Error fetching customer data by userId:', error);
+    logger.error('Error fetching customer data by userId:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching customer data',
@@ -623,8 +624,8 @@ router.put('/update/:userId', addRequestSecurity, validateUserAccess, async (req
     const { userId } = req.params;
     const updateData = req.body;
     
-    console.log('Updating customer with userId:', userId);
-    console.log('Update data:', updateData);
+    logger.debug('Updating customer with userId:', userId);
+    logger.debug('Update data:', updateData);
     
     // Remove any fields that should not be updated
     delete updateData._id; // Cannot update MongoDB _id
@@ -665,7 +666,7 @@ router.put('/update/:userId', addRequestSecurity, validateUserAccess, async (req
       customer: updatedCustomer
     });
   } catch (error) {
-    console.error('Error updating customer data:', error);
+    logger.error('Error updating customer data:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while updating the customer profile',
@@ -679,8 +680,8 @@ router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req,
   try {
     const { userId } = req.params;
     
-    console.log('==== FETCH SHOPS DEBUG INFO ====');
-    console.log('Fetching shops for userId (sub):', userId);
+    logger.debug('==== FETCH SHOPS DEBUG INFO ====');
+    logger.debug('Fetching shops for userId (sub):', userId);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -689,8 +690,8 @@ router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req,
     const customer = await customersCollection.findOne({ userId });
     
     if (!customer) {
-      console.log(`FAILURE: No customer found with userId: ${userId}`);
-      console.log('==== END FETCH SHOPS DEBUG INFO ====');
+      logger.debug(`FAILURE: No customer found with userId: ${userId}`);
+      logger.debug('==== END FETCH SHOPS DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Customer profile not found for this user',
@@ -698,11 +699,11 @@ router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req,
       });
     }
     
-    console.log(`SUCCESS: Found customer with userId: ${userId}`);
+    logger.debug(`SUCCESS: Found customer with userId: ${userId}`);
     
     // Check if customer has shops
     const shops = customer.shops || [];
-    console.log(`Found ${shops.length} shops for this customer`);
+    logger.debug(`Found ${shops.length} shops for this customer`);
     
     // Generate pre-signed URLs for all shop images
     const shopsWithSignedUrls = await Promise.all(
@@ -715,7 +716,7 @@ router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req,
             const key = decodeURIComponent(new URL(shop.logoUrl).pathname.substring(1));
             shopWithUrls.logoUrl = await getSignedUrl(key);
           } catch (e) {
-            console.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
+            logger.error(`Error generating signed URL for logo: ${shop.logoUrl}`, e);
           }
         }
         
@@ -724,7 +725,7 @@ router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req,
             const key = decodeURIComponent(new URL(shop.desktopBannerUrl).pathname.substring(1));
             shopWithUrls.desktopBannerUrl = await getSignedUrl(key);
           } catch (e) {
-            console.error(`Error generating signed URL for desktop banner: ${shop.desktopBannerUrl}`, e);
+            logger.error(`Error generating signed URL for desktop banner: ${shop.desktopBannerUrl}`, e);
           }
         }
         
@@ -733,7 +734,7 @@ router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req,
             const key = decodeURIComponent(new URL(shop.mobileBannerUrl).pathname.substring(1));
             shopWithUrls.mobileBannerUrl = await getSignedUrl(key);
           } catch (e) {
-            console.error(`Error generating signed URL for mobile banner: ${shop.mobileBannerUrl}`, e);
+            logger.error(`Error generating signed URL for mobile banner: ${shop.mobileBannerUrl}`, e);
           }
         }
         
@@ -742,7 +743,7 @@ router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req,
             const key = decodeURIComponent(new URL(shop.faviconUrl).pathname.substring(1));
             shopWithUrls.faviconUrl = await getSignedUrl(key);
           } catch (e) {
-            console.error(`Error generating signed URL for favicon: ${shop.faviconUrl}`, e);
+            logger.error(`Error generating signed URL for favicon: ${shop.faviconUrl}`, e);
           }
         }
         
@@ -750,7 +751,7 @@ router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req,
       })
     );
     
-    console.log('==== END FETCH SHOPS DEBUG INFO ====');
+    logger.debug('==== END FETCH SHOPS DEBUG INFO ====');
     
     // Return shops array with signed URLs
     res.status(200).json({
@@ -758,7 +759,7 @@ router.get('/shops/:userId', addRequestSecurity, validateUserAccess, async (req,
       shops: shopsWithSignedUrls
     });
   } catch (error) {
-    console.error('Error fetching shops:', error);
+    logger.error('Error fetching shops:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching shops',
@@ -773,9 +774,9 @@ router.post('/shops/:userId', addRequestSecurity, validateUserAccess, async (req
     const { userId } = req.params;
     const shopData = req.body;
     
-    console.log('==== CREATE SHOP DEBUG INFO ====');
-    console.log('Creating shop for userId (sub):', userId);
-    console.log('Shop data:', shopData);
+    logger.debug('==== CREATE SHOP DEBUG INFO ====');
+    logger.debug('Creating shop for userId (sub):', userId);
+    logger.debug('Shop data:', shopData);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -784,8 +785,8 @@ router.post('/shops/:userId', addRequestSecurity, validateUserAccess, async (req
     const customer = await customersCollection.findOne({ userId });
     
     if (!customer) {
-      console.log(`FAILURE: No customer found with userId: ${userId}`);
-      console.log('==== END CREATE SHOP DEBUG INFO ====');
+      logger.debug(`FAILURE: No customer found with userId: ${userId}`);
+      logger.debug('==== END CREATE SHOP DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Customer profile not found for this user',
@@ -793,7 +794,7 @@ router.post('/shops/:userId', addRequestSecurity, validateUserAccess, async (req
       });
     }
     
-    console.log(`SUCCESS: Found customer with userId: ${userId}`);
+    logger.debug(`SUCCESS: Found customer with userId: ${userId}`);
     
     // Add timestamp and unique ID to the shop data
     const newShop = {
@@ -818,17 +819,17 @@ router.post('/shops/:userId', addRequestSecurity, validateUserAccess, async (req
     );
     
     if (result.modifiedCount === 0) {
-      console.log('Failed to add shop to customer document');
-      console.log('==== END CREATE SHOP DEBUG INFO ====');
+      logger.debug('Failed to add shop to customer document');
+      logger.debug('==== END CREATE SHOP DEBUG INFO ====');
       return res.status(400).json({
         success: false,
         message: 'Failed to add shop to customer profile'
       });
     }
     
-    console.log('Shop added successfully to customer document');
-    console.log('Shop ID:', newShop.shopId);
-    console.log('==== END CREATE SHOP DEBUG INFO ====');
+    logger.debug('Shop added successfully to customer document');
+    logger.debug('Shop ID:', newShop.shopId);
+    logger.debug('==== END CREATE SHOP DEBUG INFO ====');
     
     // Return success response
     res.status(201).json({
@@ -838,7 +839,7 @@ router.post('/shops/:userId', addRequestSecurity, validateUserAccess, async (req
       shop: newShop
     });
   } catch (error) {
-    console.error('Error creating shop:', error);
+    logger.error('Error creating shop:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while creating the shop',
@@ -853,9 +854,9 @@ router.put('/shops/:userId/:shopId', addRequestSecurity, validateUserAccess, asy
     const { userId, shopId } = req.params;
     const updatedShopData = req.body;
     
-    console.log('==== UPDATE SHOP DEBUG INFO ====');
-    console.log('Updating shop for userId (sub):', userId);
-    console.log('Shop ID:', shopId);
+    logger.debug('==== UPDATE SHOP DEBUG INFO ====');
+    logger.debug('Updating shop for userId (sub):', userId);
+    logger.debug('Shop ID:', shopId);
     // Clean up the data for logging to avoid console spam
     const logData = { ...updatedShopData };
     const imageTypes = ['logo', 'desktopBanner', 'mobileBanner', 'favicon'];
@@ -864,8 +865,8 @@ router.put('/shops/:userId/:shopId', addRequestSecurity, validateUserAccess, asy
         logData[`${imageType}Url`] = '[BASE64_DATA_URL]';
       }
     });
-    console.log('Updated shop data keys:', Object.keys(updatedShopData));
-    console.log('Updated shop data (cleaned):', logData);
+    logger.debug('Updated shop data keys:', Object.keys(updatedShopData));
+    logger.debug('Updated shop data (cleaned):', logData);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -874,8 +875,8 @@ router.put('/shops/:userId/:shopId', addRequestSecurity, validateUserAccess, asy
     const customer = await customersCollection.findOne({ userId });
     
     if (!customer) {
-      console.log(`FAILURE: No customer found with userId: ${userId}`);
-      console.log('==== END UPDATE SHOP DEBUG INFO ====');
+      logger.debug(`FAILURE: No customer found with userId: ${userId}`);
+      logger.debug('==== END UPDATE SHOP DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Customer profile not found for this user',
@@ -883,12 +884,12 @@ router.put('/shops/:userId/:shopId', addRequestSecurity, validateUserAccess, asy
       });
     }
     
-    console.log(`SUCCESS: Found customer with userId: ${userId}`);
+    logger.debug(`SUCCESS: Found customer with userId: ${userId}`);
     
     // Check if customer has shops array
     if (!customer.shops || !Array.isArray(customer.shops)) {
-      console.log('FAILURE: Customer has no shops array');
-      console.log('==== END UPDATE SHOP DEBUG INFO ====');
+      logger.debug('FAILURE: Customer has no shops array');
+      logger.debug('==== END UPDATE SHOP DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'No shops found for this customer'
@@ -899,8 +900,8 @@ router.put('/shops/:userId/:shopId', addRequestSecurity, validateUserAccess, asy
     const shopIndex = customer.shops.findIndex(shop => shop.shopId === shopId);
     
     if (shopIndex === -1) {
-      console.log(`FAILURE: No shop found with ID: ${shopId}`);
-      console.log('==== END UPDATE SHOP DEBUG INFO ====');
+      logger.debug(`FAILURE: No shop found with ID: ${shopId}`);
+      logger.debug('==== END UPDATE SHOP DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Shop not found'
@@ -927,7 +928,7 @@ router.put('/shops/:userId/:shopId', addRequestSecurity, validateUserAccess, asy
 
     // Log the update if status is being changed
     if (updatedShopData.status && updatedShopData.status !== originalShop.status) {
-      console.log('Updating shop status:', {
+      logger.debug('Updating shop status:', {
         shopId: originalShop.shopId,
         oldStatus: originalShop.status,
         newStatus: updatedShopData.status,
@@ -950,16 +951,16 @@ router.put('/shops/:userId/:shopId', addRequestSecurity, validateUserAccess, asy
     );
 
     if (result.modifiedCount === 0) {
-      console.log('FAILURE: Failed to update shop');
-      console.log('==== END UPDATE SHOP DEBUG INFO ====');
+      logger.debug('FAILURE: Failed to update shop');
+      logger.debug('==== END UPDATE SHOP DEBUG INFO ====');
       return res.status(400).json({
         success: false,
         message: 'Failed to update shop'
       });
     }
     
-    console.log('SUCCESS: Shop updated successfully');
-    console.log('==== END UPDATE SHOP DEBUG INFO ====');
+    logger.debug('SUCCESS: Shop updated successfully');
+    logger.debug('==== END UPDATE SHOP DEBUG INFO ====');
     
     // Return success response
     const shopResponse = {
@@ -976,7 +977,7 @@ router.put('/shops/:userId/:shopId', addRequestSecurity, validateUserAccess, asy
       updatedClient: await customersCollection.findOne({ userId }),
     });
   } catch (error) {
-    console.error('Error updating shop:', error);
+    logger.error('Error updating shop:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while updating the shop',
@@ -991,10 +992,10 @@ router.post('/shops/:userId/:shopId/upload-image', addRequestSecurity, validateU
     const { userId, shopId } = req.params;
     const { imageType } = req.body;
     
-    console.log('==== UPLOAD IMAGE DEBUG INFO ====');
-    console.log('Uploading image for userId:', userId);
-    console.log('Shop ID:', shopId);
-    console.log('Image type:', imageType);
+    logger.debug('==== UPLOAD IMAGE DEBUG INFO ====');
+    logger.debug('Uploading image for userId:', userId);
+    logger.debug('Shop ID:', shopId);
+    logger.debug('Image type:', imageType);
     
     if (!req.files || !req.files.image) {
       return res.status(400).json({
@@ -1140,10 +1141,10 @@ router.post('/shops/:userId/:shopId/upload-image', addRequestSecurity, validateU
       });
     }
     
-    console.log('SUCCESS: Image uploaded and shop updated');
-    console.log('==== END UPLOAD IMAGE DEBUG INFO ====');
+    logger.debug('SUCCESS: Image uploaded and shop updated');
+    logger.debug('==== END UPLOAD IMAGE DEBUG INFO ====');
     
-    console.log('Returning S3 key:', s3Key);
+    logger.debug('Returning S3 key:', s3Key);
     res.status(200).json({
       success: true,
       message: 'Image uploaded successfully',
@@ -1151,7 +1152,7 @@ router.post('/shops/:userId/:shopId/upload-image', addRequestSecurity, validateU
     });
     
   } catch (error) {
-    console.error('Error uploading image:', error);
+    logger.error('Error uploading image:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while uploading the image',
@@ -1165,10 +1166,10 @@ router.get('/shops/:userId/:shopId/image/:imageType', addRequestSecurity, valida
   try {
     const { userId, shopId, imageType } = req.params;
     
-    console.log('==== GET IMAGE URL DEBUG INFO ====');
-    console.log('Getting image URL for userId:', userId);
-    console.log('Shop ID:', shopId);
-    console.log('Image type:', imageType);
+    logger.debug('==== GET IMAGE URL DEBUG INFO ====');
+    logger.debug('Getting image URL for userId:', userId);
+    logger.debug('Shop ID:', shopId);
+    logger.debug('Image type:', imageType);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -1204,7 +1205,7 @@ router.get('/shops/:userId/:shopId/image/:imageType', addRequestSecurity, valida
     // Get the S3 key for the image
     const s3Key = shop[`${imageType}S3Key`];
     
-    console.log(`Looking for ${imageType}S3Key:`, s3Key);
+    logger.debug(`Looking for ${imageType}S3Key:`, s3Key);
     
     if (!s3Key) {
       return res.status(404).json({
@@ -1217,8 +1218,8 @@ router.get('/shops/:userId/:shopId/image/:imageType', addRequestSecurity, valida
     const s3Service = require('../services/s3Service');
     const presignedUrl = await s3Service.generatePresignedUrl(s3Key);
     
-    console.log('Generated pre-signed URL for:', s3Key);
-    console.log('==== END GET IMAGE URL DEBUG INFO ====');
+    logger.debug('Generated pre-signed URL for:', s3Key);
+    logger.debug('==== END GET IMAGE URL DEBUG INFO ====');
     
     res.status(200).json({
       success: true,
@@ -1228,7 +1229,7 @@ router.get('/shops/:userId/:shopId/image/:imageType', addRequestSecurity, valida
     });
     
   } catch (error) {
-    console.error('Error generating image URL:', error);
+    logger.error('Error generating image URL:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while generating the image URL',
@@ -1239,16 +1240,16 @@ router.get('/shops/:userId/:shopId/image/:imageType', addRequestSecurity, valida
 
 // Route to proxy images to avoid CORS issues
 router.get('/shops/:userId/:shopId/image-proxy/:imageType', addRequestSecurity, validateUserAccess, async (req, res) => {
-  console.log('==== PROXY ROUTE CALLED ====');
-  console.log('Request URL:', req.originalUrl);
-  console.log('Request method:', req.method);
+  logger.debug('==== PROXY ROUTE CALLED ====');
+  logger.debug('Request URL:', req.originalUrl);
+  logger.debug('Request method:', req.method);
   try {
     const { userId, shopId, imageType } = req.params;
     
-    console.log('==== IMAGE PROXY DEBUG INFO ====');
-    console.log('Proxying image for userId:', userId);
-    console.log('Shop ID:', shopId);
-    console.log('Image type:', imageType);
+    logger.debug('==== IMAGE PROXY DEBUG INFO ====');
+    logger.debug('Proxying image for userId:', userId);
+    logger.debug('Shop ID:', shopId);
+    logger.debug('Image type:', imageType);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -1282,14 +1283,42 @@ router.get('/shops/:userId/:shopId/image-proxy/:imageType', addRequestSecurity, 
     }
     
     // Get the S3 key for the image
-    const s3Key = shop[`${imageType}S3Key`];
+    let s3Key = shop[`${imageType}S3Key`];
     
-    console.log(`Looking for ${imageType}S3Key:`, s3Key);
+    logger.debug(`Looking for ${imageType}S3Key, found initial value:`, s3Key);
+    
+    // Robustly extract the S3 key if the field contains a full URL
+    if (s3Key && (s3Key.startsWith('http') || s3Key.includes('amazonaws.com'))) {
+      try {
+        const url = new URL(s3Key);
+        s3Key = decodeURIComponent(url.pathname.substring(1)); // Remove leading slash and decode
+        logger.debug(`Extracted S3 key from ${imageType}S3Key field:`, s3Key);
+      } catch (urlError) {
+        logger.error(`Error parsing S3 key which looks like a URL: ${s3Key}`, urlError);
+        s3Key = null; // Invalidate if parsing fails
+      }
+    }
+
+    // If no valid S3 key was found, try to extract it from the corresponding Url field as a fallback
+    if (!s3Key) {
+      const imageUrl = shop[`${imageType}Url`];
+      logger.debug(`S3 key not found or invalid, falling back to ${imageType}Url:`, imageUrl);
+      if (imageUrl && (imageUrl.startsWith('http') || imageUrl.includes('amazonaws.com'))) {
+        try {
+          const url = new URL(imageUrl);
+          s3Key = decodeURIComponent(url.pathname.substring(1)); // Remove leading slash and decode
+          logger.debug(`Extracted S3 key from fallback ${imageType}Url field:`, s3Key);
+        } catch (urlError) {
+          logger.error('Error parsing fallback image URL:', urlError);
+        }
+      }
+    }
     
     if (!s3Key) {
+      logger.error(`Could not determine a valid S3 key for ${imageType}`);
       return res.status(404).json({
         success: false,
-        message: 'Image not found'
+        message: 'Image not found or key is invalid'
       });
     }
     
@@ -1298,8 +1327,8 @@ router.get('/shops/:userId/:shopId/image-proxy/:imageType', addRequestSecurity, 
     const { GetObjectCommand } = require('@aws-sdk/client-s3');
     
     try {
-      console.log('S3 bucket name:', s3Service.bucketName);
-      console.log('S3 key:', s3Key);
+      logger.debug('S3 bucket name:', s3Service.bucketName);
+      logger.debug('S3 key:', s3Key);
       
       const command = new GetObjectCommand({
         Bucket: s3Service.bucketName,
@@ -1326,10 +1355,10 @@ router.get('/shops/:userId/:shopId/image-proxy/:imageType', addRequestSecurity, 
       
       res.send(buffer);
       
-      console.log('==== END IMAGE PROXY DEBUG INFO ====');
+      logger.debug('==== END IMAGE PROXY DEBUG INFO ====');
       
     } catch (s3Error) {
-      console.error('Error fetching image from S3:', s3Error);
+      logger.error('Error fetching image from S3:', s3Error);
       res.status(500).json({
         success: false,
         message: 'Error fetching image from S3',
@@ -1337,7 +1366,7 @@ router.get('/shops/:userId/:shopId/image-proxy/:imageType', addRequestSecurity, 
       });
     }
   } catch (error) {
-    console.error('Error in image proxy route:', error);
+    logger.error('Error in image proxy route:', error);
     res.status(500).json({
       success: false,
       message: 'Error processing image proxy request'
@@ -1353,8 +1382,8 @@ router.get('/shops/:userId/:shopId/products/:productId/image-proxy',
   validateUserAccess, 
   validateImageOperation, // Input validation
   async (req, res) => {
-    console.log('🔒 [SECURITY] Product image proxy route accessed');
-    console.log('🔒 [SECURITY] Request details:', {
+    logger.debug('🔒 [SECURITY] Product image proxy route accessed');
+    logger.debug('🔒 [SECURITY] Request details:', {
       securityId: req.securityId,
       userId: req.params.userId,
       shopId: req.params.shopId,
@@ -1371,7 +1400,7 @@ router.get('/shops/:userId/:shopId/products/:productId/image-proxy',
     
     // SECURITY: Additional input validation
     if (!imageKey || typeof imageKey !== 'string' || imageKey.length > 500) {
-      console.error('🔒 [SECURITY] Invalid imageKey provided:', imageKey);
+      logger.error('🔒 [SECURITY] Invalid imageKey provided:', imageKey);
       return res.status(400).json({
         success: false,
         message: 'Invalid image key provided',
@@ -1381,7 +1410,7 @@ router.get('/shops/:userId/:shopId/products/:productId/image-proxy',
     
     // SECURITY: Validate imageKey format to prevent path traversal attacks
     if (imageKey.includes('..') || imageKey.includes('//') || !imageKey.startsWith('products/')) {
-      console.error('🔒 [SECURITY] Potential path traversal attack detected:', imageKey);
+      logger.error('🔒 [SECURITY] Potential path traversal attack detected:', imageKey);
       return res.status(403).json({
         success: false,
         message: 'Invalid image key format',
@@ -1438,7 +1467,7 @@ router.get('/shops/:userId/:shopId/products/:productId/image-proxy',
       }
       return url === imageKey;
     })) {
-      console.error('🔒 [SECURITY] Unauthorized image access attempt:', {
+      logger.error('🔒 [SECURITY] Unauthorized image access attempt:', {
         userId,
         shopId,
         productId,
@@ -1453,15 +1482,15 @@ router.get('/shops/:userId/:shopId/products/:productId/image-proxy',
       });
     }
     
-    console.log('🔒 [SECURITY] Image access authorized for user:', userId);
+    logger.debug('🔒 [SECURITY] Image access authorized for user:', userId);
     
     // Get the image from S3 and serve it directly
     const s3Service = require('../services/s3Service');
     const { GetObjectCommand } = require('@aws-sdk/client-s3');
     
     try {
-      console.log('S3 bucket name:', s3Service.bucketName);
-      console.log('S3 key:', imageKey);
+      logger.debug('S3 bucket name:', s3Service.bucketName);
+      logger.debug('S3 key:', imageKey);
       
       const command = new GetObjectCommand({
         Bucket: s3Service.bucketName,
@@ -1492,7 +1521,7 @@ router.get('/shops/:userId/:shopId/products/:productId/image-proxy',
       
       res.send(buffer);
       
-      console.log('🔒 [SECURITY] Product image successfully served:', {
+      logger.debug('🔒 [SECURITY] Product image successfully served:', {
         securityId: req.securityId,
         userId,
         shopId,
@@ -1503,7 +1532,7 @@ router.get('/shops/:userId/:shopId/products/:productId/image-proxy',
       });
       
     } catch (s3Error) {
-      console.error('🔒 [SECURITY] S3 error in product image proxy:', {
+      logger.error('🔒 [SECURITY] S3 error in product image proxy:', {
         securityId: req.securityId,
         userId,
         shopId,
@@ -1521,7 +1550,7 @@ router.get('/shops/:userId/:shopId/products/:productId/image-proxy',
     }
     
   } catch (error) {
-    console.error('🔒 [SECURITY] General error in product image proxy:', {
+    logger.error('🔒 [SECURITY] General error in product image proxy:', {
       securityId: req.securityId,
       userId: req.params.userId,
       shopId: req.params.shopId,
@@ -1540,14 +1569,14 @@ router.get('/shops/:userId/:shopId/products/:productId/image-proxy',
 
 // Clean GET route to fetch a customer by clientId (for internal portal)
 router.get('/clients/:clientId', async (req, res) => {
-  console.log('==== GET /clients/:clientId ====');
-  console.log('Client ID from params:', req.params.clientId);
+  logger.debug('==== GET /clients/:clientId ====');
+  logger.debug('Client ID from params:', req.params.clientId);
   
   try {
     const { clientId } = req.params;
     
     if (!clientId || clientId === 'undefined') {
-      console.error('No client ID provided');
+      logger.error('No client ID provided');
       return res.status(400).json({ 
         success: false, 
         message: 'ID client manquant' 
@@ -1558,11 +1587,11 @@ router.get('/clients/:clientId', async (req, res) => {
     let customer;
     
     try {
-      console.log('Trying to find customer with ID:', clientId);
+      logger.debug('Trying to find customer with ID:', clientId);
       customer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
-      console.log('Found customer:', customer ? 'Yes' : 'No');
+      logger.debug('Found customer:', customer ? 'Yes' : 'No');
     } catch (err) {
-      console.error('Error finding customer:', err.message);
+      logger.error('Error finding customer:', err.message);
       // If ObjectId is invalid, immediately return 404
       return res.status(404).json({ 
         success: false, 
@@ -1572,7 +1601,7 @@ router.get('/clients/:clientId', async (req, res) => {
     }
     
     if (!customer) {
-      console.log('No customer found with ID:', clientId);
+      logger.debug('No customer found with ID:', clientId);
       return res.status(404).json({ 
         success: false, 
         message: 'Client introuvable',
@@ -1580,14 +1609,14 @@ router.get('/clients/:clientId', async (req, res) => {
       });
     }
     
-    console.log('Successfully retrieved customer:', customer._id);
+    logger.debug('Successfully retrieved customer:', customer._id);
     res.status(200).json({ 
       success: true, 
       customer 
     });
     
   } catch (error) {
-    console.error('Unexpected error in GET /clients/:clientId:', error);
+    logger.error('Unexpected error in GET /clients/:clientId:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du client',
@@ -1631,7 +1660,7 @@ router.put('/clients/:clientId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error updating client:', error);
+    logger.error('Error updating client:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to update client',
@@ -1696,7 +1725,7 @@ router.put('/clients/:clientId/shops/:shopId', async (req, res) => {
 
     // Log the update if status is being changed
     if (updatedShopFields.status && updatedShopFields.status !== originalShop.status) {
-      console.log('Updating shop status:', {
+      logger.debug('Updating shop status:', {
         shopId: originalShop.shopId,
         oldStatus: originalShop.status,
         newStatus: updatedShopFields.status,
@@ -1723,7 +1752,7 @@ router.put('/clients/:clientId/shops/:shopId', async (req, res) => {
     }
 
     if (result.modifiedCount === 0) {
-      console.log('Shop update requested but data was identical to existing data.');
+      logger.debug('Shop update requested but data was identical to existing data.');
     }
 
     const shopResponse = {
@@ -1741,7 +1770,7 @@ router.put('/clients/:clientId/shops/:shopId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating shop:', error);
+    logger.error('Error updating shop:', error);
     res.status(500).json({ 
       success: false, 
       message: 'An error occurred while updating the shop', 
@@ -1798,9 +1827,9 @@ router.get('/clients/:clientId/shops/:shopId', async (req, res) => {
 
 // Route to update shop documentation status - REQUIRES AUTHENTICATION
 router.post('/shop/:shopId/documentation', validateAuthentication, async (req, res) => {
-  console.log('Received request to update shop documentation status');
-  console.log('Params:', req.params);
-  console.log('Body:', req.body);
+  logger.debug('Received request to update shop documentation status');
+  logger.debug('Params:', req.params);
+  logger.debug('Body:', req.body);
   
   try {
     const { shopId } = req.params;
@@ -1810,7 +1839,7 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
     }
 
     if (!shopId || !action) {
-      console.log('Missing required parameters');
+      logger.debug('Missing required parameters');
       return res.status(400).json({
         success: false,
         message: 'Shop ID and action are required'
@@ -1820,39 +1849,39 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
     const customersCollection = await getCustomersCollection();
     
     // Find the customer document that contains the shop
-    console.log('Searching for customer with shopId:', shopId);
+    logger.debug('Searching for customer with shopId:', shopId);
     const customer = await customersCollection.findOne({
       'shops.shopId': shopId
     });
 
     // FIXED: Check if customer exists BEFORE using it
     if (!customer) {
-      console.log('Shop not found');
+      logger.debug('Shop not found');
       return res.status(404).json({
         success: false,
         message: 'Shop not found'
       });
     }
 
-    console.log('Found customer:', customer._id);
+    logger.debug('Found customer:', customer._id);
 
     // Find specific shop object
     const shop = customer.shops.find(s => s.shopId === shopId);
     if (!shop) {
-      console.log('❌ [DOC-DELETE-ERROR] Shop not found in customer shops array');
-      console.log('❌ [DOC-DELETE-ERROR] Available shop IDs in customer:', customer.shops.map(s => s.shopId));
-      console.log('❌ [DOC-DELETE-ERROR] Requested shopId:', shopId);
+      logger.debug('❌ [DOC-DELETE-ERROR] Shop not found in customer shops array');
+      logger.debug('❌ [DOC-DELETE-ERROR] Available shop IDs in customer:', customer.shops.map(s => s.shopId));
+      logger.debug('❌ [DOC-DELETE-ERROR] Requested shopId:', shopId);
       return res.status(404).json({ success: false, message: 'Shop not found' });
     }
 
-    console.log('✅ [DOC-DELETE-SUCCESS] Found shop in customer document');
-    console.log('📊 [DOC-DELETE-INFO] Shop details:', {
+    logger.debug('✅ [DOC-DELETE-SUCCESS] Found shop in customer document');
+    logger.debug('📊 [DOC-DELETE-INFO] Shop details:', {
       shopId: shop.shopId,
       nomProjet: shop.nomProjet,
       currentDocStatus: shop.documented,
       productsCount: shop.products?.length || 0
     });
-    console.log('📊 [DOC-DELETE-INFO] Requested action:', action);
+    logger.debug('📊 [DOC-DELETE-INFO] Requested action:', action);
 
     // Handle SharePoint documentation generation
     if (action === 'document') {
@@ -1902,7 +1931,7 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
           existingFiles.sort((a, b) => b.mtime - a.mtime);
           templatePath = path.join(docsDir, existingFiles[0].name);
           outputPath = templatePath; // Overwrite (append) the same file
-          console.log(`Appending product to existing XLSX: ${templatePath}`);
+          logger.debug(`Appending product to existing XLSX: ${templatePath}`);
         } else {
           // No existing file, use the base template and create a new file
           templatePath = path.join(
@@ -1910,10 +1939,10 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
             '../services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx'
           );
           outputPath = path.join(docsDir, `${filenamePrefix}_${Date.now()}.xlsx`);
-          console.log(`Creating new XLSX for product documentation: ${outputPath}`);
+          logger.debug(`Creating new XLSX for product documentation: ${outputPath}`);
         }
         
-        console.log('Calling merch XLSX processor for single product...');
+        logger.debug('Calling merch XLSX processor for single product...');
         
         // SECURITY: Use spawn with array arguments to prevent command injection
         const pythonScript = path.join(__dirname, '../services/merch_xlsx_processor.py');
@@ -1958,8 +1987,8 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
           console.warn('[merch_xlsx_processor warning]', stderr);
         }
         
-        console.log('XLSX processor stdout:', stdout);
-        console.log(`Product documentation generated successfully: ${outputPath}`);
+        logger.debug('XLSX processor stdout:', stdout);
+        logger.debug(`Product documentation generated successfully: ${outputPath}`);
         
         // Update the shop's documentation status only after successful generation
         const updateResult = await customersCollection.updateOne(
@@ -1973,7 +2002,7 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
         );
 
         if (updateResult.modifiedCount === 0) {
-          console.log('No documents were modified');
+          logger.debug('No documents were modified');
           return res.status(500).json({
             success: false,
             message: 'Failed to update shop documentation status'
@@ -1986,7 +2015,7 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
           const updatedShop = updatedCustomer.shops.find((s) => s.shopId === shopId);
           await generateDocumentation(updatedCustomer, updatedShop, true); // force overwrite merch file with new product row
         } catch (regenErr) {
-          console.error('Error regenerating merchandising XLSX after single product doc:', regenErr);
+          logger.error('Error regenerating merchandising XLSX after single product doc:', regenErr);
         }
         
         res.status(200).json({
@@ -1996,7 +2025,7 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
           documented: 'documented'
         });
       } catch (err) {
-        console.error('Error generating documentation:', err);
+        logger.error('Error generating documentation:', err);
         
         // Handle the special case where documentation already exists
         if (err.message === 'DOCUMENTATION_EXISTS') {
@@ -2019,16 +2048,16 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
       const newStatus = action === 'mark_documented' ? 'documented' : 'undocumented';
       const productDocumentedStatus = action === 'mark_documented' ? true : false;
       
-      console.log('🔄 [DOC-UPDATE] Starting documentation status update...');
-      console.log('🔄 [DOC-UPDATE] Action requested:', action);
-      console.log('🔄 [DOC-UPDATE] New shop status:', newStatus);
-      console.log('🔄 [DOC-UPDATE] New product documented status:', productDocumentedStatus);
+      logger.debug('🔄 [DOC-UPDATE] Starting documentation status update...');
+      logger.debug('🔄 [DOC-UPDATE] Action requested:', action);
+      logger.debug('🔄 [DOC-UPDATE] New shop status:', newStatus);
+      logger.debug('🔄 [DOC-UPDATE] New product documented status:', productDocumentedStatus);
       
       // Find the shop and get products count for logging
       const shopData = customer.shops.find(s => s.shopId === shopId);
       const productsCount = shopData?.products?.length || 0;
       
-      console.log('📊 [DOC-UPDATE] Shop data before update:', {
+      logger.debug('📊 [DOC-UPDATE] Shop data before update:', {
         currentStatus: shopData?.documented,
         productsCount: productsCount,
         shopId: shopId
@@ -2042,22 +2071,22 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
       
       // Update all products' documented status
       if (productsCount > 0) {
-        console.log(`🔄 [DOC-UPDATE] Preparing to update ${productsCount} products...`);
+        logger.debug(`🔄 [DOC-UPDATE] Preparing to update ${productsCount} products...`);
         for (let i = 0; i < productsCount; i++) {
           updateOperations[`shops.$.products.${i}.documented`] = productDocumentedStatus;
           }
-        console.log('🔄 [DOC-UPDATE] Product update operations prepared');
+        logger.debug('🔄 [DOC-UPDATE] Product update operations prepared');
         }
       
-      console.log('🔄 [DOC-UPDATE] Final update operations:', updateOperations);
-      console.log('🔄 [DOC-UPDATE] Executing database update...');
+      logger.debug('🔄 [DOC-UPDATE] Final update operations:', updateOperations);
+      logger.debug('🔄 [DOC-UPDATE] Executing database update...');
       
       const updateResult = await customersCollection.updateOne(
         { 'shops.shopId': shopId },
         { $set: updateOperations }
       );
 
-      console.log('📊 [DOC-UPDATE] Database update result:', {
+      logger.debug('📊 [DOC-UPDATE] Database update result:', {
         acknowledged: updateResult.acknowledged,
         matchedCount: updateResult.matchedCount,
         modifiedCount: updateResult.modifiedCount,
@@ -2065,15 +2094,15 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
       });
 
       if (updateResult.modifiedCount === 0) {
-        console.log('❌ [DOC-UPDATE-ERROR] No documents were modified');
-        console.log('❌ [DOC-UPDATE-ERROR] This could mean the shop was not found or data was already in the requested state');
+        logger.debug('❌ [DOC-UPDATE-ERROR] No documents were modified');
+        logger.debug('❌ [DOC-UPDATE-ERROR] This could mean the shop was not found or data was already in the requested state');
         return res.status(500).json({
           success: false,
           message: 'Failed to update shop documentation status'
         });
       }
 
-      console.log(`✅ [DOC-UPDATE-SUCCESS] Successfully updated shop documentation status and ${productsCount} products`);
+      logger.debug(`✅ [DOC-UPDATE-SUCCESS] Successfully updated shop documentation status and ${productsCount} products`);
       
       res.status(200).json({
         success: true,
@@ -2085,13 +2114,13 @@ router.post('/shop/:shopId/documentation', validateAuthentication, async (req, r
       });
     }
   } catch (error) {
-    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Critical error updating shop documentation status');
-    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Error name:', error.name);
-    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Error message:', error.message);
-    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Error stack:', error.stack);
-    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Request params:', req.params);
-    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Request body:', req.body);
-    console.error('💥 [DOC-UPDATE-FATAL-ERROR] Timestamp:', new Date().toISOString());
+    logger.error('💥 [DOC-UPDATE-FATAL-ERROR] Critical error updating shop documentation status');
+    logger.error('💥 [DOC-UPDATE-FATAL-ERROR] Error name:', error.name);
+    logger.error('💥 [DOC-UPDATE-FATAL-ERROR] Error message:', error.message);
+    logger.error('💥 [DOC-UPDATE-FATAL-ERROR] Error stack:', error.stack);
+    logger.error('💥 [DOC-UPDATE-FATAL-ERROR] Request params:', req.params);
+    logger.error('💥 [DOC-UPDATE-FATAL-ERROR] Request body:', req.body);
+    logger.error('💥 [DOC-UPDATE-FATAL-ERROR] Timestamp:', new Date().toISOString());
     
     res.status(500).json({
       success: false,
@@ -2143,7 +2172,7 @@ router.get('/shop/:shopId/products', async (req, res) => {
       shopName: shop.nomProjet || shop.name
     });
   } catch (error) {
-    console.error('Error fetching shop products:', error);
+    logger.error('Error fetching shop products:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching shop products',
@@ -2236,7 +2265,7 @@ router.post('/shop/:shopId/product/:productId/documentation', async (req, res) =
           existingFiles.sort((a, b) => b.mtime - a.mtime);
           templatePath = path.join(docsDir, existingFiles[0].name);
           outputPath = templatePath; // Overwrite (append) the same file
-          console.log(`Appending product to existing XLSX: ${templatePath}`);
+          logger.debug(`Appending product to existing XLSX: ${templatePath}`);
         } else {
           // No existing file, use the base template and create a new file
           templatePath = path.join(
@@ -2244,10 +2273,10 @@ router.post('/shop/:shopId/product/:productId/documentation', async (req, res) =
             '../services/FichesProduitTemplate/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx'
           );
           outputPath = path.join(docsDir, `${filenamePrefix}_${Date.now()}.xlsx`);
-          console.log(`Creating new XLSX for product documentation: ${outputPath}`);
+          logger.debug(`Creating new XLSX for product documentation: ${outputPath}`);
         }
         
-        console.log('Calling merch XLSX processor for single product...');
+        logger.debug('Calling merch XLSX processor for single product...');
         
         // SECURITY: Use spawn with array arguments to prevent command injection
         const pythonScript = path.join(__dirname, '../services/merch_xlsx_processor.py');
@@ -2292,8 +2321,8 @@ router.post('/shop/:shopId/product/:productId/documentation', async (req, res) =
           console.warn('[merch_xlsx_processor warning]', stderr);
         }
         
-        console.log('XLSX processor stdout:', stdout);
-        console.log(`Product documentation generated successfully: ${outputPath}`);
+        logger.debug('XLSX processor stdout:', stdout);
+        logger.debug(`Product documentation generated successfully: ${outputPath}`);
         
         // Update product status to documented
         const updateResult = await customersCollection.updateOne(
@@ -2319,7 +2348,7 @@ router.post('/shop/:shopId/product/:productId/documentation', async (req, res) =
           const updatedShop = updatedCustomer.shops.find((s) => s.shopId === shopId);
           await generateDocumentation(updatedCustomer, updatedShop, true); // force overwrite merch file with new product row
         } catch (regenErr) {
-          console.error('Error regenerating merchandising XLSX after single product doc:', regenErr);
+          logger.error('Error regenerating merchandising XLSX after single product doc:', regenErr);
         }
 
         res.status(200).json({
@@ -2330,7 +2359,7 @@ router.post('/shop/:shopId/product/:productId/documentation', async (req, res) =
         });
         
       } catch (error) {
-        console.error('Error generating product documentation:', error);
+        logger.error('Error generating product documentation:', error);
         res.status(500).json({
           success: false,
           message: `Erreur lors de la génération de la documentation: ${error.message}`,
@@ -2371,7 +2400,7 @@ router.post('/shop/:shopId/product/:productId/documentation', async (req, res) =
     }
     
   } catch (error) {
-    console.error('Error updating product documentation:', error);
+    logger.error('Error updating product documentation:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while updating product documentation',
@@ -2386,10 +2415,10 @@ router.post('/shops/:userId/:shopId/products', addRequestSecurity, validateUserA
     const { userId, shopId } = req.params;
     const productData = req.body;
     
-    console.log('==== CREATE PRODUCT DEBUG INFO ====');
-    console.log('Creating product for userId:', userId);
-    console.log('Shop ID:', shopId);
-    console.log('Product data:', productData);
+    logger.debug('==== CREATE PRODUCT DEBUG INFO ====');
+    logger.debug('Creating product for userId:', userId);
+    logger.debug('Shop ID:', shopId);
+    logger.debug('Product data:', productData);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -2398,8 +2427,8 @@ router.post('/shops/:userId/:shopId/products', addRequestSecurity, validateUserA
     const customer = await customersCollection.findOne({ userId });
     
     if (!customer) {
-      console.log(`FAILURE: No customer found with userId: ${userId}`);
-      console.log('==== END CREATE PRODUCT DEBUG INFO ====');
+      logger.debug(`FAILURE: No customer found with userId: ${userId}`);
+      logger.debug('==== END CREATE PRODUCT DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Customer profile not found for this user',
@@ -2411,8 +2440,8 @@ router.post('/shops/:userId/:shopId/products', addRequestSecurity, validateUserA
     const shop = customer.shops?.find(s => s.shopId === shopId);
     
     if (!shop) {
-      console.log(`FAILURE: No shop found with shopId: ${shopId}`);
-      console.log('==== END CREATE PRODUCT DEBUG INFO ====');
+      logger.debug(`FAILURE: No shop found with shopId: ${shopId}`);
+      logger.debug('==== END CREATE PRODUCT DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Shop not found'
@@ -2421,15 +2450,15 @@ router.post('/shops/:userId/:shopId/products', addRequestSecurity, validateUserA
     
     // Check if shop is valid
     if (shop.status !== 'valid') {
-      console.log(`FAILURE: Shop doesn't meet requirements - Status: ${shop.status}`);
-      console.log('==== END CREATE PRODUCT DEBUG INFO ====');
+      logger.debug(`FAILURE: Shop doesn't meet requirements - Status: ${shop.status}`);
+      logger.debug('==== END CREATE PRODUCT DEBUG INFO ====');
       return res.status(400).json({
         success: false,
         message: 'Shop must be valid to create products'
       });
     }
     
-    console.log(`SUCCESS: Found valid shop with shopId: ${shopId}`);
+    logger.debug(`SUCCESS: Found valid shop with shopId: ${shopId}`);
     
     // Create the new product with timestamp and unique ID
     const newProduct = {
@@ -2454,17 +2483,17 @@ router.post('/shops/:userId/:shopId/products', addRequestSecurity, validateUserA
     );
     
     if (result.modifiedCount === 0) {
-      console.log('Failed to add product to shop');
-      console.log('==== END CREATE PRODUCT DEBUG INFO ====');
+      logger.debug('Failed to add product to shop');
+      logger.debug('==== END CREATE PRODUCT DEBUG INFO ====');
       return res.status(400).json({
         success: false,
         message: 'Failed to add product to shop'
       });
     }
     
-    console.log('Product added successfully to shop');
-    console.log('Product ID:', newProduct.productId);
-    console.log('==== END CREATE PRODUCT DEBUG INFO ====');
+    logger.debug('Product added successfully to shop');
+    logger.debug('Product ID:', newProduct.productId);
+    logger.debug('==== END CREATE PRODUCT DEBUG INFO ====');
     
     // Return success response
     res.status(201).json({
@@ -2474,7 +2503,7 @@ router.post('/shops/:userId/:shopId/products', addRequestSecurity, validateUserA
       product: newProduct
     });
   } catch (error) {
-    console.error('Error creating product:', error);
+    logger.error('Error creating product:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while creating the product',
@@ -2488,9 +2517,9 @@ router.get('/shops/:userId/:shopId/products', addRequestSecurity, validateUserAc
   try {
     const { userId, shopId } = req.params;
     
-    console.log('==== FETCH PRODUCTS DEBUG INFO ====');
-    console.log('Fetching products for userId:', userId);
-    console.log('Shop ID:', shopId);
+    logger.debug('==== FETCH PRODUCTS DEBUG INFO ====');
+    logger.debug('Fetching products for userId:', userId);
+    logger.debug('Shop ID:', shopId);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -2499,8 +2528,8 @@ router.get('/shops/:userId/:shopId/products', addRequestSecurity, validateUserAc
     const customer = await customersCollection.findOne({ userId });
     
     if (!customer) {
-      console.log(`FAILURE: No customer found with userId: ${userId}`);
-      console.log('==== END FETCH PRODUCTS DEBUG INFO ====');
+      logger.debug(`FAILURE: No customer found with userId: ${userId}`);
+      logger.debug('==== END FETCH PRODUCTS DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Customer profile not found for this user',
@@ -2512,26 +2541,26 @@ router.get('/shops/:userId/:shopId/products', addRequestSecurity, validateUserAc
     const shop = customer.shops?.find(s => s.shopId === shopId);
     
     if (!shop) {
-      console.log(`FAILURE: No shop found with shopId: ${shopId}`);
-      console.log('==== END FETCH PRODUCTS DEBUG INFO ====');
+      logger.debug(`FAILURE: No shop found with shopId: ${shopId}`);
+      logger.debug('==== END FETCH PRODUCTS DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Shop not found'
       });
     }
     
-    console.log(`SUCCESS: Found shop with shopId: ${shopId}`);
+    logger.debug(`SUCCESS: Found shop with shopId: ${shopId}`);
     
     // Get products array (initialize if doesn't exist)
     const products = shop.products || [];
-    console.log(`Found ${products.length} products for this shop`);
+    logger.debug(`Found ${products.length} products for this shop`);
     
     // Generate pre-signed URLs for all product images
-    console.log(`Generating signed URLs for ${products.length} products...`);
+    logger.debug(`Generating signed URLs for ${products.length} products...`);
     const productsWithSignedUrls = await Promise.all(
       products.map(async (product) => {
         if (product.imageUrls && product.imageUrls.length > 0) {
-          console.log(`Processing ${product.imageUrls.length} images for product ${product.productId || product.titre}`);
+          logger.debug(`Processing ${product.imageUrls.length} images for product ${product.productId || product.titre}`);
           try {
             const signedUrls = await Promise.all(
               product.imageUrls.map(async (url) => {
@@ -2547,7 +2576,7 @@ router.get('/shops/:userId/:shopId/products', addRequestSecurity, validateUserAc
                     return await getSignedUrl(url);
                   }
                 } catch (urlError) {
-                  console.error(`Failed to generate signed URL for image: ${url}`, urlError);
+                  logger.error(`Failed to generate signed URL for image: ${url}`, urlError);
                   // Return the original URL if signing fails
                   return url;
                 }
@@ -2555,7 +2584,7 @@ router.get('/shops/:userId/:shopId/products', addRequestSecurity, validateUserAc
             );
             return { ...product, imageUrls: signedUrls };
           } catch (e) {
-            console.error(`Failed to generate signed URLs for product ${product.productId}:`, e);
+            logger.error(`Failed to generate signed URLs for product ${product.productId}:`, e);
             // Return the product with original URLs if signing fails
             return product;
           }
@@ -2564,7 +2593,7 @@ router.get('/shops/:userId/:shopId/products', addRequestSecurity, validateUserAc
       })
     );
     
-    console.log('==== END FETCH PRODUCTS DEBUG INFO ====');
+    logger.debug('==== END FETCH PRODUCTS DEBUG INFO ====');
     
     // Return products array with signed URLs
     res.status(200).json({
@@ -2574,7 +2603,7 @@ router.get('/shops/:userId/:shopId/products', addRequestSecurity, validateUserAc
       shopStatus: shop.status
     });
   } catch (error) {
-    console.error('Error fetching products:', error);
+    logger.error('Error fetching products:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching products',
@@ -2589,11 +2618,11 @@ router.put('/shops/:userId/:shopId/products/:productId', addRequestSecurity, val
     const { userId, shopId, productId } = req.params;
     const productData = req.body;
     
-    console.log('==== UPDATE PRODUCT DEBUG INFO ====');
-    console.log('Updating product for userId:', userId);
-    console.log('Shop ID:', shopId);
-    console.log('Product ID:', productId);
-    console.log('Product data:', productData);
+    logger.debug('==== UPDATE PRODUCT DEBUG INFO ====');
+    logger.debug('Updating product for userId:', userId);
+    logger.debug('Shop ID:', shopId);
+    logger.debug('Product ID:', productId);
+    logger.debug('Product data:', productData);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -2602,8 +2631,8 @@ router.put('/shops/:userId/:shopId/products/:productId', addRequestSecurity, val
     const customer = await customersCollection.findOne({ userId });
     
     if (!customer) {
-      console.log(`FAILURE: No customer found with userId: ${userId}`);
-      console.log('==== END UPDATE PRODUCT DEBUG INFO ====');
+      logger.debug(`FAILURE: No customer found with userId: ${userId}`);
+      logger.debug('==== END UPDATE PRODUCT DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Customer profile not found for this user',
@@ -2615,8 +2644,8 @@ router.put('/shops/:userId/:shopId/products/:productId', addRequestSecurity, val
     const shop = customer.shops?.find(s => s.shopId === shopId);
     
     if (!shop) {
-      console.log(`FAILURE: No shop found with shopId: ${shopId}`);
-      console.log('==== END UPDATE PRODUCT DEBUG INFO ====');
+      logger.debug(`FAILURE: No shop found with shopId: ${shopId}`);
+      logger.debug('==== END UPDATE PRODUCT DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Shop not found'
@@ -2627,15 +2656,15 @@ router.put('/shops/:userId/:shopId/products/:productId', addRequestSecurity, val
     const productIndex = shop.products?.findIndex(p => p.productId === productId);
     
     if (productIndex === -1 || productIndex === undefined) {
-      console.log(`FAILURE: No product found with productId: ${productId}`);
-      console.log('==== END UPDATE PRODUCT DEBUG INFO ====');
+      logger.debug(`FAILURE: No product found with productId: ${productId}`);
+      logger.debug('==== END UPDATE PRODUCT DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Product not found'
       });
     }
     
-    console.log(`SUCCESS: Found product with productId: ${productId}`);
+    logger.debug(`SUCCESS: Found product with productId: ${productId}`);
     
     // Remove status fields that customers shouldn't be able to modify
     const { active, documented, hasShopify, hasEC, ...allowedProductData } = productData;
@@ -2670,16 +2699,16 @@ router.put('/shops/:userId/:shopId/products/:productId', addRequestSecurity, val
     );
     
     if (result.modifiedCount === 0) {
-      console.log('Failed to update product in shop');
-      console.log('==== END UPDATE PRODUCT DEBUG INFO ====');
+      logger.debug('Failed to update product in shop');
+      logger.debug('==== END UPDATE PRODUCT DEBUG INFO ====');
       return res.status(400).json({
         success: false,
         message: 'Failed to update product in shop'
       });
     }
     
-    console.log('Product updated successfully in shop');
-    console.log('==== END UPDATE PRODUCT DEBUG INFO ====');
+    logger.debug('Product updated successfully in shop');
+    logger.debug('==== END UPDATE PRODUCT DEBUG INFO ====');
     
     // Return success response
     res.status(200).json({
@@ -2689,7 +2718,7 @@ router.put('/shops/:userId/:shopId/products/:productId', addRequestSecurity, val
       product: updatedProduct
     });
   } catch (error) {
-    console.error('Error updating product:', error);
+    logger.error('Error updating product:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while updating the product',
@@ -2717,7 +2746,7 @@ router.post('/shops/:shopId/upload/logo', addRequestSecurity, validateShopUpload
     });
 
     if (!customer) {
-      console.error('🚨 SECURITY: User attempting to upload to unauthorized shop');
+      logger.error('🚨 SECURITY: User attempting to upload to unauthorized shop');
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied: Shop not found or unauthorized' 
@@ -2727,14 +2756,14 @@ router.post('/shops/:shopId/upload/logo', addRequestSecurity, validateShopUpload
     // Read the uploaded file
     const fileBuffer = await fs.promises.readFile(req.file.path);
     
-    // Generate unique key for S3
+    // Generate unique key for S3 (matching S3 service structure)
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const fileExtension = path.extname(req.file.originalname).toLowerCase();
     const fileName = `${timestamp}-${randomString}${fileExtension}`;
     const s3Key = `shops/shop-${shopId}/logo/${fileName}`;
     
-    console.log(`[CUSTOMER LOGO UPLOAD] Uploading to S3 with key: ${s3Key}`);
+    logger.debug(`[CUSTOMER LOGO UPLOAD] Uploading to S3 with key: ${s3Key}`);
     
     // Upload to S3
     const uploadCommand = new PutObjectCommand({
@@ -2750,7 +2779,9 @@ router.post('/shops/:shopId/upload/logo', addRequestSecurity, validateShopUpload
     // Generate signed URL for the uploaded image
     const signedUrl = await getSignedUrl(s3Key);
     
-    console.log(`[CUSTOMER LOGO UPLOAD] Successfully uploaded to S3, signed URL generated`);
+    logger.debug(`[CUSTOMER LOGO UPLOAD] Successfully uploaded to S3, signed URL generated`);
+    logger.debug(`[CUSTOMER LOGO UPLOAD] S3 Key to store: ${s3Key}`);
+    logger.debug(`[CUSTOMER LOGO UPLOAD] Signed URL: ${signedUrl.substring(0, 100)}...`);
     
     // Clean up temporary file
     try {
@@ -2759,12 +2790,13 @@ router.post('/shops/:shopId/upload/logo', addRequestSecurity, validateShopUpload
       console.warn(`[CUSTOMER LOGO UPLOAD] Failed to delete temp file:`, unlinkError);
     }
     
-    // Update shop with logo URL
+    // Update shop with logo URL and the clean S3 key
     const result = await customersCollection.updateOne(
       { userId: sessionUserId, 'shops.shopId': shopId },
       { 
         $set: { 
-          'shops.$.logoUrl': signedUrl,
+          'shops.$.logoUrl': signedUrl, // The full URL for frontend use
+          'shops.$.logoS3Key': s3Key,      // The clean key for proxy use
           'shops.$.updatedAt': new Date()
         }
       }
@@ -2780,7 +2812,7 @@ router.post('/shops/:shopId/upload/logo', addRequestSecurity, validateShopUpload
       message: 'Logo uploaded successfully' 
     });
   } catch (error) {
-    console.error('Error uploading logo:', error);
+    logger.error('Error uploading logo:', error);
     
     // Clean up temporary file on error
     if (req.file && req.file.path) {
@@ -2815,7 +2847,7 @@ router.post('/shops/:shopId/upload/banner', addRequestSecurity, validateShopUplo
     });
 
     if (!customer) {
-      console.error('🚨 SECURITY: User attempting to upload to unauthorized shop');
+      logger.error('🚨 SECURITY: User attempting to upload to unauthorized shop');
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied: Shop not found or unauthorized' 
@@ -2835,9 +2867,9 @@ router.post('/shops/:shopId/upload/banner', addRequestSecurity, validateShopUplo
       const randomString = Math.random().toString(36).substring(2, 15);
       const fileExtension = path.extname(file.originalname).toLowerCase();
       const fileName = `${timestamp}-${randomString}${fileExtension}`;
-      const s3Key = `shops/shop-${shopId}/banners/desktop/${fileName}`;
+      const s3Key = `shops/shop-${shopId}/desktopBanner/${fileName}`;
       
-      console.log(`[CUSTOMER BANNER UPLOAD] Uploading desktop banner to S3 with key: ${s3Key}`);
+      logger.debug(`[CUSTOMER BANNER UPLOAD] Uploading desktop banner to S3 with key: ${s3Key}`);
       
       const uploadCommand = new PutObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET_NAME,
@@ -2850,7 +2882,11 @@ router.post('/shops/:shopId/upload/banner', addRequestSecurity, validateShopUplo
       await s3.send(uploadCommand);
       const signedUrl = await getSignedUrl(s3Key);
       
-      updateData['shops.$.desktopBannerUrl'] = signedUrl;
+      logger.debug(`[CUSTOMER BANNER UPLOAD] Desktop banner S3 Key to store: ${s3Key}`);
+      logger.debug(`[CUSTOMER BANNER UPLOAD] Desktop banner signed URL: ${signedUrl.substring(0, 100)}...`);
+      
+      updateData['shops.$.desktopBannerUrl'] = signedUrl; // Full URL for frontend
+      updateData['shops.$.desktopBannerS3Key'] = s3Key;      // Clean key for proxy
       responseData.desktopBannerUrl = signedUrl;
       uploadedFiles.push(file.path);
     }
@@ -2864,9 +2900,9 @@ router.post('/shops/:shopId/upload/banner', addRequestSecurity, validateShopUplo
       const randomString = Math.random().toString(36).substring(2, 15);
       const fileExtension = path.extname(file.originalname).toLowerCase();
       const fileName = `${timestamp}-${randomString}${fileExtension}`;
-      const s3Key = `shops/shop-${shopId}/banners/mobile/${fileName}`;
+      const s3Key = `shops/shop-${shopId}/mobileBanner/${fileName}`;
       
-      console.log(`[CUSTOMER BANNER UPLOAD] Uploading mobile banner to S3 with key: ${s3Key}`);
+      logger.debug(`[CUSTOMER BANNER UPLOAD] Uploading mobile banner to S3 with key: ${s3Key}`);
       
       const uploadCommand = new PutObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET_NAME,
@@ -2879,7 +2915,11 @@ router.post('/shops/:shopId/upload/banner', addRequestSecurity, validateShopUplo
       await s3.send(uploadCommand);
       const signedUrl = await getSignedUrl(s3Key);
       
-      updateData['shops.$.mobileBannerUrl'] = signedUrl;
+      logger.debug(`[CUSTOMER BANNER UPLOAD] Mobile banner S3 Key to store: ${s3Key}`);
+      logger.debug(`[CUSTOMER BANNER UPLOAD] Mobile banner signed URL: ${signedUrl.substring(0, 100)}...`);
+      
+      updateData['shops.$.mobileBannerUrl'] = signedUrl; // Full URL for frontend
+      updateData['shops.$.mobileBannerS3Key'] = s3Key;      // Clean key for proxy
       responseData.mobileBannerUrl = signedUrl;
       uploadedFiles.push(file.path);
     }
@@ -2904,7 +2944,7 @@ router.post('/shops/:shopId/upload/banner', addRequestSecurity, validateShopUplo
 
     res.json(responseData);
   } catch (error) {
-    console.error('Error uploading banners:', error);
+    logger.error('Error uploading banners:', error);
     
     // Clean up temporary files on error
     if (req.files) {
@@ -2943,7 +2983,7 @@ router.post('/shops/:shopId/upload/favicon', addRequestSecurity, validateShopUpl
     });
 
     if (!customer) {
-      console.error('🚨 SECURITY: User attempting to upload to unauthorized shop');
+      logger.error('🚨 SECURITY: User attempting to upload to unauthorized shop');
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied: Shop not found or unauthorized' 
@@ -2960,7 +3000,7 @@ router.post('/shops/:shopId/upload/favicon', addRequestSecurity, validateShopUpl
     const fileName = `${timestamp}-${randomString}${fileExtension}`;
     const s3Key = `shops/shop-${shopId}/favicon/${fileName}`;
     
-    console.log(`[CUSTOMER FAVICON UPLOAD] Uploading to S3 with key: ${s3Key}`);
+    logger.debug(`[CUSTOMER FAVICON UPLOAD] Uploading to S3 with key: ${s3Key}`);
     
     // Upload to S3
     const uploadCommand = new PutObjectCommand({
@@ -2976,7 +3016,9 @@ router.post('/shops/:shopId/upload/favicon', addRequestSecurity, validateShopUpl
     // Generate signed URL for the uploaded image
     const signedUrl = await getSignedUrl(s3Key);
     
-    console.log(`[CUSTOMER FAVICON UPLOAD] Successfully uploaded to S3, signed URL generated`);
+    logger.debug(`[CUSTOMER FAVICON UPLOAD] Successfully uploaded to S3, signed URL generated`);
+    logger.debug(`[CUSTOMER FAVICON UPLOAD] S3 Key to store: ${s3Key}`);
+    logger.debug(`[CUSTOMER FAVICON UPLOAD] Signed URL: ${signedUrl.substring(0, 100)}...`);
     
     // Clean up temporary file
     try {
@@ -2985,12 +3027,13 @@ router.post('/shops/:shopId/upload/favicon', addRequestSecurity, validateShopUpl
       console.warn(`[CUSTOMER FAVICON UPLOAD] Failed to delete temp file:`, unlinkError);
     }
     
-    // Update shop with favicon URL
+    // Update shop with favicon URL and the clean S3 key
     const result = await customersCollection.updateOne(
       { userId: sessionUserId, 'shops.shopId': shopId },
       { 
         $set: { 
-          'shops.$.faviconUrl': signedUrl,
+          'shops.$.faviconUrl': signedUrl, // Full URL for frontend
+          'shops.$.faviconS3Key': s3Key,      // Clean key for proxy
           'shops.$.updatedAt': new Date()
         }
       }
@@ -3006,7 +3049,7 @@ router.post('/shops/:shopId/upload/favicon', addRequestSecurity, validateShopUpl
       message: 'Favicon uploaded successfully' 
     });
   } catch (error) {
-    console.error('Error uploading favicon:', error);
+    logger.error('Error uploading favicon:', error);
     
     // Clean up temporary file on error
     if (req.file && req.file.path) {
@@ -3024,11 +3067,11 @@ router.post('/shops/:shopId/upload/favicon', addRequestSecurity, validateShopUpl
 // UPLOAD ROUTE MOVED TO customerUpload.js TO AVOID BODY PARSER CONFLICTS
 
 // Debug: Log all registered routes
-console.log('🔍 [DEBUG] Customer routes loaded. Available routes:');
+logger.debug('🔍 [DEBUG] Customer routes loaded. Available routes:');
 router.stack.forEach((layer) => {
   if (layer.route) {
     const methods = Object.keys(layer.route.methods);
-    console.log(`  ${methods.join(',').toUpperCase()} ${layer.route.path}`);
+    logger.debug(`  ${methods.join(',').toUpperCase()} ${layer.route.path}`);
   }
 });
 
@@ -3049,11 +3092,11 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
   try {
     const { userId, shopId, productId, imageIndex } = req.params;
     
-    console.log('==== DELETE PRODUCT IMAGE DEBUG INFO ====');
-    console.log('Deleting product image for userId:', userId);
-    console.log('Shop ID:', shopId);
-    console.log('Product ID:', productId);
-    console.log('Image index:', imageIndex);
+    logger.debug('==== DELETE PRODUCT IMAGE DEBUG INFO ====');
+    logger.debug('Deleting product image for userId:', userId);
+    logger.debug('Shop ID:', shopId);
+    logger.debug('Product ID:', productId);
+    logger.debug('Image index:', imageIndex);
     
     // Get the customers collection
     const customersCollection = await getCustomersCollection();
@@ -3062,8 +3105,8 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
     const customer = await customersCollection.findOne({ userId });
     
     if (!customer) {
-      console.error('🔒 [SECURITY] Unauthorized access attempt - customer not found for userId:', userId);
-      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      logger.error('🔒 [SECURITY] Unauthorized access attempt - customer not found for userId:', userId);
+      logger.debug('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Customer profile not found for this user',
@@ -3075,7 +3118,7 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
     // SECURITY: Additional validation - ensure the authenticated user matches the requested userId
     const sessionUserId = req.session.userInfo?.sub || req.session.userInfo?.userId;
     if (sessionUserId !== userId) {
-      console.error('🔒 [SECURITY] User ID mismatch in delete operation:', {
+      logger.error('🔒 [SECURITY] User ID mismatch in delete operation:', {
         sessionUserId: sessionUserId,
         requestedUserId: userId,
         userEmail: req.session.userInfo?.email,
@@ -3092,8 +3135,8 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
     const shop = customer.shops?.find(s => s.shopId === shopId);
     
     if (!shop) {
-      console.log(`FAILURE: No shop found with shopId: ${shopId}`);
-      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      logger.debug(`FAILURE: No shop found with shopId: ${shopId}`);
+      logger.debug('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Shop not found'
@@ -3104,8 +3147,8 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
     const productIndex = shop.products?.findIndex(p => p.productId === productId);
     
     if (productIndex === -1 || productIndex === undefined) {
-      console.log(`FAILURE: No product found with productId: ${productId}`);
-      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      logger.debug(`FAILURE: No product found with productId: ${productId}`);
+      logger.debug('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Product not found'
@@ -3115,8 +3158,8 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
     const product = shop.products[productIndex];
     
     if (!product.imageUrls || !Array.isArray(product.imageUrls)) {
-      console.log(`FAILURE: No images found for product ${productId}`);
-      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      logger.debug(`FAILURE: No images found for product ${productId}`);
+      logger.debug('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'No images found for this product'
@@ -3125,8 +3168,8 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
     
     const imageIndexNum = parseInt(imageIndex);
     if (isNaN(imageIndexNum) || imageIndexNum < 0 || imageIndexNum >= product.imageUrls.length) {
-      console.log(`FAILURE: Invalid image index: ${imageIndex}`);
-      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      logger.debug(`FAILURE: Invalid image index: ${imageIndex}`);
+      logger.debug('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
       return res.status(400).json({
         success: false,
         message: 'Invalid image index'
@@ -3137,7 +3180,7 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
     const imageUrlToDelete = product.imageUrls[imageIndexNum];
     
     // SECURITY: Log the deletion attempt for audit purposes
-    console.log('🔒 [SECURITY] Image deletion attempt:', {
+    logger.debug('🔒 [SECURITY] Image deletion attempt:', {
       userId: userId,
       shopId: shopId,
       productId: productId,
@@ -3163,11 +3206,11 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
       
       const deleteResult = await s3Service.deleteImage(s3Key);
       if (!deleteResult.success) {
-        console.error('Failed to delete image from S3:', deleteResult.error);
+        logger.error('Failed to delete image from S3:', deleteResult.error);
         // Continue with database update even if S3 deletion fails
       }
     } catch (s3Error) {
-      console.error('Error deleting image from S3:', s3Error);
+      logger.error('Error deleting image from S3:', s3Error);
       // Continue with database update even if S3 deletion fails
     }
     
@@ -3187,16 +3230,16 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
     );
     
     if (result.modifiedCount === 0) {
-      console.log('Failed to update product imageUrls in database');
-      console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+      logger.debug('Failed to update product imageUrls in database');
+      logger.debug('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
       return res.status(400).json({
         success: false,
         message: 'Failed to update product images'
       });
     }
     
-    console.log('Product image deleted successfully');
-    console.log('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
+    logger.debug('Product image deleted successfully');
+    logger.debug('==== END DELETE PRODUCT IMAGE DEBUG INFO ====');
     
     res.status(200).json({
       success: true,
@@ -3204,7 +3247,7 @@ router.delete('/shops/:userId/:shopId/products/:productId/images/:imageIndex',
       remainingImages: updatedImageUrls.length
     });
   } catch (error) {
-    console.error('Error deleting product image:', error);
+    logger.error('Error deleting product image:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while deleting the product image',
@@ -3232,14 +3275,14 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     const { userId, shopId, productId } = req.params;
     const { newOrder } = req.body; // Array of image URLs in the new order
     
-    console.log('==== REORDER PRODUCT IMAGES DEBUG INFO ====');
-    console.log('Reordering product images for userId:', userId);
-    console.log('Shop ID:', shopId);
-    console.log('Product ID:', productId);
-    console.log('New order:', newOrder);
+    logger.debug('==== REORDER PRODUCT IMAGES DEBUG INFO ====');
+    logger.debug('Reordering product images for userId:', userId);
+    logger.debug('Shop ID:', shopId);
+    logger.debug('Product ID:', productId);
+    logger.debug('New order:', newOrder);
     
     if (!newOrder || !Array.isArray(newOrder)) {
-      console.error('🔒 [SECURITY] Invalid newOrder format:', typeof newOrder);
+      logger.error('🔒 [SECURITY] Invalid newOrder format:', typeof newOrder);
       return res.status(400).json({
         success: false,
         message: 'New order must be an array of image URLs',
@@ -3249,7 +3292,7 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     
     // SECURITY: Validate array length to prevent abuse
     if (newOrder.length > 10) {
-      console.error('🔒 [SECURITY] Too many images in reorder request:', newOrder.length);
+      logger.error('🔒 [SECURITY] Too many images in reorder request:', newOrder.length);
       return res.status(400).json({
         success: false,
         message: 'Too many images in reorder request',
@@ -3261,7 +3304,7 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     for (let i = 0; i < newOrder.length; i++) {
       const url = newOrder[i];
       if (typeof url !== 'string' || url.length === 0) {
-        console.error('🔒 [SECURITY] Invalid URL at index', i, ':', url);
+        logger.error('🔒 [SECURITY] Invalid URL at index', i, ':', url);
         return res.status(400).json({
           success: false,
           message: 'Invalid image URL in reorder request',
@@ -3271,7 +3314,7 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
       
       // SECURITY: Validate URL format (should be S3 URL or key)
       if (!url.startsWith('https://') && !url.includes('/')) {
-        console.error('🔒 [SECURITY] Invalid URL format at index', i, ':', url);
+        logger.error('🔒 [SECURITY] Invalid URL format at index', i, ':', url);
         return res.status(400).json({
           success: false,
           message: 'Invalid image URL format',
@@ -3287,8 +3330,8 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     const customer = await customersCollection.findOne({ userId });
     
     if (!customer) {
-      console.error('🔒 [SECURITY] Unauthorized access attempt - customer not found for userId:', userId);
-      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      logger.error('🔒 [SECURITY] Unauthorized access attempt - customer not found for userId:', userId);
+      logger.debug('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Customer profile not found for this user',
@@ -3300,7 +3343,7 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     // SECURITY: Additional validation - ensure the authenticated user matches the requested userId
     const sessionUserId = req.session.userInfo?.sub || req.session.userInfo?.userId;
     if (sessionUserId !== userId) {
-      console.error('🔒 [SECURITY] User ID mismatch in reorder operation:', {
+      logger.error('🔒 [SECURITY] User ID mismatch in reorder operation:', {
         sessionUserId: sessionUserId,
         requestedUserId: userId,
         userEmail: req.session.userInfo?.email,
@@ -3317,8 +3360,8 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     const shop = customer.shops?.find(s => s.shopId === shopId);
     
     if (!shop) {
-      console.log(`FAILURE: No shop found with shopId: ${shopId}`);
-      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      logger.debug(`FAILURE: No shop found with shopId: ${shopId}`);
+      logger.debug('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Shop not found'
@@ -3329,8 +3372,8 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     const productIndex = shop.products?.findIndex(p => p.productId === productId);
     
     if (productIndex === -1 || productIndex === undefined) {
-      console.log(`FAILURE: No product found with productId: ${productId}`);
-      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      logger.debug(`FAILURE: No product found with productId: ${productId}`);
+      logger.debug('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'Product not found'
@@ -3340,8 +3383,8 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     const product = shop.products[productIndex];
     
     if (!product.imageUrls || !Array.isArray(product.imageUrls)) {
-      console.log(`FAILURE: No images found for product ${productId}`);
-      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      logger.debug(`FAILURE: No images found for product ${productId}`);
+      logger.debug('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
       return res.status(404).json({
         success: false,
         message: 'No images found for this product'
@@ -3349,7 +3392,7 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     }
     
     // SECURITY: Log the reorder attempt for audit purposes
-    console.log('🔒 [SECURITY] Image reorder attempt:', {
+    logger.debug('🔒 [SECURITY] Image reorder attempt:', {
       userId: userId,
       shopId: shopId,
       productId: productId,
@@ -3381,7 +3424,7 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     const newOrderKeys = new Set(newOrder.map(extractS3Key));
     
     if (currentImageKeys.size !== newOrderKeys.size) {
-      console.error('🔒 [SECURITY] Image count mismatch in reorder request:', {
+      logger.error('🔒 [SECURITY] Image count mismatch in reorder request:', {
         currentCount: currentImageKeys.size,
         newOrderCount: newOrderKeys.size
       });
@@ -3396,7 +3439,7 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     for (const imageUrl of newOrder) {
       const imageKey = extractS3Key(imageUrl);
       if (!currentImageKeys.has(imageKey)) {
-        console.error('🔒 [SECURITY] Invalid image in reorder request:', imageKey);
+        logger.error('🔒 [SECURITY] Invalid image in reorder request:', imageKey);
         return res.status(400).json({
           success: false,
           message: 'New order contains images that do not exist in the current product',
@@ -3418,16 +3461,16 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
     );
     
     if (result.modifiedCount === 0) {
-      console.log('Failed to update product imageUrls order in database');
-      console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+      logger.debug('Failed to update product imageUrls order in database');
+      logger.debug('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
       return res.status(400).json({
         success: false,
         message: 'Failed to update product image order'
       });
     }
     
-    console.log('Product images reordered successfully');
-    console.log('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
+    logger.debug('Product images reordered successfully');
+    logger.debug('==== END REORDER PRODUCT IMAGES DEBUG INFO ====');
     
     res.status(200).json({
       success: true,
@@ -3435,7 +3478,7 @@ router.put('/shops/:userId/:shopId/products/:productId/images/reorder',
       newOrder: newOrder
     });
   } catch (error) {
-    console.error('Error reordering product images:', error);
+    logger.error('Error reordering product images:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while reordering the product images',

@@ -7,6 +7,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import NotificationModal from "../shared/NotificationModal"; // Import the modal
+import CorruptedFileModal from "../common/CorruptedFileModal";
 
 const CreateProduct = () => {
   const [shops, setShops] = useState([]);
@@ -21,6 +22,10 @@ const CreateProduct = () => {
     message: "",
     title: "",
     type: "info",
+  });
+  const [corruptedFileModal, setCorruptedFileModal] = useState({
+    show: false,
+    file: null,
   });
 
   // Product form state
@@ -463,7 +468,17 @@ const CreateProduct = () => {
     });
   };
 
-  const handleImageChange = (files, inputElement) => {
+  // Helper to read file as ArrayBuffer to prevent reference loss and detect corruption
+  const readFileAsArrayBuffer = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleImageChange = async (files, inputElement) => {
     const newFiles = Array.from(files);
 
     // Check number of files limit
@@ -479,8 +494,8 @@ const CreateProduct = () => {
       return;
     }
 
-    // Check file size limit (10MB per file)
-    const maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
+    // Check file size limit (50MB per file)
+    const maxFileSize = 50 * 1024 * 1024; // 50MB in bytes
     const oversizedFiles = newFiles.filter((file) => file.size > maxFileSize);
 
     if (oversizedFiles.length > 0) {
@@ -491,7 +506,7 @@ const CreateProduct = () => {
 
       setNotification({
         show: true,
-        message: `Les fichiers suivants sont trop volumineux: ${oversizedFileNames}. Taille maximum autorisée: 10MB. Taille du fichier: ${fileSizeInMB}MB`,
+        message: `Les fichiers suivants sont trop volumineux: ${oversizedFileNames}. Taille maximum autorisée: 50MB. Taille du fichier: ${fileSizeInMB}MB`,
         title: "Fichiers trop volumineux",
         type: "error",
       });
@@ -521,22 +536,90 @@ const CreateProduct = () => {
       return;
     }
 
-    const updatedImages = [...images, ...newFiles];
-    setImages(updatedImages);
+    // Validate files for corruption by attempting to read them
+    console.log(
+      `📖 [IMAGE PROCESSING] Validating ${newFiles.length} files for corruption...`
+    );
 
-    // Create and update preview URLs
-    const newPreviewUrls = [];
-    newFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        newPreviewUrls.push(e.target.result);
-        // When all new files are read, update the state
-        if (newPreviewUrls.length === newFiles.length) {
-          setImagePreviewUrls((prevUrls) => [...prevUrls, ...newPreviewUrls]);
+    const validFiles = [];
+    for (const file of newFiles) {
+      try {
+        // Attempt to read the file into memory to detect corruption
+        await readFileAsArrayBuffer(file);
+        validFiles.push(file);
+        console.log(
+          `✅ [IMAGE PROCESSING] File validated successfully: ${file.name}`
+        );
+      } catch (error) {
+        console.error(
+          `❌ [IMAGE PROCESSING] Failed to process file: ${file.name}`,
+          {
+            error: error,
+            errorName: error?.name,
+            errorMessage: error?.message,
+            fileInfo: {
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              lastModified: file.lastModified,
+            },
+          }
+        );
+
+        // Show modal for corrupted files and don't load them
+        if (error?.name === "NotReadableError") {
+          setCorruptedFileModal({
+            show: true,
+            file: file.name,
+          });
+          console.warn(
+            `⚠️ [IMAGE PROCESSING] Corrupted file blocked: ${file.name}`
+          );
+
+          // Clear the file input to prevent corrupted files from being loaded
+          if (inputElement) inputElement.value = "";
+          return; // Stop processing if any file is corrupted
+        } else {
+          console.error(
+            `❌ [IMAGE PROCESSING] Unexpected error processing file: ${file.name}`,
+            error.message
+          );
+          // For non-corruption errors, show a generic notification
+          setNotification({
+            show: true,
+            message: `Erreur lors du traitement du fichier: ${file.name}. Veuillez réessayer.`,
+            title: "Erreur de fichier",
+            type: "error",
+          });
+          if (inputElement) inputElement.value = "";
+          return;
         }
-      };
-      reader.readAsDataURL(file);
-    });
+      }
+    }
+
+    // Only proceed if all files are valid and not corrupted
+    if (validFiles.length === newFiles.length) {
+      const updatedImages = [...images, ...validFiles];
+      setImages(updatedImages);
+
+      // Create and update preview URLs
+      const newPreviewUrls = [];
+      validFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          newPreviewUrls.push(e.target.result);
+          // When all new files are read, update the state
+          if (newPreviewUrls.length === validFiles.length) {
+            setImagePreviewUrls((prevUrls) => [...prevUrls, ...newPreviewUrls]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+
+      console.log(
+        `✅ [IMAGE PROCESSING] Successfully processed ${validFiles.length} valid files`
+      );
+    }
   };
 
   const removeImage = (indexToRemove) => {
@@ -597,6 +680,31 @@ const CreateProduct = () => {
     if (images.length === 0) return true;
 
     setUploadingImages(true);
+
+    // Validate file sizes before upload (50MB limit)
+    const maxFileSize = 50 * 1024 * 1024; // 50MB in bytes
+    const oversizedFiles = [];
+
+    images.forEach((image, index) => {
+      if (image.size > maxFileSize) {
+        oversizedFiles.push({
+          name: image.name,
+          size: (image.size / (1024 * 1024)).toFixed(2) + "MB",
+        });
+      }
+    });
+
+    if (oversizedFiles.length > 0) {
+      const fileList = oversizedFiles
+        .map((f) => `${f.name} (${f.size})`)
+        .join(", ");
+      setError(
+        `Les images suivantes dépassent la limite de 50MB: ${fileList}. Veuillez les compresser ou choisir des images plus petites.`
+      );
+      setUploadingImages(false);
+      return false;
+    }
+
     const formData = new FormData();
 
     console.log("🔍 [FRONTEND UPLOAD DEBUG] Starting image upload");
@@ -622,7 +730,7 @@ const CreateProduct = () => {
           `  ${key}: File(${value.name}, ${value.type}, ${value.size} bytes)`
         );
       } else {
-        console.log(`  ${key}: ${value}`);
+        // Security: Removed potentially sensitive form data logging
       }
     }
 
@@ -766,7 +874,17 @@ const CreateProduct = () => {
         skus: productForm.skus,
       };
 
+      // 🔍 DEBUG: Log the complete product data being sent
+      console.log("🔍 [DEBUG] CreateProduct - Form Data:", productForm);
+      console.log(
+        "🔍 [DEBUG] CreateProduct - Product Data to Send:",
+        productData
+      );
+      console.log("🔍 [DEBUG] CreateProduct - Selected Shop:", selectedShop);
+      console.log("🔍 [DEBUG] CreateProduct - User ID:", userId);
+
       const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products`;
+      console.log("🔍 [DEBUG] CreateProduct - API URL:", apiUrl);
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -775,14 +893,26 @@ const CreateProduct = () => {
         credentials: "include",
       });
 
+      console.log(
+        "🔍 [DEBUG] CreateProduct - Response Status:",
+        response.status
+      );
+      console.log("🔍 [DEBUG] CreateProduct - Response OK:", response.ok);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.log("🔍 [DEBUG] CreateProduct - Error Response:", errorData);
         throw new Error(
           errorData.message || "Erreur lors de la création du produit"
         );
       }
 
       const responseData = await response.json();
+      console.log("🔍 [DEBUG] CreateProduct - Success Response:", responseData);
+      console.log(
+        "🔍 [DEBUG] CreateProduct - Created Product:",
+        responseData.product
+      );
 
       // Upload images if any were selected
       if (images.length > 0 && responseData.product?.productId) {
@@ -1240,6 +1370,24 @@ const CreateProduct = () => {
                   <span className="text-red-500 ml-1">*</span>
                 )}
               </h4>
+              
+              {productForm.typeProduit === "POD" && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-blue-800">
+                        <strong>Produit Print on Demand (POD)</strong> - Le stock n'est pas nécessaire car les produits sont fabriqués à la demande. 
+                        Les champs de stock sont désactivés pour ce type de produit.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {(() => {
                 const combinations = generateStockCombinations();
@@ -1507,6 +1655,11 @@ const CreateProduct = () => {
         onClose={() =>
           setNotification({ show: false, message: "", title: "", type: "info" })
         }
+      />
+      <CorruptedFileModal
+        isOpen={corruptedFileModal.show}
+        fileName={corruptedFileModal.file}
+        onClose={() => setCorruptedFileModal({ show: false, file: null })}
       />
     </div>
   );

@@ -32,27 +32,36 @@ const ManageAccount = () => {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
-    // Check if this is a first-time login (after password change) - CHECK THIS FIRST
-    const isFirstLogin = sessionStorage.getItem("isFirstLogin") === "true";
+    console.log("🔒 SECURITY: Starting manage account security check...");
 
-    if (isFirstLogin) {
-      setShowWelcomeForm(true);
-      setLoading(false);
-      // Clear the first login flag
-      sessionStorage.removeItem("isFirstLogin");
-      return;
-    }
-
-    // CRITICAL: Validate user identity only if not first-time login
+    // CRITICAL: Validate user identity first before any processing
     const identityCheck = validateUserIdentity();
 
     if (!identityCheck.valid) {
+      console.error(
+        "🚨 SECURITY: User identity validation failed in ManageAccount:",
+        identityCheck.reason
+      );
       clearAllAuthData();
       window.location.href = "/client/login";
       return;
     }
 
     console.log("✅ SECURITY: User identity validated for account management");
+
+    // Check if this is a first-time login (after password change)
+    const isFirstLogin = sessionStorage.getItem("isFirstLogin") === "true";
+
+    if (isFirstLogin) {
+      console.log(
+        "🎉 First-time login detected - automatically showing welcome form"
+      );
+      setShowWelcomeForm(true);
+      setLoading(false);
+      // Clear the first login flag
+      sessionStorage.removeItem("isFirstLogin");
+      return;
+    }
 
     // Try to get userInfo from session or local storage
     let userInfoStr =
@@ -79,25 +88,7 @@ const ManageAccount = () => {
         sessionStorage.getItem("userId") || localStorage.getItem("userId");
     }
 
-    console.log("==== MANAGE ACCOUNT DEBUG INFO ====");
-    console.log("User Info from storage:", userInfo);
-    console.log("sub from userInfo:", sub);
-    console.log("userId from userInfo:", userId);
-
-    // Check session storage for all keys
-    console.log("All Session Storage Keys:");
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const key = sessionStorage.key(i);
-      console.log(`- ${key}: ${sessionStorage.getItem(key)}`);
-    }
-
-    // Check local storage for all keys
-    console.log("All Local Storage Keys:");
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      console.log(`- ${key}: ${localStorage.getItem(key)}`);
-    }
-    console.log("==== END DEBUG INFO ====");
+    // Security: Removed debug logging that exposed sensitive session/local storage data
 
     // ALWAYS prioritize the sub attribute from Cognito
     // This is the unique identifier that won't change

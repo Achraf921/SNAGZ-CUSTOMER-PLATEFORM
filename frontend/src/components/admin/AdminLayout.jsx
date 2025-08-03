@@ -94,34 +94,42 @@ const AdminLayout = ({ children }) => {
   return (
     <div className="flex flex-1">
       <div className="w-64 bg-white shadow-sm sticky top-0 h-screen overflow-y-auto z-30 flex-shrink-0">
-        <div className="flex flex-col flex-grow pt-5">
-          <nav className="flex-1 px-4 pb-4 space-y-2">
-            {navigation.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors 
-                  ${
-                    isCurrent(item.href)
-                      ? "bg-gray-100 text-gray-800" // Active state style
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-800" // Default state style
-                  }
-                `}
-              >
-                <svg
-                  className="mr-3 h-5 w-5 flex-shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
+        <div className="flex flex-col h-full">
+          {/* Navigation */}
+          <div className="py-6 px-4">
+            <nav className="space-y-2">
+              {navigation.map((item) => (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors 
+                    ${
+                      isCurrent(item.href)
+                        ? "bg-gray-100 text-gray-800" // Active state style
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-800" // Default state style
+                    }
+                  `}
                 >
-                  {item.icon}
-                </svg>
-                {item.name}
-              </a>
-            ))}
-          </nav>
-          <div className="border-t border-gray-200 p-4 flex-shrink-0">
+                  <svg
+                    className="mr-3 h-5 w-5 flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    {item.icon}
+                  </svg>
+                  {item.name}
+                </a>
+              ))}
+            </nav>
+          </div>
+
+          {/* Spacer to push logout button to bottom */}
+          <div className="flex-1"></div>
+
+          {/* Logout button - always at bottom */}
+          <div className="border-t border-gray-200 p-4 bg-gray-50">
             <button
               onClick={handleLogout}
               className="flex w-full items-center px-4 py-3 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 transition-colors"

@@ -1,4 +1,5 @@
-console.log('--- [DEBUG] SERVER IS LOADING backend/src/routes/internal.js ---');
+const { logger } = require('../utils/secureLogger');
+logger.debug('--- [DEBUG] SERVER IS LOADING backend/src/routes/internal.js ---');
 const express = require('express');
 const router = express.Router();
 const { getCustomersCollection } = require('../config/db');
@@ -13,6 +14,7 @@ const axios = require('axios'); // Added axios for Shopify API calls
 const multer = require('multer');
 const { S3Client, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl: getSignedUrlV3 } = require('@aws-sdk/s3-request-presigner');
+const { getSensitiveDocument, documentExists } = require('../services/sensitiveDocumentsS3');
 
 // S3 Client Configuration
 const s3Client = new S3Client({
@@ -25,44 +27,19 @@ const s3Client = new S3Client({
 
 // Enhanced authentication middleware for internal API routes with additional security
 const requireInternalAPIAuth = (req, res, next) => {
-  // Enhanced security logging
-  const securityContext = {
-    ip: req.ip,
-    userAgent: req.get('User-Agent')?.substring(0, 100),
-    route: req.originalUrl,
-    method: req.method,
-    timestamp: new Date().toISOString()
-  };
-
+  logger.debug('[INTERNAL AUTH] Middleware called for route:', req.originalUrl);
+  
   if (!req.session.internalUserInfo) {
-    console.log(`🚨 [SECURITY ALERT] Unauthorized internal API access attempt:`, securityContext);
-    
-    // Add security headers
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
+    logger.debug('[INTERNAL AUTH] No internal session found, returning 401');
     
     return res.status(401).json({
       success: false,
       message: 'Authentication required - Internal personnel access only',
-      securityAlert: 'UNAUTHORIZED_API_ACCESS',
-      requestId: `SEC_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+      securityAlert: 'UNAUTHORIZED_API_ACCESS'
     });
   }
   
-  // Log successful access with user context
-  console.log(`✅ [SECURITY] Internal API access granted:`, {
-    ...securityContext,
-    userId: req.session.internalUserInfo.sub || req.session.internalUserInfo.userId,
-    userEmail: req.session.internalUserInfo.email
-  });
-  
-  // Add security headers for authenticated requests
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+  logger.debug('[INTERNAL AUTH] Internal session found, proceeding to route handler');
   next();
 };
 
@@ -135,80 +112,68 @@ const debugMulter = (req, res, next) => {
 const SHOPIFY_CLIENT_ID = process.env.SHOPIFY_CLIENT_ID || process.env.SHOPIFY_API_KEY;
 const SHOPIFY_CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_API_SECRET;
 
-// NEW: Route to get PayPal credentials securely
+// Route to get PayPal credentials securely
 router.get('/config/paypal-credentials', requireInternalAPIAuth, (req, res) => {
-  // This should be protected in a real app, e.g., by checking user role
-  try {
-    const credentials = {
-      vendeur: {
-        email: process.env.PAYPAL_VENDEUR_EMAIL,
-        password: process.env.PAYPAL_VENDEUR_PASSWORD,
-        iban: process.env.IBAN_VENDEUR,
-      },
-      mandataire: {
-        email: process.env.PAYPAL_MANDATAIRE_EMAIL,
-        password: process.env.PAYPAL_MANDATAIRE_PASSWORD,
-        iban: process.env.IBAN_MANDATAIRE,
-      },
-    };
+  const vendeurEmail = process.env.PAYPAL_VENDEUR_EMAIL;
+  const vendeurPassword = process.env.PAYPAL_VENDEUR_PASSWORD;
+  const vendeurIban = process.env.IBAN_VENDEUR;
+  const mandataireEmail = process.env.PAYPAL_MANDATAIRE_EMAIL;
+  const mandatairePassword = process.env.PAYPAL_MANDATAIRE_PASSWORD;
+  const mandataireIban = process.env.IBAN_MANDATAIRE;
 
-    // Check if credentials are missing on the server
-    if (
-      !credentials.vendeur.email ||
-      !credentials.vendeur.password ||
-      !credentials.mandataire.email ||
-      !credentials.mandataire.password ||
-      !credentials.vendeur.iban ||
-      !credentials.mandataire.iban
-    ) {
-      console.error('[PayPal Config] Missing PayPal or IBAN credentials in backend .env file.');
-      return res.status(500).json({
-        success: false,
-        message: 'Les identifiants PayPal ne sont pas configurés sur le serveur.',
-      });
-    }
-
-    res.status(200).json({ success: true, credentials });
-  } catch (error) {
-    console.error('Error fetching PayPal credentials:', error);
-    res.status(500).json({ success: false, message: 'Erreur interne du serveur.' });
+  if (!vendeurEmail || !vendeurPassword || !vendeurIban || !mandataireEmail || !mandatairePassword || !mandataireIban) {
+    logger.error('[PAYPAL CREDENTIALS] Missing PayPal or IBAN credentials in backend .env file');
+    return res.status(500).json({
+      success: false,
+      message: 'Les identifiants PayPal ne sont pas configurés sur le serveur.',
+    });
   }
+
+  const credentials = {
+    vendeur: {
+      email: vendeurEmail,
+      password: vendeurPassword,
+      iban: vendeurIban,
+    },
+    mandataire: {
+      email: mandataireEmail,
+      password: mandatairePassword,
+      iban: mandataireIban,
+    },
+  };
+
+  logger.debug('[PAYPAL CREDENTIALS] Successfully retrieved PayPal credentials');
+  res.json({ success: true, credentials });
 });
 
-// NEW: Route to get Mondial Relay credentials securely  
+// Route to get Mondial Relay credentials securely  
 router.get('/config/mondialrelay-credentials', requireInternalAPIAuth, (req, res) => {
-  try {
-    console.log('[MondialRelay] Fetching credentials...');
-    
-    const credentials = {
-      codeEnseigne: process.env.CODE_ENSEIGNE,
-      clePrivee: process.env.CLE_PRIVEE,
-      codeMarque: process.env.CODE_MARQUE,
-    };
+  const codeEnseigne = process.env.CODE_ENSEIGNE;
+  const clePrivee = process.env.CLE_PRIVEE;
+  const codeMarque = process.env.CODE_MARQUE;
 
-    const missingKeys = [];
-    if (!credentials.codeEnseigne) missingKeys.push('CODE_ENSEIGNE');
-    if (!credentials.clePrivee) missingKeys.push('CLE_PRIVEE');
-    if (!credentials.codeMarque) missingKeys.push('CODE_MARQUE');
-
-    if (missingKeys.length > 0) {
-      console.error(`[MondialRelay Config] Missing environment variables: ${missingKeys.join(', ')}`);
-      return res.status(500).json({
-        success: false,
-        message: `Les identifiants Mondial Relay ne sont pas configurés correctement sur le serveur. Variables manquantes: ${missingKeys.join(', ')}`,
-      });
-    }
-
-    console.log('[MondialRelay] Credentials successfully retrieved');
-    res.status(200).json({ success: true, credentials });
-  } catch (error) {
-    console.error('CRITICAL ERROR fetching Mondial Relay credentials:', error);
-    res.status(500).json({ success: false, message: 'Erreur interne critique du serveur.' });
+  if (!codeEnseigne || !clePrivee || !codeMarque) {
+    logger.error('[MONDIAL RELAY CREDENTIALS] Missing Mondial Relay credentials in backend .env file');
+    return res.status(500).json({
+      success: false,
+      message: 'Les identifiants Mondial Relay ne sont pas configurés sur le serveur.',
+    });
   }
+
+  const credentials = {
+    codeEnseigne,
+    clePrivee,
+    codeMarque,
+  };
+
+  logger.debug('[MONDIAL RELAY CREDENTIALS] Successfully retrieved Mondial Relay credentials');
+  res.json({ success: true, credentials });
 });
 
-// NEW: Route to securely download specific configuration files
-router.get('/files/download/:filename', requireInternalAPIAuth, (req, res) => {
+
+
+// Route to securely download specific configuration files
+router.get('/files/download/:filename', requireInternalAPIAuth, async (req, res) => {
   const allowedFiles = [
     'Extrait KBIS - SNA GZ.pdf',
     'Justificatif de domicile 23 juil. 2024.pdf',
@@ -217,10 +182,13 @@ router.get('/files/download/:filename', requireInternalAPIAuth, (req, res) => {
   ];
 
   const { filename } = req.params;
+  const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  logger.debug(`[FILE DOWNLOAD] [${requestId}] Starting download request for: ${filename}`);
 
   // SECURITY: Validate filename to prevent path traversal
   if (!filename || typeof filename !== 'string' || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-    console.error(`🚨 [SECURITY] Path traversal attempt detected: ${filename} from IP: ${req.ip}`);
+    logger.security(`🚨 [SECURITY] [${requestId}] Path traversal attempt detected: ${filename} from IP: ${req.ip}`);
     return res.status(403).json({ 
       success: false, 
       message: "Invalid filename format.",
@@ -229,7 +197,7 @@ router.get('/files/download/:filename', requireInternalAPIAuth, (req, res) => {
   }
 
   if (!allowedFiles.includes(filename)) {
-    console.error(`🚨 [SECURITY] Unauthorized file access attempt: ${filename} from IP: ${req.ip}`);
+    logger.security(`🚨 [SECURITY] [${requestId}] Unauthorized file access attempt: ${filename} from IP: ${req.ip}`);
     return res.status(403).json({ 
       success: false, 
       message: "Accès non autorisé à ce fichier.",
@@ -237,39 +205,140 @@ router.get('/files/download/:filename', requireInternalAPIAuth, (req, res) => {
     });
   }
 
-  // SECURITY: Use relative paths instead of hardcoded absolute paths
-  let basePath;
-  if (filename === '1ce5021cbfb5eff03e8af1d8bbfed6b9_512x512.jpg') {
-    basePath = path.join(__dirname, '../services/mondialRelayImg');
-  } else {
-    basePath = path.join(__dirname, '../services/FilesPayementShopify');
-  }
-  
-  // SECURITY: Additional path validation to ensure we're within allowed directory
-  const normalizedPath = path.normalize(path.join(basePath, filename));
-  if (!normalizedPath.startsWith(path.resolve(basePath))) {
-    console.error(`🚨 [SECURITY] Path traversal detected: ${normalizedPath} from IP: ${req.ip}`);
-    return res.status(403).json({ 
-      success: false, 
-      message: "Invalid file path.",
-      securityAlert: 'PATH_TRAVERSAL_DETECTED'
-    });
-  }
-  
-  const filePath = normalizedPath;
+  try {
+    logger.debug(`[FILE DOWNLOAD] [${requestId}] Serving file: ${filename} to internal user`);
 
-  console.log(`[FILE DOWNLOAD] Serving file: ${filename} to internal user`);
+    // Handle sensitive documents from S3
+    if (['Extrait KBIS - SNA GZ.pdf', 'Justificatif de domicile 23 juil. 2024.pdf', 'Passport_Boris.jpg'].includes(filename)) {
+      logger.debug(`[FILE DOWNLOAD] [${requestId}] Processing sensitive document: ${filename}`);
+      
+      try {
+        // Check if document exists in S3
+        logger.debug(`[FILE DOWNLOAD] [${requestId}] Checking if document exists in S3: ${filename}`);
+        const exists = await documentExists(filename);
+        logger.debug(`[FILE DOWNLOAD] [${requestId}] Document exists check result: ${exists}`);
+        
+        if (!exists) {
+          logger.security(`🚨 [SECURITY] [${requestId}] Sensitive document not found in S3: ${filename} from IP: ${req.ip}`);
+          return res.status(404).json({ 
+            success: false, 
+            message: "Document sensible non trouvé dans le stockage sécurisé.",
+            securityNote: "Les documents sensibles ont été déplacés vers le stockage S3 sécurisé pour des raisons de sécurité. Veuillez contacter l'administrateur système pour l'upload des documents."
+          });
+        }
+        
+        logger.debug(`[FILE DOWNLOAD] [${requestId}] Retrieving document from S3: ${filename}`);
+        const result = await getSensitiveDocument(filename);
+        logger.debug(`[FILE DOWNLOAD] [${requestId}] S3 retrieval result:`, { success: result?.success, hasBody: !!result?.body });
+        
+        if (!result || !result.success) {
+          logger.error(`[FILE DOWNLOAD] [${requestId}] Error retrieving from S3: ${filename}`, result?.error);
+          return res.status(500).json({ success: false, message: "Erreur lors de la récupération du document sécurisé." });
+        }
 
-  // Use res.download to send the file
-  res.download(filePath, (err) => {
-    if (err) {
-      console.error("Erreur lors du téléchargement du fichier:", err);
-      if (!res.headersSent) {
-        res.status(404).json({ success: false, message: "Fichier non trouvé sur le serveur." });
+        // Convert stream to buffer with timeout protection
+        logger.debug(`[FILE DOWNLOAD] [${requestId}] Converting stream to buffer for: ${filename}`);
+        const chunks = [];
+        let totalSize = 0;
+        const maxSize = 50 * 1024 * 1024; // 50MB safety limit
+        
+        try {
+          for await (const chunk of result.body) {
+            chunks.push(chunk);
+            totalSize += chunk.length;
+            
+            // Safety check to prevent memory issues
+            if (totalSize > maxSize) {
+              throw new Error(`File too large: ${totalSize} bytes exceeds ${maxSize} limit`);
+            }
+          }
+        } catch (streamError) {
+          logger.error(`[FILE DOWNLOAD] [${requestId}] Stream processing error for ${filename}:`, streamError);
+          return res.status(500).json({ success: false, message: "Erreur lors du traitement du flux de données." });
+        }
+        
+        const fileBuffer = Buffer.concat(chunks);
+        logger.debug(`[FILE DOWNLOAD] [${requestId}] Buffer created, size: ${fileBuffer.length} bytes`);
+
+        // Set appropriate headers for download
+        const contentType = result.contentType || getContentType(filename);
+        const contentLength = result.contentLength || fileBuffer.length;
+        
+        logger.debug(`[FILE DOWNLOAD] [${requestId}] Setting headers: Content-Type=${contentType}, Content-Length=${contentLength}`);
+        
+        // Set headers for secure download
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', contentLength);
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        
+        logger.debug(`[FILE DOWNLOAD] [${requestId}] Sending file buffer for: ${filename}`);
+        res.send(fileBuffer);
+        
+        logger.debug(`[FILE DOWNLOAD] [${requestId}] Successfully downloaded sensitive file from S3: ${filename} (${fileBuffer.length} bytes)`);
+        return;
+      } catch (error) {
+        logger.error(`[FILE DOWNLOAD] [${requestId}] Exception during S3 document processing: ${filename}`, error);
+        if (!res.headersSent) {
+          return res.status(500).json({ success: false, message: "Erreur lors du traitement du document sécurisé." });
+        }
       }
     }
-  });
+
+    // Handle local files (Mondial Relay icon)
+    if (filename === '1ce5021cbfb5eff03e8af1d8bbfed6b9_512x512.jpg') {
+      const basePath = path.join(__dirname, '../services/mondialRelayImg');
+      const filePath = path.join(basePath, filename);
+      
+      // SECURITY: Additional path validation
+      const normalizedPath = path.normalize(filePath);
+      if (!normalizedPath.startsWith(path.resolve(basePath))) {
+        logger.security(`🚨 [SECURITY] Path traversal detected: ${normalizedPath} from IP: ${req.ip}`);
+        return res.status(403).json({ 
+          success: false, 
+          message: "Invalid file path.",
+          securityAlert: 'PATH_TRAVERSAL_DETECTED'
+        });
+      }
+
+      res.download(normalizedPath, (err) => {
+        if (err) {
+          logger.error(`[FILE DOWNLOAD] Error downloading local file ${filename}:`, err);
+          if (!res.headersSent) {
+            res.status(404).json({ success: false, message: "Fichier non trouvé sur le serveur." });
+          }
+        } else {
+          logger.debug(`[FILE DOWNLOAD] Successfully downloaded local file: ${filename}`);
+        }
+      });
+      return;
+    }
+
+  } catch (error) {
+    logger.error(`[FILE DOWNLOAD] [${requestId}] Error processing file download ${filename}:`, error);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: "Erreur lors du téléchargement du fichier." });
+    }
+  }
 });
+
+// Helper function to determine content type
+function getContentType(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  switch (ext) {
+    case 'pdf':
+      return 'application/pdf';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    default:
+      return 'application/octet-stream';
+  }
+}
 
 // NEW: Route to save Shopify API credentials for a specific shop
 router.post('/shops/:shopId/api-credentials', requireInternalAPIAuth, async (req, res) => {
@@ -579,15 +648,19 @@ router.get('/all-shops', requireInternalAPIAuth, async (req, res) => {
             parametrizationError: shop.parametrizationError || null,
             documented: shop.documented || 'undocumented',
             logoUrl: logoUrl,
+            logoS3Key: shop.logoS3Key,
             desktopBannerUrl: desktopBannerUrl,
+            desktopBannerS3Key: shop.desktopBannerS3Key,
             mobileBannerUrl: mobileBannerUrl,
-            faviconUrl: faviconUrl
+            mobileBannerS3Key: shop.mobileBannerS3Key,
+            faviconUrl: faviconUrl,
+            faviconS3Key: shop.faviconS3Key
           });
         }
       }
     }
     
-    console.log("--- END DEBUGGING ---");
+    console.log('--- END DEBUGGING ---');
     res.status(200).json({ success: true, shops: allShops });
   } catch (error) {
     res.status(500).json({
@@ -748,14 +821,32 @@ router.get('/customer/:customerId', requireInternalAPIAuth, async (req, res) => 
 router.get('/clients/:clientId', requireInternalAPIAuth, async (req, res) => {
   try {
     const { clientId } = req.params;
-    console.log(`[INTERNAL] Getting client details for ID: ${clientId}`);
+    logger.debug(`[INTERNAL] Getting client details for ID: ${clientId}`);
     
+    // Add timeout and early response to identify where it hangs
+    const timeoutId = setTimeout(() => {
+      logger.error('[INTERNAL] Route timeout - operation took too long');
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: 'Request timeout - operation took too long'
+        });
+      }
+    }, 10000); // 10 second timeout
+    
+    logger.debug('[INTERNAL] About to get customers collection...');
     const customersCollection = await getCustomersCollection();
+    logger.debug('[INTERNAL] Got customers collection successfully');
+    
     let customer;
     
     try {
+      logger.debug(`[INTERNAL] About to query for client ID: ${clientId}`);
       customer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
+      logger.debug('[INTERNAL] Database query completed');
     } catch (e) {
+      clearTimeout(timeoutId);
+      logger.error('[INTERNAL] Database query error:', e);
       return res.status(400).json({
         success: false,
         message: 'Invalid client ID format',
@@ -763,26 +854,31 @@ router.get('/clients/:clientId', requireInternalAPIAuth, async (req, res) => {
       });
     }
     
+    clearTimeout(timeoutId);
+    
     if (!customer) {
+      logger.debug('[INTERNAL] No customer found for ID');
       return res.status(404).json({
         success: false,
         message: 'Client not found'
       });
     }
     
-    console.log(`[INTERNAL] Found client: ${customer.raisonSociale || customer.name}`);
+    logger.debug(`[INTERNAL] Found client: ${customer.raisonSociale || customer.name}`);
     
     res.status(200).json({
       success: true,
       customer
     });
   } catch (error) {
-    console.error('[INTERNAL] Error fetching client data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'An error occurred while fetching client data',
-      error: error.message
-    });
+    logger.error('[INTERNAL] Error fetching client data:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while fetching client data',
+        error: error.message
+      });
+    }
   }
 });
 
@@ -792,7 +888,7 @@ router.put('/clients/:clientId', requireInternalAPIAuth, async (req, res) => {
     const { clientId } = req.params;
     const updateData = req.body;
     
-    console.log(`[INTERNAL] Updating client ${clientId}:`, updateData);
+    logger.debug(`[INTERNAL] Updating client ${clientId}:`, { clientId, hasUpdateData: !!updateData });
     
     // Remove any fields that should not be updated
     delete updateData._id; // Cannot update MongoDB _id
@@ -834,7 +930,7 @@ router.put('/clients/:clientId', requireInternalAPIAuth, async (req, res) => {
     // Get the updated customer data
     const updatedCustomer = await customersCollection.findOne({ _id: new ObjectId(clientId) });
     
-    console.log(`[INTERNAL] Successfully updated client: ${updatedCustomer.raisonSociale || updatedCustomer.name}`);
+    logger.debug(`[INTERNAL] Successfully updated client: ${updatedCustomer.raisonSociale || updatedCustomer.name}`);
     
     // Return success response
     res.status(200).json({
@@ -843,7 +939,7 @@ router.put('/clients/:clientId', requireInternalAPIAuth, async (req, res) => {
       customer: updatedCustomer
     });
   } catch (error) {
-    console.error('[INTERNAL] Error updating client data:', error);
+    logger.error('[INTERNAL] Error updating client data:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while updating the client profile',
@@ -2561,12 +2657,14 @@ router.get('/config/shopify-partner-credentials', requireInternalAPIAuth, (req, 
   const password = process.env.SHOPIFY_PARTNER_PASSWORD;
 
   if (!email || !password) {
+    logger.error('[SHOPIFY CREDENTIALS] Missing environment variables for partner credentials');
     return res.status(500).json({
       success: false,
       message: 'Shopify partner credentials are not configured in the environment.',
     });
   }
 
+  logger.debug('[SHOPIFY CREDENTIALS] Successfully retrieved partner credentials');
   res.json({ success: true, credentials: { email, password } });
 });
 
@@ -5089,15 +5187,30 @@ router.post('/shops/:shopId/push-dawn-theme', requireInternalAPIAuth, async (req
 // Route to proxy images for internal portal downloads
 router.get('/image-proxy', requireInternalAPIAuth, async (req, res) => {
   try {
-    const { imageKey } = req.query;
+    let { imageKey } = req.query;
     
-    console.log(`[INTERNAL IMAGE PROXY] Requested image key: ${imageKey}`);
+    console.log(`[INTERNAL IMAGE PROXY] Received image key: ${imageKey}`);
     
     if (!imageKey) {
       return res.status(400).json({
         success: false,
         message: 'Image key is required'
       });
+    }
+
+    // Robustly extract the S3 key if the field contains a full URL
+    if (imageKey.startsWith('http') || imageKey.includes('amazonaws.com')) {
+      try {
+        const url = new URL(imageKey);
+        imageKey = decodeURIComponent(url.pathname.substring(1)); // Remove leading slash and decode
+        console.log(`[INTERNAL IMAGE PROXY] Extracted S3 key from URL: ${imageKey}`);
+      } catch (urlError) {
+        console.error(`[INTERNAL IMAGE PROXY] Error parsing S3 key which looks like a URL: ${imageKey}`, urlError);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid image key format'
+        });
+      }
     }
     
     // Get the image from S3 and serve it directly

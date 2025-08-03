@@ -5151,3 +5151,316 @@
 [2025-08-01T18:38:09.831Z] -----------------------------
 [2025-08-01T18:38:09.831Z] EC service call completed. Updating product statuses in DB.
 [2025-08-01T18:38:09.865Z] --- EC Generation Request Succeeded (NEW ROUTE) ---
+[2025-08-03T19:15:19.197Z] --- Initiating EC Generation Request (NEW ROUTE) ---
+[2025-08-03T19:15:19.198Z] Shop ID: 688f79469b2c640cf9a64798, Product IDs: ["688f937548e39c6597c91d54","688f910a48e39c6597c91d53"]
+[2025-08-03T19:15:19.202Z] Found customer: GZ (688f78fe9b2c640cf9a64797)
+[2025-08-03T19:15:19.202Z] Found shop: Omerta57
+[2025-08-03T19:15:19.202Z] [EC Generation] Starting EC generation for 2 products from shop Omerta57
+[2025-08-03T19:15:19.204Z] Checking for required EC API credentials...
+[2025-08-03T19:15:19.204Z] Environment variables check:
+[2025-08-03T19:15:19.204Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-08-03T19:15:19.204Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-08-03T19:15:19.204Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-08-03T19:15:19.204Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-08-03T19:15:19.204Z]   process.env.NODE_ENV: development
+[2025-08-03T19:15:19.204Z]   Current working directory: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend
+[2025-08-03T19:15:19.204Z] All EC_* environment variables:
+[2025-08-03T19:15:19.205Z]   EC_API_LOGIN: "015130_01" (length: 9)
+[2025-08-03T19:15:19.205Z]   EC_API_BASE_URL: "https://api.sna-gz.com" (length: 22)
+[2025-08-03T19:15:19.205Z]   EC_API_PASSWORD: "LHf***" (length: 12)
+[2025-08-03T19:15:19.205Z]   EC_API_USER: "Ggytg$jgh45" (length: 11)
+[2025-08-03T19:15:19.205Z] Credentials check passed.
+[2025-08-03T19:15:19.205Z] Mapping products to EC items...
+[2025-08-03T19:15:19.206Z]   - Mapping product: Hoodie (ID: 688f910a48e39c6597c91d53)
+[2025-08-03T19:15:19.206Z]     - Generated 5 variant combinations.
+[2025-08-03T19:15:19.206Z]       - Processing combination: XS
+[2025-08-03T19:15:19.206Z]         - WARNING: Invalid EAN13 code for combination XS: "0000000000000". Will send empty barCode.
+[2025-08-03T19:15:19.206Z]     - Mapped Merch/Hoodie to: Hoodie Client
+[2025-08-03T19:15:19.206Z]         - Item validation for XS:
+[2025-08-03T19:15:19.206Z]           productType: "Hoodie Client" (required)
+[2025-08-03T19:15:19.206Z]           CptClient: "912312" (required, 6 chars, actual: 6)
+[2025-08-03T19:15:19.206Z]           sku: "HOODIE-TESTHOODIE-XS" (required, max 38 chars, actual: 20)
+[2025-08-03T19:15:19.207Z]           title: "Hoodie" (required, max 70 chars, actual: 6)
+[2025-08-03T19:15:19.207Z]           CN23Label: "Hoodie" (required, max 30 chars, actual: 6)
+[2025-08-03T19:15:19.207Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-03T19:15:19.207Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-03T19:15:19.207Z]           artist: "GZ" (max 70 chars, actual: 2)
+[2025-08-03T19:15:19.207Z]           description: "Testing hoodie EC, Shopify and Doc generation last" (max 255 chars, actual: 50)
+[2025-08-03T19:15:19.208Z]       - Processing combination: M
+[2025-08-03T19:15:19.208Z]         - WARNING: Invalid EAN13 code for combination M: "0000000000000". Will send empty barCode.
+[2025-08-03T19:15:19.208Z]     - Mapped Merch/Hoodie to: Hoodie Client
+[2025-08-03T19:15:19.208Z]         - Item validation for M:
+[2025-08-03T19:15:19.208Z]           productType: "Hoodie Client" (required)
+[2025-08-03T19:15:19.208Z]           CptClient: "912312" (required, 6 chars, actual: 6)
+[2025-08-03T19:15:19.208Z]           sku: "HOODIE-TESTHOODIE-M" (required, max 38 chars, actual: 19)
+[2025-08-03T19:15:19.208Z]           title: "Hoodie" (required, max 70 chars, actual: 6)
+[2025-08-03T19:15:19.208Z]           CN23Label: "Hoodie" (required, max 30 chars, actual: 6)
+[2025-08-03T19:15:19.208Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-03T19:15:19.208Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-03T19:15:19.208Z]           artist: "GZ" (max 70 chars, actual: 2)
+[2025-08-03T19:15:19.208Z]           description: "Testing hoodie EC, Shopify and Doc generation last" (max 255 chars, actual: 50)
+[2025-08-03T19:15:19.208Z]       - Processing combination: S
+[2025-08-03T19:15:19.208Z]         - WARNING: Invalid EAN13 code for combination S: "0000000000000". Will send empty barCode.
+[2025-08-03T19:15:19.209Z]     - Mapped Merch/Hoodie to: Hoodie Client
+[2025-08-03T19:15:19.209Z]         - Item validation for S:
+[2025-08-03T19:15:19.209Z]           productType: "Hoodie Client" (required)
+[2025-08-03T19:15:19.209Z]           CptClient: "912312" (required, 6 chars, actual: 6)
+[2025-08-03T19:15:19.209Z]           sku: "HOODIE-TESTHOODIE-S" (required, max 38 chars, actual: 19)
+[2025-08-03T19:15:19.209Z]           title: "Hoodie" (required, max 70 chars, actual: 6)
+[2025-08-03T19:15:19.209Z]           CN23Label: "Hoodie" (required, max 30 chars, actual: 6)
+[2025-08-03T19:15:19.209Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-03T19:15:19.209Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-03T19:15:19.209Z]           artist: "GZ" (max 70 chars, actual: 2)
+[2025-08-03T19:15:19.209Z]           description: "Testing hoodie EC, Shopify and Doc generation last" (max 255 chars, actual: 50)
+[2025-08-03T19:15:19.209Z]       - Processing combination: L
+[2025-08-03T19:15:19.209Z]         - WARNING: Invalid EAN13 code for combination L: "0000000000000". Will send empty barCode.
+[2025-08-03T19:15:19.209Z]     - Mapped Merch/Hoodie to: Hoodie Client
+[2025-08-03T19:15:19.209Z]         - Item validation for L:
+[2025-08-03T19:15:19.209Z]           productType: "Hoodie Client" (required)
+[2025-08-03T19:15:19.209Z]           CptClient: "912312" (required, 6 chars, actual: 6)
+[2025-08-03T19:15:19.210Z]           sku: "HOODIE-TESTHOODIE-L" (required, max 38 chars, actual: 19)
+[2025-08-03T19:15:19.210Z]           title: "Hoodie" (required, max 70 chars, actual: 6)
+[2025-08-03T19:15:19.210Z]           CN23Label: "Hoodie" (required, max 30 chars, actual: 6)
+[2025-08-03T19:15:19.210Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-03T19:15:19.210Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-03T19:15:19.210Z]           artist: "GZ" (max 70 chars, actual: 2)
+[2025-08-03T19:15:19.210Z]           description: "Testing hoodie EC, Shopify and Doc generation last" (max 255 chars, actual: 50)
+[2025-08-03T19:15:19.210Z]       - Processing combination: XL
+[2025-08-03T19:15:19.210Z]         - WARNING: Invalid EAN13 code for combination XL: "0000000000000". Will send empty barCode.
+[2025-08-03T19:15:19.210Z]     - Mapped Merch/Hoodie to: Hoodie Client
+[2025-08-03T19:15:19.210Z]         - Item validation for XL:
+[2025-08-03T19:15:19.210Z]           productType: "Hoodie Client" (required)
+[2025-08-03T19:15:19.210Z]           CptClient: "912312" (required, 6 chars, actual: 6)
+[2025-08-03T19:15:19.210Z]           sku: "HOODIE-TESTHOODIE-XL" (required, max 38 chars, actual: 20)
+[2025-08-03T19:15:19.210Z]           title: "Hoodie" (required, max 70 chars, actual: 6)
+[2025-08-03T19:15:19.210Z]           CN23Label: "Hoodie" (required, max 30 chars, actual: 6)
+[2025-08-03T19:15:19.210Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-03T19:15:19.210Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-03T19:15:19.211Z]           artist: "GZ" (max 70 chars, actual: 2)
+[2025-08-03T19:15:19.211Z]           description: "Testing hoodie EC, Shopify and Doc generation last" (max 255 chars, actual: 50)
+[2025-08-03T19:15:19.211Z]   - Mapping product: TeePod (ID: 688f937548e39c6597c91d54)
+[2025-08-03T19:15:19.211Z]     - Generated 2 variant combinations.
+[2025-08-03T19:15:19.211Z]       - Processing combination: Noir
+[2025-08-03T19:15:19.211Z]         - WARNING: Invalid EAN13 code for combination Noir: "0000000000000". Will send empty barCode.
+[2025-08-03T19:15:19.211Z]     - Mapped POD/Casquette to: Casquette Client
+[2025-08-03T19:15:19.211Z]         - Item validation for Noir:
+[2025-08-03T19:15:19.211Z]           productType: "Casquette Client" (required)
+[2025-08-03T19:15:19.211Z]           CptClient: "912312" (required, 6 chars, actual: 6)
+[2025-08-03T19:15:19.211Z]           sku: "POD-CASQUETTE-TEEPOD-NOIR" (required, max 38 chars, actual: 25)
+[2025-08-03T19:15:19.211Z]           title: "TeePod" (required, max 70 chars, actual: 6)
+[2025-08-03T19:15:19.211Z]           CN23Label: "TeePod" (required, max 30 chars, actual: 6)
+[2025-08-03T19:15:19.211Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-03T19:15:19.211Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-03T19:15:19.211Z]           artist: "GZ" (max 70 chars, actual: 2)
+[2025-08-03T19:15:19.211Z]           description: "Im a sexy yute u understand gal all over the globe wanna upkill me u understand" (max 255 chars, actual: 79)
+[2025-08-03T19:15:19.211Z]       - Processing combination: Blanc
+[2025-08-03T19:15:19.211Z]         - WARNING: Invalid EAN13 code for combination Blanc: "0000000000000". Will send empty barCode.
+[2025-08-03T19:15:19.212Z]     - Mapped POD/Casquette to: Casquette Client
+[2025-08-03T19:15:19.212Z]         - Item validation for Blanc:
+[2025-08-03T19:15:19.212Z]           productType: "Casquette Client" (required)
+[2025-08-03T19:15:19.212Z]           CptClient: "912312" (required, 6 chars, actual: 6)
+[2025-08-03T19:15:19.212Z]           sku: "POD-CASQUETTE-TEEPOD-BLANC" (required, max 38 chars, actual: 26)
+[2025-08-03T19:15:19.212Z]           title: "TeePod" (required, max 70 chars, actual: 6)
+[2025-08-03T19:15:19.212Z]           CN23Label: "TeePod" (required, max 30 chars, actual: 6)
+[2025-08-03T19:15:19.212Z]           custodyCode: "00000000" (required, max 8 chars, actual: 8)
+[2025-08-03T19:15:19.212Z]           barCode: "" (max 13 chars, actual: 0, valid EAN13: false)
+[2025-08-03T19:15:19.212Z]           artist: "GZ" (max 70 chars, actual: 2)
+[2025-08-03T19:15:19.212Z]           description: "Im a sexy yute u understand gal all over the globe wanna upkill me u understand" (max 255 chars, actual: 79)
+[2025-08-03T19:15:19.212Z] Total items to import: 7
+[2025-08-03T19:15:19.212Z] Query Parameters prepared for request: {
+  "CustomerAccount": "912312",
+  "Login": "015130_01",
+  "Password": "***",
+  "uploadType": "User",
+  "User": "Ggytg$jgh45"
+}
+[2025-08-03T19:15:19.212Z] --- Starting variant-by-variant import for 7 items ---
+[2025-08-03T19:15:19.213Z] 
+--- Sending Variant (SKU: HOODIE-TESTHOODIE-XS) ---
+[2025-08-03T19:15:19.213Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=912312&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-03T19:15:19.213Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-03T19:15:19.213Z] BODY: [
+  {
+    "productType": "Hoodie Client",
+    "CptClient": "912312",
+    "sku": "HOODIE-TESTHOODIE-XS",
+    "title": "Hoodie",
+    "CN23Label": "Hoodie",
+    "custodyCode": "00000000",
+    "artist": "GZ",
+    "barCode": "",
+    "description": "Testing hoodie EC, Shopify and Doc generation last",
+    "size": "XS",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta57",
+    "occ": false
+  }
+]
+[2025-08-03T19:15:19.213Z] -------------------------------------------
+[2025-08-03T19:15:20.567Z] ✅ SUCCESS for SKU: HOODIE-TESTHOODIE-XS. Status: 200
+[2025-08-03T19:15:20.568Z] 
+--- Sending Variant (SKU: HOODIE-TESTHOODIE-M) ---
+[2025-08-03T19:15:20.568Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=912312&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-03T19:15:20.568Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-03T19:15:20.569Z] BODY: [
+  {
+    "productType": "Hoodie Client",
+    "CptClient": "912312",
+    "sku": "HOODIE-TESTHOODIE-M",
+    "title": "Hoodie",
+    "CN23Label": "Hoodie",
+    "custodyCode": "00000000",
+    "artist": "GZ",
+    "barCode": "",
+    "description": "Testing hoodie EC, Shopify and Doc generation last",
+    "size": "M",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta57",
+    "occ": false
+  }
+]
+[2025-08-03T19:15:20.569Z] -------------------------------------------
+[2025-08-03T19:15:21.226Z] ✅ SUCCESS for SKU: HOODIE-TESTHOODIE-M. Status: 200
+[2025-08-03T19:15:21.226Z] 
+--- Sending Variant (SKU: HOODIE-TESTHOODIE-S) ---
+[2025-08-03T19:15:21.226Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=912312&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-03T19:15:21.226Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-03T19:15:21.227Z] BODY: [
+  {
+    "productType": "Hoodie Client",
+    "CptClient": "912312",
+    "sku": "HOODIE-TESTHOODIE-S",
+    "title": "Hoodie",
+    "CN23Label": "Hoodie",
+    "custodyCode": "00000000",
+    "artist": "GZ",
+    "barCode": "",
+    "description": "Testing hoodie EC, Shopify and Doc generation last",
+    "size": "S",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta57",
+    "occ": false
+  }
+]
+[2025-08-03T19:15:21.227Z] -------------------------------------------
+[2025-08-03T19:15:21.894Z] ✅ SUCCESS for SKU: HOODIE-TESTHOODIE-S. Status: 200
+[2025-08-03T19:15:21.895Z] 
+--- Sending Variant (SKU: HOODIE-TESTHOODIE-L) ---
+[2025-08-03T19:15:21.895Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=912312&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-03T19:15:21.895Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-03T19:15:21.896Z] BODY: [
+  {
+    "productType": "Hoodie Client",
+    "CptClient": "912312",
+    "sku": "HOODIE-TESTHOODIE-L",
+    "title": "Hoodie",
+    "CN23Label": "Hoodie",
+    "custodyCode": "00000000",
+    "artist": "GZ",
+    "barCode": "",
+    "description": "Testing hoodie EC, Shopify and Doc generation last",
+    "size": "L",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta57",
+    "occ": false
+  }
+]
+[2025-08-03T19:15:21.896Z] -------------------------------------------
+[2025-08-03T19:15:22.575Z] ✅ SUCCESS for SKU: HOODIE-TESTHOODIE-L. Status: 200
+[2025-08-03T19:15:22.575Z] 
+--- Sending Variant (SKU: HOODIE-TESTHOODIE-XL) ---
+[2025-08-03T19:15:22.575Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=912312&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-03T19:15:22.575Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-03T19:15:22.575Z] BODY: [
+  {
+    "productType": "Hoodie Client",
+    "CptClient": "912312",
+    "sku": "HOODIE-TESTHOODIE-XL",
+    "title": "Hoodie",
+    "CN23Label": "Hoodie",
+    "custodyCode": "00000000",
+    "artist": "GZ",
+    "barCode": "",
+    "description": "Testing hoodie EC, Shopify and Doc generation last",
+    "size": "XL",
+    "itemClassification": "Merch",
+    "Boutique": "Omerta57",
+    "occ": false
+  }
+]
+[2025-08-03T19:15:22.576Z] -------------------------------------------
+[2025-08-03T19:15:23.293Z] ✅ SUCCESS for SKU: HOODIE-TESTHOODIE-XL. Status: 200
+[2025-08-03T19:15:23.294Z] 
+--- Sending Variant (SKU: POD-CASQUETTE-TEEPOD-NOIR) ---
+[2025-08-03T19:15:23.294Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=912312&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-03T19:15:23.294Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-03T19:15:23.295Z] BODY: [
+  {
+    "productType": "Casquette Client",
+    "CptClient": "912312",
+    "sku": "POD-CASQUETTE-TEEPOD-NOIR",
+    "title": "TeePod",
+    "CN23Label": "TeePod",
+    "custodyCode": "00000000",
+    "artist": "GZ",
+    "barCode": "",
+    "description": "Im a sexy yute u understand gal all over the globe wanna upkill me u understand",
+    "color": "Noir",
+    "itemClassification": "POD",
+    "Boutique": "Omerta57",
+    "occ": false
+  }
+]
+[2025-08-03T19:15:23.295Z] -------------------------------------------
+[2025-08-03T19:15:24.017Z] ✅ SUCCESS for SKU: POD-CASQUETTE-TEEPOD-NOIR. Status: 200
+[2025-08-03T19:15:24.017Z] 
+--- Sending Variant (SKU: POD-CASQUETTE-TEEPOD-BLANC) ---
+[2025-08-03T19:15:24.017Z] URL: https://api.sna-gz.com/api-v1/item?CustomerAccount=912312&Login=015130_01&Password=LHfgvrHfrJ78&uploadType=User&User=Ggytg%24jgh45
+[2025-08-03T19:15:24.017Z] HEADERS: {
+  "Content-Type": "application/json",
+  "User-Agent": "SNA-GZ-Portal/1.0"
+}
+[2025-08-03T19:15:24.017Z] BODY: [
+  {
+    "productType": "Casquette Client",
+    "CptClient": "912312",
+    "sku": "POD-CASQUETTE-TEEPOD-BLANC",
+    "title": "TeePod",
+    "CN23Label": "TeePod",
+    "custodyCode": "00000000",
+    "artist": "GZ",
+    "barCode": "",
+    "description": "Im a sexy yute u understand gal all over the globe wanna upkill me u understand",
+    "color": "Blanc",
+    "itemClassification": "POD",
+    "Boutique": "Omerta57",
+    "occ": false
+  }
+]
+[2025-08-03T19:15:24.017Z] -------------------------------------------
+[2025-08-03T19:15:24.868Z] ✅ SUCCESS for SKU: POD-CASQUETTE-TEEPOD-BLANC. Status: 200
+[2025-08-03T19:15:24.870Z] 
+--- Import Process Complete ---
+[2025-08-03T19:15:24.870Z] Successfully imported: 7
+[2025-08-03T19:15:24.870Z] Failed to import: 0
+[2025-08-03T19:15:24.870Z] -----------------------------
+[2025-08-03T19:15:24.870Z] EC service call completed. Updating product statuses in DB.
+[2025-08-03T19:15:24.899Z] --- EC Generation Request Succeeded (NEW ROUTE) ---

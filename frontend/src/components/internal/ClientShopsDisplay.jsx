@@ -34,7 +34,7 @@ const ClientShopsDisplay = ({
         setModal({ open: false });
         try {
           const response = await fetch(
-            `http://localhost:3000/api/internal/clients/${clientId}/shops/${shopIdString}`,
+            `${window.location.origin}/api/internal/clients/${clientId}/shops/${shopIdString}`,
             {
               method: "DELETE",
               headers: { "Content-Type": "application/json" },
@@ -109,7 +109,7 @@ const ClientShopsDisplay = ({
       }
 
       const response = await fetch(
-        `http://localhost:3000/api/internal/clients/${clientId}/shops/${editingShopId}?_=${new Date().getTime()}`,
+        `${window.location.origin}/api/internal/clients/${clientId}/shops/${editingShopId}?_=${new Date().getTime()}`,
         {
           method: "PUT",
           headers: {
@@ -152,7 +152,7 @@ const ClientShopsDisplay = ({
 
     try {
       const response = await fetch(
-        `http://localhost:3000/api/internal/clients/${clientId}/shops/${editingShopId}?_=${new Date().getTime()}`,
+        `${window.location.origin}/api/internal/clients/${clientId}/shops/${editingShopId}?_=${new Date().getTime()}`,
         {
           method: "PUT",
           headers: {
@@ -518,7 +518,7 @@ const ClientShopsDisplay = ({
                 <React.Fragment key={shop.shopId || shop._id}>
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-700">
-                      {shop.nomProjet || "N/A"}
+                      {renderFieldValue(shop, "nomProjet", shop.nomProjet)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -641,6 +641,10 @@ const ClientShopsDisplay = ({
                                   "coutsEtDetailsModuleMondialRelay",
                                   "themeName",
                                   "dawnThemePushed",
+                                  // Shopify fields to hide
+                                  "shopifyDomainSavedAt",
+                                  "shopifySetupStatus",
+                                  "shopifySetupCompleted",
                                 ].includes(key)
                             )
                             .map(([field, value]) => (

@@ -223,8 +223,21 @@ async function processImagesWithStagedUploads(shopifyUrl, accessToken, imageUrls
     try {
       logger.debug(`[IMAGE-PROCESSING] Processing image: ${imageUrl}`);
       
-      // Extract S3 key from URL - the imageUrl is actually the S3 key, not a full URL
+      // Extract S3 key from URL - handle both S3 keys and full S3 URLs
       let key = imageUrl;
+      
+      // If imageUrl is a full S3 URL, extract the key from it
+      if (key.startsWith('http') || key.includes('amazonaws.com')) {
+        try {
+          const url = new URL(key);
+          // Extract the pathname and remove the leading slash
+          key = decodeURIComponent(url.pathname.substring(1));
+          logger.debug(`[IMAGE-PROCESSING] Extracted S3 key from URL: ${key}`);
+        } catch (urlError) {
+          logger.error(`[IMAGE-PROCESSING] Error parsing S3 URL: ${key}`, urlError);
+          throw new Error(`Invalid S3 URL format: ${key}`);
+        }
+      }
       
       // Remove query parameters from the key if present
       const queryIndex = key.indexOf('?');
@@ -372,7 +385,7 @@ async function findProductCategory(shopifyUrl, accessToken, searchTerm) {
     logger.debug(`[CATEGORY-SEARCH] 📊 Found ${categories.length} categories for "${searchTerm}"`);
     
     if (categories.length > 0) {
-      logger.debug("Category operation");));
+      logger.debug("Category operation");
     } else {
       logger.debug(`[CATEGORY-SEARCH] 📋 No categories found for search term: "${searchTerm}"`);
     }
@@ -1523,7 +1536,7 @@ async function updateVariantsWithDetails(shopifyUrl, accessToken, createdVariant
   logger.debug(`[VARIANT-UPDATE-BARCODES] ===============================================`);
   logger.debug(`[VARIANT-UPDATE-BARCODES] Detailed barcode information for ALL variants:`);
   variants.forEach((variant, index) => {
-    logger.debug("Variant operation");.length : 0,
+    logger.debug(`[VARIANT-UPDATE-BARCODES] Variant ${index + 1}:`, {
       hasBarcode: !!variant.barcode,
       stockQuantity: variant.stockQuantity,
       price: variant.price
@@ -1612,13 +1625,13 @@ async function updateVariantsWithDetails(shopifyUrl, accessToken, createdVariant
         // Only log essential response info to avoid truncation
         const hasErrors = !!(inventoryResponse.data.errors && inventoryResponse.data.errors.length) || 
                          !!(inventoryResponse.data.data?.inventoryItemUpdate?.userErrors && inventoryResponse.data.data.inventoryItemUpdate.userErrors.length);
-        logger.debug("Variant operation"); + (inventoryResponse.data.data?.inventoryItemUpdate?.userErrors?.length || 0)
-        });
+        logger.debug(`[VARIANT-UPDATE-${i + 1}] Inventory item update completed with ${inventoryResponse.data.data?.inventoryItemUpdate?.userErrors?.length || 0} errors`);
 
         const invErrors = inventoryResponse.data.errors;
         const invUserErrors = inventoryResponse.data.data?.inventoryItemUpdate?.userErrors;
         
-        logger.debug("Variant operation"); || !!(invUserErrors && invUserErrors.length),
+        logger.debug(`[VARIANT-UPDATE-${i + 1}] Inventory update status:`, {
+          hasErrors: !!(invErrors && invErrors.length) || !!(invUserErrors && invUserErrors.length),
           errorMessage: invErrors?.[0]?.message || invUserErrors?.[0]?.message || 'No errors'
         });
         
@@ -1883,7 +1896,8 @@ async function updateVariantsWithDetails(shopifyUrl, accessToken, createdVariant
             }
           });
 
-          logger.debug("Variant operation"); || 
+          logger.debug(`[VARIANT-UPDATE-STOCK] Stock update status:`, {
+            hasErrors: !!(stockResponse.data.errors && stockResponse.data.errors.length) || 
                       !!(stockResponse.data.data?.inventorySetQuantities?.userErrors && stockResponse.data.data.inventorySetQuantities.userErrors.length),
             errorCount: (stockResponse.data.errors?.length || 0) + (stockResponse.data.data?.inventorySetQuantities?.userErrors?.length || 0)
           });

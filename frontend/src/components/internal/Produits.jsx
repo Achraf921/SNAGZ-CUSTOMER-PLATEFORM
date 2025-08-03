@@ -283,11 +283,11 @@ const Produits = () => {
             `  ${key}: File(${value.name}, ${value.type}, ${value.size} bytes)`
           );
         } else {
-          console.log(`  ${key}: ${value}`);
+          // Security: Removed potentially sensitive form data logging
         }
       }
 
-      const uploadUrl = `/api/internal/products/${clientId}/${shopId}/${productId}/images/${imageIndex}/upload`;
+      const uploadUrl = `/api/internal/upload/products/${clientId}/${shopId}/${productId}/images/${imageIndex}/upload`;
       console.log("🌐 [IMAGE DEBUG] Upload URL:", uploadUrl);
       console.log("📤 [IMAGE REPLACE] Uploading new image...");
 
@@ -422,7 +422,7 @@ const Produits = () => {
       formData.append("image", file);
 
       const nextIndex = currentImageCount; // New image will be at the end
-      const uploadUrl = `/api/internal/products/${clientId}/${shopId}/${productId}/images/${nextIndex}/upload`;
+      const uploadUrl = `/api/internal/upload/products/${clientId}/${shopId}/${productId}/images/${nextIndex}/upload`;
 
       console.log("🌐 [IMAGE ADD] Upload URL:", uploadUrl);
       console.log("📤 [IMAGE ADD] Uploading new image...");
@@ -850,11 +850,25 @@ const Produits = () => {
     try {
       setSaving(true);
 
-      // Use temp value if available, otherwise use editForm value
-      const valueToSave =
-        tempInputValue !== undefined && tempInputValue !== ""
-          ? tempInputValue
-          : editForm[fieldName];
+      // Determine the value to save based on field type
+      let valueToSave;
+
+      // Check if this is a checkbox field by looking at the EditableField type
+      const isCheckboxField = fieldName === "OCC" || fieldName === "occ";
+
+      if (isCheckboxField) {
+        // For checkbox fields, always use the editForm value (boolean)
+        valueToSave = editForm[fieldName];
+        console.log(
+          `💾 [SAVE] Checkbox field detected, using editForm value: ${valueToSave}`
+        );
+      } else {
+        // For other fields, use temp value if available, otherwise use editForm value
+        valueToSave =
+          tempInputValue !== undefined && tempInputValue !== ""
+            ? tempInputValue
+            : editForm[fieldName];
+      }
 
       console.log(`💾 [SAVE] Final valueToSave: "${valueToSave}"`);
 

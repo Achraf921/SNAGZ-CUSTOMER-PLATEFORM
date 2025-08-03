@@ -1111,18 +1111,18 @@ const DocumentationSection = () => {
                 <div className="mt-4">
                   <p className="text-sm text-gray-600">
                     <strong>Important:</strong> Avant de documenter ce produit,
-                    veuillez vous assurer que le document
-                    <strong> "Fiches Produits Shopify"</strong> est{" "}
-                    <strong>fermé dans SharePoint</strong>.
+                    veuillez vous assurer que{" "}
+                    <strong>tous les documents de cette boutique</strong> sont{" "}
+                    <strong>fermés dans SharePoint</strong>.
                   </p>
                   <p className="text-sm text-gray-600 mt-2">
-                    📝 <strong>Pourquoi ?</strong> Si le document est ouvert
+                    📝 <strong>Pourquoi ?</strong> Si des documents sont ouverts
                     dans SharePoint, la documentation pourrait ne pas
                     s'effectuer correctement.
                   </p>
                   <p className="text-sm text-gray-600 mt-2">
-                    ✅ <strong>Une fois fermé</strong>, cliquez sur "Documenter"
-                    pour continuer.
+                    ✅ <strong>Une fois tous les documents fermés</strong>,
+                    cliquez sur "Documenter" pour continuer.
                   </p>
                 </div>
               </div>

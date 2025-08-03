@@ -15,8 +15,8 @@ const securityHeaders = (req, res, next) => {
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com", // reCAPTCHA
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: https: blob:", // Allow S3 images and data URLs
-    "connect-src 'self' https://api.shopify.com https://admin.shopify.com", // Shopify API
+    "img-src 'self' data: https: blob: https://snagz.s3.eu-north-1.amazonaws.com", // Allow S3 images and data URLs
+    "connect-src 'self' https://api.shopify.com https://admin.shopify.com http://localhost:3000 https://localhost:3000", // Shopify API & Local Dev
     "frame-src 'self' https://www.google.com", // reCAPTCHA
     "object-src 'none'",
     "base-uri 'self'",

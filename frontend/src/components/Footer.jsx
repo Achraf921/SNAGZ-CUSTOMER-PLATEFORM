@@ -28,7 +28,8 @@ const Footer = () => {
       title: "Mentions légales",
       links: [
         { name: "Conditions générales", href: "/conditions-generales" },
-        { name: "Qui nous sommes", href: "/qui-nous-sommes" },
+        { name: "Où nous trouver", href: "/ou-nous-trouver" },
+        { name: "Qui sommes nous", href: "/qui-nous-sommes" },
       ],
     },
     support: {
@@ -95,12 +96,9 @@ const Footer = () => {
         <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path
             fillRule="evenodd"
-            d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM6.5 9.5a5.5 5.5 0 1011 0h-1.75a3.75 3.75 0 00-7.5 0H6.5zm5.5 8a6 6 0 01-6-6h1.5A4.5 4.5 0 1016.5 12H18a6 6 0 01-6 5.5z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
             clipRule="evenodd"
           />
-          <path d="M9 12a3 3 0 106 0h-1.5a1.5 1.5 0 01-3 0H9z" />
-          <path d="M12 1a11 11 0 00-8.485 4h1.89A9.004 9.004 0 0112 3a9.004 9.004 0 016.595 2H20.485A11 11 0 0012 1zM3.515 19a11 11 0 008.485 4 11 11 0 008.485-4h-1.89A9.004 9.004 0 0112 21a9.004 9.004 0 01-6.595-2H3.515z" />
-          <path d="M8.5 12a3.5 3.5 0 107 0 3.5 3.5 0 00-7 0z" opacity="0.6" />
         </svg>
       ),
     },

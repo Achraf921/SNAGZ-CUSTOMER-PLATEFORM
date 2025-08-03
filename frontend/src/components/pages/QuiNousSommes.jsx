@@ -6,10 +6,66 @@ const QuiNousSommes = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow-lg rounded-lg p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">
-            Qui nous sommes
+            Qui sommes nous
           </h1>
 
           <div className="prose max-w-none text-gray-700 space-y-8">
+            <section>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                Où nous trouver
+              </h2>
+              <div className="bg-green-50 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Bureaux
+                </h3>
+                <p className="text-lg leading-relaxed mb-4">
+                  <strong>Nous contacter</strong>
+                  <br />
+                  Contactez nous dès maintenant pour échanger sur vos besoins ou
+                  demander un devis
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">
+                      Adresse
+                    </h4>
+                    <p className="text-gray-700">
+                      Bureau Paris - 171 Quai de Valmy
+                      <br />
+                      75010 Paris
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">
+                      Téléphone
+                    </h4>
+                    <p className="text-gray-700">
+                      <a
+                        href="tel:0140386130"
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        01 40 38 61 30
+                      </a>
+                    </p>
+
+                    <h4 className="font-semibold text-gray-900 mb-2 mt-4">
+                      Email
+                    </h4>
+                    <p className="text-gray-700">
+                      <a
+                        href="mailto:contact@sna-gz.com"
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        contact@sna-gz.com
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section>
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">
                 À propos du développeur
@@ -19,8 +75,11 @@ const QuiNousSommes = () => {
                   Bonjour ! Je suis <strong>Achraf Bayi</strong>, un développeur
                   de 19 ans né à Paris. Je poursuis actuellement mes études en
                   génie logiciel au Canada en 2ème année et j'effectue un stage
-                  chez SNA GZ où j'ai eu l'opportunité de développer cette
-                  plateforme innovante.
+                  chez SNA GZ où j'ai développé cette plateforme entièrement
+                  seul. Mon stage en développement logiciel m'a permis
+                  d'apprendre énormément sur l'e-commerce dans l'industrie
+                  musicale, ce qui était particulièrement passionnant en tant
+                  que grand amateur de musique.
                 </p>
               </div>
             </section>
@@ -112,6 +171,38 @@ const QuiNousSommes = () => {
                   </li>
                   <li>
                     • <strong>reCAPTCHA</strong> - Protection contre les bots
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-orange-50 p-4 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Infrastructure de déploiement
+                </h3>
+                <ul className="space-y-2 text-gray-700">
+                  <li>
+                    • <strong>Vercel</strong> - Déploiement frontend avec CDN
+                    global et SSL automatique
+                  </li>
+                  <li>
+                    • <strong>AWS EC2</strong> - Serveur backend avec Docker
+                    pour la conteneurisation
+                  </li>
+                  <li>
+                    • <strong>MongoDB Atlas</strong> - Base de données cloud
+                    managée avec sauvegardes automatiques
+                  </li>
+                  <li>
+                    • <strong>Docker</strong> - Conteneurisation pour la
+                    cohérence des environnements
+                  </li>
+                  <li>
+                    • <strong>Route 53</strong> - Gestion DNS et domaines
+                    personnalisés
+                  </li>
+                  <li>
+                    • <strong>Let's Encrypt</strong> - Certificats SSL gratuits
+                    et automatiques
                   </li>
                 </ul>
               </div>

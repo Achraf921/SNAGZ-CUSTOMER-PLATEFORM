@@ -75,7 +75,7 @@ const ClientsList = () => {
     setShopsOfSelectedClient([]); // Clear previous shops
 
     try {
-      const apiUrl = `http://localhost:3000/api/internal/clients/${clientId}`;
+      const apiUrl = `${window.location.origin}/api/internal/clients/${clientId}`;
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: {
@@ -151,7 +151,7 @@ const ClientsList = () => {
       try {
         // Fetch fresh data for the client's shops
         const response = await fetch(
-          `http://localhost:3000/api/internal/clients/${selectedClientIdForShops}?_=${new Date().getTime()}`,
+          `${window.location.origin}/api/internal/clients/${selectedClientIdForShops}?_=${new Date().getTime()}`,
           {
             method: "GET",
             headers: {

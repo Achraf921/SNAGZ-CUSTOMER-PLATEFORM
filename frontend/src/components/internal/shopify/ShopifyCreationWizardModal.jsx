@@ -340,7 +340,7 @@ const ShopifyCreationWizardModal = ({ isOpen, onClose, shop, onSuccess }) => {
     ];
 
     return list;
-  }, [shop]);
+  }, [shop, email, partnerPassword]);
 
   const markStepCompleted = (stepId) => {
     setCompletedSteps((prev) => new Set(prev).add(stepId));
@@ -432,6 +432,45 @@ const ShopifyCreationWizardModal = ({ isOpen, onClose, shop, onSuccess }) => {
               <p className="text-sm text-gray-600 mb-4">
                 {getCurrentStep()?.description}
               </p>
+
+              {/* Loading indicator for credentials */}
+              {currentStep === 1 && isLoadingPartner && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    <span className="text-sm text-blue-800">
+                      Chargement des identifiants Shopify...
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Error indicator for credentials */}
+              {currentStep === 1 && partnerError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="h-4 w-4 text-red-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-2">
+                      <p className="text-sm text-red-800">
+                        <strong>Erreur de chargement des identifiants:</strong>{" "}
+                        {partnerError}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 {getCurrentStep()?.instructions?.map(
@@ -567,6 +606,122 @@ const ShopifyCreationWizardModal = ({ isOpen, onClose, shop, onSuccess }) => {
                               return null;
                             })}
                           </div>
+
+                          {/* Credential Display Boxes - Only for "Première connexion" */}
+                          {currentStep === 1 &&
+                            instruction.title === "Première connexion" &&
+                            (email || partnerPassword) && (
+                              <div className="mt-6 space-y-4">
+                                {/* Email Box */}
+                                {email && (
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <label className="text-sm font-medium text-blue-800 block mb-2">
+                                      Email Shopify
+                                    </label>
+                                    <div className="flex items-center border rounded-md px-3 py-2 bg-white">
+                                      <span className="flex-1 text-sm text-blue-900 break-all">
+                                        {email}
+                                      </span>
+                                      <button
+                                        onClick={() =>
+                                          navigator.clipboard.writeText(email)
+                                        }
+                                        className="text-blue-600 hover:text-blue-800 ml-2 p-1 rounded hover:bg-blue-100"
+                                        title="Copier l'email"
+                                      >
+                                        <svg
+                                          className="w-4 h-4"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                          />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Password Box */}
+                                {partnerPassword && (
+                                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <label className="text-sm font-medium text-green-800 block mb-2">
+                                      Mot de passe Shopify
+                                    </label>
+                                    <div className="flex items-center border rounded-md px-3 py-2 bg-white">
+                                      <span className="flex-1 text-sm text-green-900 break-all">
+                                        {showPassword
+                                          ? partnerPassword
+                                          : "••••••••••••••••"}
+                                      </span>
+                                      <div className="flex items-center ml-2 space-x-1">
+                                        <button
+                                          onMouseDown={() =>
+                                            setShowPassword(true)
+                                          }
+                                          onMouseUp={() =>
+                                            setShowPassword(false)
+                                          }
+                                          onMouseLeave={() =>
+                                            setShowPassword(false)
+                                          }
+                                          className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-100"
+                                          title="Maintenir pour voir le mot de passe"
+                                        >
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                            />
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                            />
+                                          </svg>
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            navigator.clipboard.writeText(
+                                              partnerPassword
+                                            )
+                                          }
+                                          className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-100"
+                                          title="Copier le mot de passe"
+                                        >
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                            />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                         </div>
                       );
                     }

@@ -1187,11 +1187,7 @@ class EmailService {
 
       const result = await this.transporter.sendMail(mailOptions);
       
-      // Email logging removed for security:`, {
-        recipient: email,
-        messageId: result.messageId,
-        accountType: accountType
-      });
+      // Email logging removed for security
 
       return {
         success: true,

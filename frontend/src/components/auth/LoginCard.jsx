@@ -163,7 +163,16 @@ function LoginCard({
   };
 
   const handlePasswordSet = (redirectUrl) => {
-    window.location.href = redirectUrl || defaultRedirectUrl;
+    // For internal and admin portals, redirect back to their login pages
+    // For client portal, use the redirectUrl from backend (which goes to dashboard)
+    if (portalType === "internal") {
+      window.location.href = "/?portal=internal";
+    } else if (portalType === "admin") {
+      window.location.href = "/?portal=admin";
+    } else {
+      // Client portal - use the redirectUrl from backend
+      window.location.href = redirectUrl || defaultRedirectUrl;
+    }
   };
 
   const handleCancelSetPassword = () => {
@@ -185,7 +194,6 @@ function LoginCard({
         onPasswordSet={handlePasswordSet}
         onCancel={handleCancelSetPassword}
         cognitoChallengeParameters={cognitoChallengeParameters}
-        defaultRedirectUrl={defaultRedirectUrl}
       />
     );
   }

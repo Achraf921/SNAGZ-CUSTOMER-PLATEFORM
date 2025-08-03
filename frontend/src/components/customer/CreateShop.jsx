@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 // import { useNavigate } from "react-router-dom"; // Removed unused import
 // import InfosProjet from "../InfosProjet"; // Removed unused import
 // import InfosClient from "../InfosClient"; // Removed unused import
@@ -10,6 +10,7 @@ import Page1InfosGeneralesProjet from "../formSteps/Page1_InfosGeneralesProjet";
 import Page2PlanningLancement from "../formSteps/Page2_PlanningLancement";
 import Page3ServicesShopify from "../formSteps/Page3_ServicesShopify";
 import Page4DetailsFacturation from "../formSteps/Page4_DetailsFacturation";
+import CorruptedFileModal from "../common/CorruptedFileModal";
 
 const steps = [
   { id: 1, name: "Informations Générales" },
@@ -49,6 +50,16 @@ const initialFormState = {
   moduleMondialRelay: false,
 };
 
+// Helper to read file as ArrayBuffer to prevent reference loss
+const readFileAsArrayBuffer = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(file);
+  });
+};
+
 const CreateShop = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(initialFormState);
@@ -57,7 +68,7 @@ const CreateShop = () => {
   const [userId, setUserId] = useState(null);
   const [createdShopId, setCreatedShopId] = useState(null);
 
-  // Image upload state
+  // Image upload state - store stable data instead of File objects
   const [images, setImages] = useState({
     logo: null,
     desktopBanner: null,
@@ -71,6 +82,42 @@ const CreateShop = () => {
     favicon: null,
   });
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({});
+
+  // Corrupted file modal state
+  const [showCorruptedFileModal, setShowCorruptedFileModal] = useState(false);
+  const [corruptedFileName, setCorruptedFileName] = useState("");
+
+  // Safe cleanup function (no longer using blob URLs that interfere with Launch Services)
+  const cleanupPreviewUrl = useCallback((url) => {
+    // Data URLs don't need cleanup and are safe for macOS
+    if (url && url.startsWith("data:")) {
+      console.log("ℹ️ [IMAGE CLEANUP] Data URL detected, no cleanup needed");
+      return;
+    }
+    // If any blob URLs somehow remain, clean them safely
+    if (url && url.startsWith("blob:")) {
+      try {
+        URL.revokeObjectURL(url);
+        console.log("⚠️ [IMAGE CLEANUP] Cleaned up unexpected blob URL");
+      } catch (error) {
+        console.warn("⚠️ [IMAGE CLEANUP] Failed to revoke blob URL:", error);
+      }
+    }
+  }, []);
+
+  // Cleanup all preview URLs (safe for macOS)
+  const cleanupAllPreviewUrls = useCallback(() => {
+    Object.values(imagePreviewUrls).forEach(cleanupPreviewUrl);
+  }, [imagePreviewUrls, cleanupPreviewUrl]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      console.log("🧹 [COMPONENT CLEANUP] Cleaning up all preview URLs safely");
+      cleanupAllPreviewUrls();
+    };
+  }, [cleanupAllPreviewUrls]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -92,6 +139,8 @@ const CreateShop = () => {
 
   // Get user's sub attribute from storage when component mounts
   useEffect(() => {
+    // Security: Removed session data logging
+
     // Try to get userInfo from session or local storage
     let userInfoStr =
       sessionStorage.getItem("userInfo") || localStorage.getItem("userInfo");
@@ -106,10 +155,13 @@ const CreateShop = () => {
 
         console.log("==== CREATE SHOP USER INFO ====");
         console.log("User sub from storage:", sub);
+        console.log("Full userInfo:", userInfo);
         console.log("==== END CREATE SHOP USER INFO ====");
+      } else {
+        console.warn("⚠️ [USER SESSION] No userInfo found in storage");
       }
     } catch (error) {
-      console.error("Error parsing userInfo:", error);
+      console.error("❌ [USER SESSION] Error parsing userInfo:", error);
       setError(
         "Erreur lors de la récupération des informations utilisateur. Veuillez vous reconnecter."
       );
@@ -120,10 +172,13 @@ const CreateShop = () => {
       const fallbackUserId =
         sessionStorage.getItem("userId") || localStorage.getItem("userId");
       if (fallbackUserId) {
-        console.warn("No sub found, using fallback userId:", fallbackUserId);
+        console.warn(
+          "⚠️ [USER SESSION] No sub found, using fallback userId:",
+          fallbackUserId
+        );
         setUserId(fallbackUserId);
       } else {
-        console.error("No user identifier found in storage");
+        console.error("❌ [USER SESSION] No user identifier found in storage");
         setError(
           "Identifiant utilisateur non trouvé. Veuillez vous reconnecter."
         );
@@ -131,94 +186,393 @@ const CreateShop = () => {
     }
   }, []);
 
-  const handleImageChange = (imageType, file) => {
-    if (file) {
+  // Validate file before processing
+  const validateFile = (file, imageType) => {
+    console.log(`🔍 [FILE VALIDATION] Validating ${imageType}:`, {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    });
+
+    // Check file type
+    if (!file.type.startsWith("image/")) {
+      throw new Error(`Le fichier ${imageType} doit être une image.`);
+    }
+
+    // Check file size (10MB limit to match backend)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      throw new Error(
+        `Le fichier ${imageType} est trop volumineux. Taille maximale: 10MB.`
+      );
+    }
+
+    // Special validation for favicon
+    if (imageType === "favicon") {
+      const validFaviconTypes = [
+        "image/x-icon",
+        "image/vnd.microsoft.icon",
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+      ];
+      if (!validFaviconTypes.includes(file.type)) {
+        console.warn(
+          `⚠️ [FILE VALIDATION] Favicon type ${file.type} might not be optimal`
+        );
+      }
+    }
+
+    console.log(`✅ [FILE VALIDATION] ${imageType} validation passed`);
+    return true;
+  };
+
+  const handleImageChange = (imageType, file, inputElement = null) => {
+    if (!file) {
+      console.log(`🔍 [IMAGE CHANGE] No file selected for ${imageType}`);
+      return;
+    }
+
+    // Function to clear the file input
+    const clearFileInput = () => {
+      if (inputElement) {
+        inputElement.value = "";
+      }
+      // Also find and clear the input by looking for it in the DOM
+      const fileInputs = document.querySelectorAll(`input[type="file"]`);
+      fileInputs.forEach((input) => {
+        if (input.files && input.files[0] === file) {
+          input.value = "";
+        }
+      });
+    };
+
+    try {
+      // Validate file
+      validateFile(file, imageType);
+
+      // Additional file object validation
+      if (!file.size || file.size === 0) {
+        throw new Error(`Le fichier ${imageType} semble être vide.`);
+      }
+
+      if (!file.type) {
+        throw new Error(
+          `Le type du fichier ${imageType} ne peut pas être déterminé.`
+        );
+      }
+
+      // Cleanup previous preview URL for this image type
+      const previousUrl = imagePreviewUrls[imageType];
+      if (previousUrl) {
+        cleanupPreviewUrl(previousUrl);
+      }
+
+      console.log(`🔍 [IMAGE CHANGE] Processing ${imageType}:`, {
+        fileName: file.name,
+        fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        fileType: file.type,
+        lastModified: file.lastModified,
+      });
+
+      // Immediately read the file into stable data to prevent reference loss
+      console.log(
+        `📖 [IMAGE PROCESSING] Reading ${imageType} into memory immediately...`
+      );
+
+      const processFile = async () => {
+        try {
+          // Read the file into a stable ArrayBuffer immediately
+          const arrayBuffer = await readFileAsArrayBuffer(file);
+
+          // Create stable file data object
+          const fileData = {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified,
+            data: arrayBuffer,
+          };
+
+          // Store the stable data instead of the File object
+          setImages((prev) => ({
+            ...prev,
+            [imageType]: fileData,
+          }));
+
+          // Generate preview from the stable data
+          const blob = new Blob([arrayBuffer], { type: file.type });
+          const reader = new FileReader();
+
+          reader.onload = (e) => {
+            const result = e.target.result;
+            if (result && result.startsWith("data:image/")) {
+              console.log(
+                `✅ [IMAGE PREVIEW] Safe preview created for ${imageType}`
+              );
+              setImagePreviewUrls((prev) => ({ ...prev, [imageType]: result }));
+            } else {
+              console.warn(
+                `⚠️ [IMAGE PREVIEW] Invalid data URL generated for ${imageType}`
+              );
+            }
+          };
+
+          reader.onerror = (e) => {
+            console.error(
+              `❌ [IMAGE PREVIEW] FileReader error on Blob for ${imageType}:`,
+              e.target.error
+            );
+          };
+
+          reader.readAsDataURL(blob);
+
+          console.log(
+            `✅ [IMAGE PROCESSING] ${imageType} processed successfully`
+          );
+        } catch (error) {
+          console.error(
+            `❌ [IMAGE PROCESSING] Failed to process ${imageType}:`,
+            {
+              error: error,
+              errorName: error?.name,
+              errorMessage: error?.message,
+              fileInfo: {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                lastModified: file.lastModified,
+              },
+            }
+          );
+
+          // IMMEDIATELY clear the file input to prevent it from showing the corrupted file name
+          clearFileInput();
+
+          // Clear the problematic file from state
+          setImages((prev) => ({
+            ...prev,
+            [imageType]: null,
+          }));
+          setImagePreviewUrls((prev) => ({
+            ...prev,
+            [imageType]: null,
+          }));
+
+          // Show modal for corrupted files and don't load them
+          if (error?.name === "NotReadableError") {
+            setCorruptedFileName(file.name);
+            setShowCorruptedFileModal(true);
+            // Don't set any error in the main error state - the modal handles it
+          } else {
+            setError(
+              `Erreur lors du traitement du fichier ${imageType}: ${error.message}`
+            );
+          }
+        }
+      };
+
+      processFile();
+    } catch (error) {
+      console.error(
+        `❌ [IMAGE CHANGE] Validation failed for ${imageType}:`,
+        error.message
+      );
+
+      // IMMEDIATELY clear the file input
+      clearFileInput();
+
+      setError(error.message);
+
+      // Clear any potentially problematic file
       setImages((prev) => ({
         ...prev,
-        [imageType]: file,
+        [imageType]: null,
       }));
-
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreviewUrls((prev) => ({
-          ...prev,
-          [imageType]: e.target.result,
-        }));
-      };
-      reader.readAsDataURL(file);
+      setImagePreviewUrls((prev) => ({
+        ...prev,
+        [imageType]: null,
+      }));
     }
   };
 
   const uploadImages = async (shopId) => {
+    console.log(`🚀 [IMAGE UPLOAD] Starting upload process for shop ${shopId}`);
     setUploadingImages(true);
-    const uploadPromises = [];
+    setUploadProgress({});
+
+    const uploadResults = [];
 
     try {
-      // Upload logo if exists
+      // Create AbortController for timeout handling
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.warn("⏰ [IMAGE UPLOAD] Upload timeout reached, aborting...");
+        abortController.abort();
+      }, 300000); // 5 minutes timeout to handle large files and slow S3 uploads
+
+      // Use the unified upload approach like internal portal
+      const imagesToUpload = [];
+
       if (images.logo) {
-        const logoFormData = new FormData();
-        logoFormData.append("logo", images.logo);
-
-        uploadPromises.push(
-          fetch(`/api/customer/shops/${shopId}/upload/logo`, {
-            method: "POST",
-            body: logoFormData,
-            credentials: "include",
-          })
-        );
+        imagesToUpload.push({ type: "logo", fileData: images.logo });
       }
 
-      // Upload banners if exist
-      if (images.desktopBanner || images.mobileBanner) {
-        const bannerFormData = new FormData();
-        if (images.desktopBanner)
-          bannerFormData.append("desktopBanner", images.desktopBanner);
-        if (images.mobileBanner)
-          bannerFormData.append("mobileBanner", images.mobileBanner);
-
-        uploadPromises.push(
-          fetch(`/api/customer/shops/${shopId}/upload/banner`, {
-            method: "POST",
-            body: bannerFormData,
-            credentials: "include",
-          })
-        );
+      if (images.desktopBanner) {
+        imagesToUpload.push({
+          type: "desktopBanner",
+          fileData: images.desktopBanner,
+        });
       }
 
-      // Upload favicon if exists
+      if (images.mobileBanner) {
+        imagesToUpload.push({
+          type: "mobileBanner",
+          fileData: images.mobileBanner,
+        });
+      }
+
       if (images.favicon) {
-        const faviconFormData = new FormData();
-        faviconFormData.append("favicon", images.favicon);
-
-        uploadPromises.push(
-          fetch(`/api/customer/shops/${shopId}/upload/favicon`, {
-            method: "POST",
-            body: faviconFormData,
-            credentials: "include",
-          })
-        );
+        imagesToUpload.push({ type: "favicon", fileData: images.favicon });
       }
 
-      const results = await Promise.all(uploadPromises);
+      if (imagesToUpload.length === 0) {
+        console.log("ℹ️ [IMAGE UPLOAD] No images to upload");
+        clearTimeout(timeoutId);
+        return true;
+      }
 
-      // Check if all uploads were successful
-      for (const result of results) {
-        if (!result.ok) {
-          const errorData = await result.json();
-          throw new Error(
-            errorData.message || "Erreur lors de l'upload des images"
+      console.log(
+        `📤 [IMAGE UPLOAD] Uploading ${imagesToUpload.length} image(s)...`
+      );
+
+      // Files are already in memory as stable data, no need to read them again
+      console.log("✅ [IMAGE UPLOAD] Using pre-loaded file data for uploads.");
+
+      // Upload each image SEQUENTIALLY to prevent multer "Unexpected end of form" errors
+      for (const { type, fileData } of imagesToUpload) {
+        console.log(`📤 [IMAGE UPLOAD] Preparing ${type} upload...`);
+
+        const formData = new FormData();
+        // Use the stable ArrayBuffer data wrapped in a Blob
+        const blob = new Blob([fileData.data], { type: fileData.type });
+        formData.append("image", blob, fileData.name); // Use "image" field name like internal portal
+        formData.append("imageType", type); // Specify image type in body
+
+        console.log(`📤 [${type.toUpperCase()} UPLOAD] FormData prepared:`, {
+          imageFieldName: "image",
+          imageType: type,
+          fileName: fileData.name,
+          fileSize: fileData.size,
+          fileType: fileData.type,
+        });
+
+        // Debug FormData entries
+        console.log(`📦 [${type.toUpperCase()} UPLOAD] FormData entries:`);
+        for (let [key, value] of formData.entries()) {
+          if (value instanceof Blob) {
+            console.log(
+              `  ${key}: Blob(${fileData.name}, ${value.type}, ${value.size} bytes)`
+            );
+          } else {
+            // Security: Removed potentially sensitive form data logging
+          }
+        }
+
+        // Upload SEQUENTIALLY to prevent multer errors
+        try {
+          const uploadStartTime = Date.now();
+          console.log(
+            `🚀 [${type.toUpperCase()} UPLOAD] Starting upload at ${new Date().toISOString()}...`
           );
+          console.log(
+            `🚀 [${type.toUpperCase()} UPLOAD] URL: /api/customer/shops/${userId}/${shopId}/upload-image`
+          );
+          console.log(`🚀 [${type.toUpperCase()} UPLOAD] Method: POST`);
+          // Security: Removed credential logging
+
+          const response = await fetch(
+            `/api/customer/shops/${userId}/${shopId}/upload-image`,
+            {
+              method: "POST",
+              body: formData,
+              credentials: "include",
+              signal: abortController.signal,
+              // DON'T set Content-Type header - let browser set it for multipart/form-data
+            }
+          );
+
+          const uploadDuration = Date.now() - uploadStartTime;
+          console.log(
+            `📤 [${type.toUpperCase()} UPLOAD] Response received after ${uploadDuration}ms`
+          );
+          console.log(
+            `📤 [${type.toUpperCase()} UPLOAD] Response status: ${response.status}`
+          );
+          console.log(
+            `📤 [${type.toUpperCase()} UPLOAD] Response headers:`,
+            Object.fromEntries(response.headers.entries())
+          );
+
+          if (!response.ok) {
+            let errorMessage = `Erreur lors de l'upload ${type}`;
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorMessage;
+              console.error(
+                `❌ [${type.toUpperCase()} UPLOAD] Failed:`,
+                errorData
+              );
+            } catch (parseError) {
+              console.error(
+                `❌ [${type.toUpperCase()} UPLOAD] Failed with status ${response.status}, could not parse error response`
+              );
+            }
+            throw new Error(errorMessage);
+          } else {
+            try {
+              const successData = await response.json();
+              console.log(
+                `✅ [${type.toUpperCase()} UPLOAD] Success:`,
+                successData
+              );
+              uploadResults.push({ type, data: successData });
+            } catch (parseError) {
+              console.warn(
+                `⚠️ [${type.toUpperCase()} UPLOAD] Success but could not parse response`
+              );
+            }
+          }
+        } catch (uploadError) {
+          if (uploadError.name === "AbortError") {
+            throw new Error("Upload aborted due to timeout");
+          }
+          throw uploadError;
         }
       }
+      clearTimeout(timeoutId);
 
+      console.log("✅ [IMAGE UPLOAD] All uploads completed successfully");
       return true;
     } catch (error) {
-      console.error("Error uploading images:", error);
-      setError("Erreur lors de l'upload des images: " + error.message);
+      if (error.name === "AbortError") {
+        console.error("❌ [IMAGE UPLOAD] Upload aborted due to timeout");
+        setError(
+          "L'upload des images a pris trop de temps. Veuillez réessayer avec des fichiers plus petits."
+        );
+      } else if (error.message.includes("Failed to fetch")) {
+        console.error("❌ [IMAGE UPLOAD] Network error:", error);
+        setError(
+          "Erreur de connexion lors de l'upload des images. Vérifiez votre connexion internet et réessayez."
+        );
+      } else {
+        console.error("❌ [IMAGE UPLOAD] Upload error:", error);
+        setError("Erreur lors de l'upload des images: " + error.message);
+      }
       return false;
     } finally {
       setUploadingImages(false);
+      setUploadProgress({});
     }
   };
 
@@ -227,7 +581,10 @@ const CreateShop = () => {
 
     if (currentStep === 5) {
       // Step 5: Create the shop and upload images
+      console.log("🚀 [SHOP CREATION] Starting shop creation process...");
+
       if (!userId) {
+        console.error("❌ [SHOP CREATION] No userId found");
         setError(
           "Identifiant utilisateur non trouvé. Veuillez vous reconnecter."
         );
@@ -240,6 +597,7 @@ const CreateShop = () => {
         !formData.dateCommercialisation ||
         !formData.dateSortieOfficielle
       ) {
+        console.error("❌ [SHOP CREATION] Missing mandatory date fields");
         setError(
           "Veuillez remplir tous les champs obligatoires : Date de Mise en Ligne Prévue, Date de Commercialisation, et Date de Sortie Officielle."
         );
@@ -248,12 +606,21 @@ const CreateShop = () => {
 
       setIsSubmitting(true);
       setError(null);
-      console.log("Nouveau Formulaire Créer Boutique Soumis:", formData);
+      console.log("==== SHOP CREATION SUBMISSION ====");
+      console.log("Form data:", formData);
       console.log("UserId (sub) utilisé pour la création:", userId);
+      console.log("Images to upload:", {
+        hasLogo: !!images.logo,
+        hasDesktopBanner: !!images.desktopBanner,
+        hasMobileBanner: !!images.mobileBanner,
+        hasFavicon: !!images.favicon,
+      });
+      console.log("==== END SHOP CREATION SUBMISSION ====");
 
       try {
         // Determine API URL based on environment
         const apiUrl = `/api/customer/shops/${userId}`;
+        console.log(`📤 [SHOP CREATION] Making request to: ${apiUrl}`);
 
         const response = await fetch(apiUrl, {
           method: "POST",
@@ -264,25 +631,51 @@ const CreateShop = () => {
           credentials: "include",
         });
 
+        console.log(`📤 [SHOP CREATION] Response status: ${response.status}`);
         const data = await response.json();
 
         if (!response.ok) {
+          console.error("❌ [SHOP CREATION] Failed:", data);
           throw new Error(
             data.message ||
               `Erreur lors de la création de la boutique (${response.status})`
           );
         }
 
-        console.log("Boutique créée avec succès:", data);
+        console.log("✅ [SHOP CREATION] Boutique créée avec succès:", data);
         setCreatedShopId(data.shopId);
 
         // Upload images if any were selected
-        const uploadSuccess = await uploadImages(data.shopId);
-        if (uploadSuccess) {
+        const hasImages =
+          images.logo ||
+          images.desktopBanner ||
+          images.mobileBanner ||
+          images.favicon;
+        if (hasImages) {
+          console.log("📤 [SHOP CREATION] Proceeding with image uploads...");
+          const uploadSuccess = await uploadImages(data.shopId);
+          if (uploadSuccess) {
+            console.log(
+              "✅ [SHOP CREATION] Complete process successful, redirecting..."
+            );
+            window.location.href = "/client/boutiques"; // Redirect to boutiques page
+          } else {
+            console.warn(
+              "⚠️ [SHOP CREATION] Shop created but image upload failed"
+            );
+            setError(
+              "La boutique a été créée mais l'upload des images a échoué. Vous pouvez ajouter les images plus tard depuis la page 'Mes Boutiques'."
+            );
+          }
+        } else {
+          console.log("ℹ️ [SHOP CREATION] No images to upload, redirecting...");
           window.location.href = "/client/boutiques"; // Redirect to boutiques page
         }
       } catch (error) {
-        console.error("Erreur soumission formulaire:", error);
+        console.error(
+          "❌ [SHOP CREATION] Erreur soumission formulaire:",
+          error
+        );
         setError(
           error.message ||
             "Une erreur est survenue lors de la création de la boutique"
@@ -332,10 +725,17 @@ const CreateShop = () => {
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleImageChange("logo", e.target.files[0])}
+                onChange={(e) => {
+                  console.log(
+                    "🔍 [FILE INPUT] Logo file input changed:",
+                    e.target.files
+                  );
+                  handleImageChange("logo", e.target.files?.[0], e.target);
+                }}
+                key="logo-input" // Stable key
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sna-primary file:text-white hover:file:bg-sna-primary-dark"
               />
-              {imagePreviewUrls.logo && (
+              {imagePreviewUrls.logo ? (
                 <div className="mt-2">
                   <img
                     src={imagePreviewUrls.logo}
@@ -343,7 +743,17 @@ const CreateShop = () => {
                     className="h-20 w-20 object-cover rounded-lg border"
                   />
                 </div>
-              )}
+              ) : images.logo ? (
+                <div className="mt-2 p-4 bg-gray-100 rounded-lg border flex items-center justify-center h-20 w-20">
+                  <span className="text-xs text-gray-500 text-center">
+                    {images.logo.name}
+                    <br />
+                    <span className="text-green-600">
+                      ✓ Fichier sélectionné
+                    </span>
+                  </span>
+                </div>
+              ) : null}
             </div>
 
             {/* Desktop Banner Upload */}
@@ -355,11 +765,15 @@ const CreateShop = () => {
                 type="file"
                 accept="image/*"
                 onChange={(e) =>
-                  handleImageChange("desktopBanner", e.target.files[0])
+                  handleImageChange(
+                    "desktopBanner",
+                    e.target.files[0],
+                    e.target
+                  )
                 }
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sna-primary file:text-white hover:file:bg-sna-primary-dark"
               />
-              {imagePreviewUrls.desktopBanner && (
+              {imagePreviewUrls.desktopBanner ? (
                 <div className="mt-2">
                   <img
                     src={imagePreviewUrls.desktopBanner}
@@ -367,7 +781,17 @@ const CreateShop = () => {
                     className="h-20 w-40 object-cover rounded-lg border"
                   />
                 </div>
-              )}
+              ) : images.desktopBanner ? (
+                <div className="mt-2 p-2 bg-gray-100 rounded-lg border flex items-center justify-center h-20 w-40">
+                  <span className="text-xs text-gray-500 text-center">
+                    {images.desktopBanner.name}
+                    <br />
+                    <span className="text-green-600">
+                      ✓ Fichier sélectionné
+                    </span>
+                  </span>
+                </div>
+              ) : null}
             </div>
 
             {/* Mobile Banner Upload */}
@@ -379,11 +803,11 @@ const CreateShop = () => {
                 type="file"
                 accept="image/*"
                 onChange={(e) =>
-                  handleImageChange("mobileBanner", e.target.files[0])
+                  handleImageChange("mobileBanner", e.target.files[0], e.target)
                 }
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sna-primary file:text-white hover:file:bg-sna-primary-dark"
               />
-              {imagePreviewUrls.mobileBanner && (
+              {imagePreviewUrls.mobileBanner ? (
                 <div className="mt-2">
                   <img
                     src={imagePreviewUrls.mobileBanner}
@@ -391,7 +815,17 @@ const CreateShop = () => {
                     className="h-20 w-32 object-cover rounded-lg border"
                   />
                 </div>
-              )}
+              ) : images.mobileBanner ? (
+                <div className="mt-2 p-2 bg-gray-100 rounded-lg border flex items-center justify-center h-20 w-32">
+                  <span className="text-xs text-gray-500 text-center">
+                    {images.mobileBanner.name}
+                    <br />
+                    <span className="text-green-600">
+                      ✓ Fichier sélectionné
+                    </span>
+                  </span>
+                </div>
+              ) : null}
             </div>
 
             {/* Favicon Upload */}
@@ -401,13 +835,13 @@ const CreateShop = () => {
               </label>
               <input
                 type="file"
-                accept="image/*,.ico"
+                accept="image/*"
                 onChange={(e) =>
-                  handleImageChange("favicon", e.target.files[0])
+                  handleImageChange("favicon", e.target.files[0], e.target)
                 }
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sna-primary file:text-white hover:file:bg-sna-primary-dark"
               />
-              {imagePreviewUrls.favicon && (
+              {imagePreviewUrls.favicon ? (
                 <div className="mt-2">
                   <img
                     src={imagePreviewUrls.favicon}
@@ -415,14 +849,74 @@ const CreateShop = () => {
                     className="h-20 w-20 object-cover rounded-lg border"
                   />
                 </div>
-              )}
+              ) : images.favicon ? (
+                <div className="mt-2 p-2 bg-gray-100 rounded-lg border flex items-center justify-center h-20 w-20">
+                  <span className="text-xs text-gray-500 text-center">
+                    {images.favicon.name}
+                    <br />
+                    <span className="text-green-600">
+                      ✓ Fichier sélectionné
+                    </span>
+                  </span>
+                </div>
+              ) : null}
             </div>
+
+            {/* Upload Progress Indicator */}
+            {uploadingImages && (
+              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-amber-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <p className="text-sm text-amber-800 font-medium">
+                    Upload des images en cours...
+                  </p>
+                </div>
+                <div className="mt-2 text-xs text-amber-700">
+                  {images.logo && <div>• Logo</div>}
+                  {(images.desktopBanner || images.mobileBanner) && (
+                    <div>• Bannières</div>
+                  )}
+                  {images.favicon && <div>• Favicon</div>}
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-800">
                 <strong>Note :</strong> L'ajout d'images est optionnel. Vous
                 pourrez toujours ajouter ou modifier ces images plus tard depuis
                 la section "Mes Boutiques".
+              </p>
+            </div>
+
+            {/* File format help */}
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-600">
+                <strong>Formats acceptés :</strong> JPG, PNG, GIF, WebP (max
+                10MB)
+                <br />
+                <strong>Conseil :</strong> Si un fichier ne s'affiche pas
+                correctement, essayez de le sélectionner à nouveau ou utilisez
+                un autre format.
               </p>
             </div>
           </div>
@@ -541,7 +1035,9 @@ const CreateShop = () => {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    Création de la boutique...
+                    {uploadingImages
+                      ? "Upload des images..."
+                      : "Création de la boutique..."}
                   </>
                 ) : currentStep === 5 ? (
                   "Créer la boutique"
@@ -553,6 +1049,13 @@ const CreateShop = () => {
           </div>
         </div>
       </form>
+
+      {/* Corrupted File Modal */}
+      <CorruptedFileModal
+        isOpen={showCorruptedFileModal}
+        onClose={() => setShowCorruptedFileModal(false)}
+        fileName={corruptedFileName}
+      />
     </div>
   );
 };

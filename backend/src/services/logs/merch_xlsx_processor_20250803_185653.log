@@ -1,0 +1,256 @@
+[2025-08-03 18:56:53] Merchandising XLSX processor script started
+[2025-08-03 18:56:53] Template path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-08-03 18:56:53] Output path: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_GZ_OMERTA57.xlsx
+[2025-08-03 18:56:53] Decoding base64 data...
+[2025-08-03 18:56:53] Successfully decoded base64 data
+[2025-08-03 18:56:53] Parsing JSON data...
+[2025-08-03 18:56:53] Successfully parsed JSON data
+[2025-08-03 18:56:53] Starting merchandising XLSX processing...
+[2025-08-03 18:56:53] Starting Merchandising XLSX processing for: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-08-03 18:56:53] Output will be saved to: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_GZ_OMERTA57.xlsx
+[2025-08-03 18:56:53] Append mode: False
+[2025-08-03 18:56:53] Successfully loaded workbook: /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/FileWebMerch/FICHES.PRODUITS_SHOPIFY_CLIENT_PROJET.xlsx
+[2025-08-03 18:56:53] Shop data keys: ['nomProjet', 'shopifyDomain', 'raisonSociale', 'dateSortieOfficielle', 'dateCommercialisation', 'dateMiseEnLigne', 'products', 'appendMode']
+[2025-08-03 18:56:53] Found date-related field: 'dateSortieOfficielle' = '2025-08-05'
+[2025-08-03 18:56:53] Found date-related field: 'dateCommercialisation' = '2025-08-04'
+[2025-08-03 18:56:53] Found date-related field: 'dateMiseEnLigne' = '2025-08-03'
+[2025-08-03 18:56:53] Found customer-related field: 'raisonSociale' = 'GZ'
+[2025-08-03 18:56:53] 🔍 DEBUG: All shop_data keys: ['nomProjet', 'shopifyDomain', 'raisonSociale', 'dateSortieOfficielle', 'dateCommercialisation', 'dateMiseEnLigne', 'products', 'appendMode']
+[2025-08-03 18:56:53] 🔍 DEBUG: Date fields found - dateSortie: 'NOT_FOUND', dateSortieOfficielle: '2025-08-05', dateCommercialisation: '2025-08-04'
+[2025-08-03 18:56:53] 🔍 DEBUG: Full shop_data content: {'nomProjet': 'Omerta57', 'shopifyDomain': '', 'raisonSociale': 'GZ', 'dateSortieOfficielle': '2025-08-05', 'dateCommercialisation': '2025-08-04', 'dateMiseEnLigne': '2025-08-03', 'products': [{'titre': 'Hoodie', 'description': 'Testing hoodie EC, Shopify and Doc generation last', 'prix': 22, 'poids': 300, 'eans': {'default': '0000000000000', 'XS': '0000000000000', 'M': '0000000000000', 'S': '0000000000000', 'L': '0000000000000', 'XL': '0000000000000'}, 'typeProduit': 'Merch', 'produit': 'Hoodie', 'OCC': False, 'tailles': ['XS', 'M', 'S', 'L', 'XL'], 'couleurs': [], 'stock': {'XS': 324, 'M': 324, 'S': 232, 'L': 343, 'XL': 333}, 'shopId': '688f79469b2c640cf9a64798', 'skus': {'XS': 'HOODIE-TESTHOODIE-XS', 'M': 'HOODIE-TESTHOODIE-M', 'S': 'HOODIE-TESTHOODIE-S', 'L': 'HOODIE-TESTHOODIE-L', 'XL': 'HOODIE-TESTHOODIE-XL'}, 'productId': '688f910a48e39c6597c91d53', 'createdAt': '2025-08-03T16:40:42.012Z', 'updatedAt': '2025-08-03T16:52:49.647Z', 'active': True, 'documented': True, 'hasShopify': False, 'hasEC': False, 'imageUrls': ['https://snagz.s3.eu-north-1.amazonaws.com/products/688f79469b2c640cf9a64798/688f910a48e39c6597c91d53/image-0/1754239676929-1gn98pm5mq3.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAV6W3A5XC64ATEUWK%2F20250803%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=20250803T164757Z&X-Amz-Expires=3600&X-Amz-Signature=5a681c4dad287133d3be1847d1869fdec8859c782aa6e1a9b13b2f61be45caa5&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject', 'https://snagz.s3.eu-north-1.amazonaws.com/products/688f79469b2c640cf9a64798/688f910a48e39c6597c91d53/image-1/1754239242344-7wjykqqhl65.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAV6W3A5XC64ATEUWK%2F20250803%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=20250803T164737Z&X-Amz-Expires=3600&X-Amz-Signature=adaea46541638129d67d9d70f547293196b951f2d9275f96df15f0e4eb675e99&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject', 'https://snagz.s3.eu-north-1.amazonaws.com/products/688f79469b2c640cf9a64798/688f910a48e39c6597c91d53/image-0/1754239278018-d6eun7tdr2s.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAV6W3A5XC64ATEUWK%2F20250803%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=20250803T164737Z&X-Amz-Expires=3600&X-Amz-Signature=7e41b3b32d1f7b0de9c3dc6e9dcfe21e1b7af98f77d23c65f258d1ffc43f51ed&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject', 'https://snagz.s3.eu-north-1.amazonaws.com/products/688f79469b2c640cf9a64798/688f910a48e39c6597c91d53/image-2/1754239244670-ao3s134wte8.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAV6W3A5XC64ATEUWK%2F20250803%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=20250803T164737Z&X-Amz-Expires=3600&X-Amz-Signature=90d4ef00c434a76d82cd6ebd17f07804dcd6dd673611112f738e0ce347fd883a&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject', 'https://snagz.s3.eu-north-1.amazonaws.com/products/688f79469b2c640cf9a64798/688f910a48e39c6597c91d53/image-4/1754239656845-t9761xgct6c.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAV6W3A5XC64ATEUWK%2F20250803%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=20250803T164737Z&X-Amz-Expires=3600&X-Amz-Signature=69f125ead704e355f00599d659f51b28ca52874d4744b2f198e043d9e829635d&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject'], 'lastModified': '2025-08-03T16:47:57.185Z', 'validatedAt': '2025-08-03T16:52:05.942Z'}, {'titre': 'TeePod', 'description': 'Im a sexy yute u understand gal all over the globe wanna upkill me u understand', 'prix': 69.69, 'poids': 697, 'eans': {'default': '0000000000000', 'Noir': '0000000000000', 'Blanc': '0000000000000'}, 'typeProduit': 'POD', 'produit': 'Casquette', 'OCC': False, 'tailles': [], 'couleurs': ['Noir', 'Blanc'], 'stock': {}, 'shopId': '688f79469b2c640cf9a64798', 'skus': {'Noir': 'POD-CASQUETTE-TEEPOD-NOIR', 'Blanc': 'POD-CASQUETTE-TEEPOD-BLANC'}, 'productId': '688f937548e39c6597c91d54', 'createdAt': '2025-08-03T16:51:01.701Z', 'updatedAt': '2025-08-03T16:52:49.647Z', 'active': True, 'documented': True, 'hasShopify': False, 'hasEC': False, 'imageUrls': ['products/688f79469b2c640cf9a64798/688f937548e39c6597c91d54/image-0/1754239861717-3cr3jxwx90l.webp', 'products/688f79469b2c640cf9a64798/688f937548e39c6597c91d54/image-1/1754239861954-apbnxqc013t.avif', 'products/688f79469b2c640cf9a64798/688f937548e39c6597c91d54/image-2/1754239862097-dqtrcito6mq.webp'], 'validatedAt': '2025-08-03T16:52:20.062Z'}, {'titre': 'PhonoTest', 'description': 'testvINYLE', 'prix': 23, 'poids': 400, 'eans': {'default': '1234124948481'}, 'typeProduit': 'Phono', 'produit': 'Vinyl', 'OCC': True, 'tailles': [], 'couleurs': [], 'stock': {'default': 323}, 'shopId': '688f79469b2c640cf9a64798', 'skus': {'default': 'VINYL-PHONOTEST-OMERTA57-OCC'}, 'productId': '688f948648e39c6597c91d55', 'createdAt': '2025-08-03T16:55:34.033Z', 'updatedAt': '2025-08-03T16:55:34.471Z', 'active': True, 'documented': False, 'hasShopify': False, 'hasEC': False, 'imageUrls': ['products/688f79469b2c640cf9a64798/688f948648e39c6597c91d55/image-0/1754240134050-h25jfunk55k.jpg'], 'validatedAt': '2025-08-03T16:56:21.940Z'}], 'appendMode': False}
+[2025-08-03 18:56:53] 🔍 DEBUG: Final extracted - date_sortie: '2025-08-05', date_commercialisation: '2025-08-04'
+[2025-08-03 18:56:53] Extracted dates - Sortie: '2025-08-05', Commercialisation: '2025-08-04', Mise en ligne DD/MM/YYYY: ''
+[2025-08-03 18:56:53] Extracted raison sociale: 'GZ'
+[2025-08-03 18:56:53] 🔍 DEBUG: Primary date for column N: '2025-08-05' (from date_sortie: '2025-08-05' or date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] 🔍 DEBUG: Converted YYYY-MM-DD '2025-08-05' to DD/MM/YYYY '05/08/2025'
+[2025-08-03 18:56:53] Combined dates field: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Combined dates DD/MM/YYYY: '05/08/2025'
+[2025-08-03 18:56:53] Total shop stock calculated: 1879
+[2025-08-03 18:56:53] Processing 3 products for shop: Omerta57
+[2025-08-03 18:56:53] Processing worksheet: Catalogue en ligne
+[2025-08-03 18:56:53] 🎯 SPECIAL CELL A2: Set to 'CLIENT :' (was: 'CLIENT : 111112')
+[2025-08-03 18:56:53] 🎯 SPECIAL CELL B2: Set to shop name 'Omerta57' (was: 'JIN JU MANGA')
+[2025-08-03 18:56:53] 🎯 SPECIAL CELL C2: Set to 'E-SHOP : ' (was: 'E-SHOP :   : https://jinju-manga-store')
+[2025-08-03 18:56:53] 🎯 SPECIAL CELL F2: Replaced formula/#### with total stock 1879 (was: '=SUM(E5:E199)', now: '1879')
+[2025-08-03 18:56:53] Found size header row at row 4 with 5 size columns: {'XS': 6, 'S': 7, 'M': 8, 'L': 9, 'XL': 10}
+[2025-08-03 18:56:53] Will start inserting product data at row: 5
+[2025-08-03 18:56:53] Normal mode: Clearing existing product data...
+[2025-08-03 18:56:53] Starting to add 3 products at row 5
+[2025-08-03 18:56:53] Processing product 1/3: Hoodie
+[2025-08-03 18:56:53] Product 1 total stock: 1556 from stock_dict: {'XS': 324, 'M': 324, 'S': 232, 'L': 343, 'XL': 333}
+[2025-08-03 18:56:53] Product 1 size stocks: {'XS': 324, 'S': 232, 'M': 324, 'L': 343, 'XL': 333}
+[2025-08-03 18:56:53] Product 1 colors: [] -> ''
+[2025-08-03 18:56:53] Product 1 sizes: ['XS', 'M', 'S', 'L', 'XL'] -> 'XS, M, S, L, XL'
+[2025-08-03 18:56:53] Product 1 images: 5 images -> ''
+[2025-08-03 18:56:53] Product 1 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 1 - POD status: 'NON' (type_produit: 'Merch')
+[2025-08-03 18:56:53] Product 1 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 5, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 1 data at row 5: Hoodie
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: ''
+[2025-08-03 18:56:53] Sizes field content: 'XS, M, S, L, XL'
+[2025-08-03 18:56:53] Data written: ['Merch', 'Hoodie', 'Testing hoodie EC, Shopify and Doc generation last', '0000000000000', 1556, 324, 232, 324, 343, 333, 300, 22, 'NON', '05/08/2025', '', 'NON', '', '', '', 'XS, M, S, L, XL', '']
+[2025-08-03 18:56:53] Processing product 2/3: TeePod
+[2025-08-03 18:56:53] Product 2 total stock: 0 from stock_dict: {}
+[2025-08-03 18:56:53] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-08-03 18:56:53] Product 2 colors: ['Noir', 'Blanc'] -> 'Noir, Blanc'
+[2025-08-03 18:56:53] Product 2 sizes: [] -> ''
+[2025-08-03 18:56:53] Product 2 images: 3 images -> ''
+[2025-08-03 18:56:53] Product 2 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 2 - POD status: 'OUI' (type_produit: 'POD')
+[2025-08-03 18:56:53] Product 2 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 2 data at row 6: TeePod
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: 'Noir, Blanc'
+[2025-08-03 18:56:53] Sizes field content: ''
+[2025-08-03 18:56:53] Data written: ['POD', 'TeePod', 'Im a sexy yute u understand gal all over the globe wanna upkill me u understand', '0000000000000', 0, 0, 0, 0, 0, 0, 697, 69.69, 'NON', '05/08/2025', '', 'OUI', '', '', 'Noir, Blanc', '', '']
+[2025-08-03 18:56:53] Processing product 3/3: PhonoTest
+[2025-08-03 18:56:53] Product 3 total stock: 323 from stock_dict: {'default': 323}
+[2025-08-03 18:56:53] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-08-03 18:56:53] Product 3 colors: [] -> ''
+[2025-08-03 18:56:53] Product 3 sizes: [] -> ''
+[2025-08-03 18:56:53] Product 3 images: 1 images -> ''
+[2025-08-03 18:56:53] Product 3 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 3 - POD status: 'NON' (type_produit: 'Phono')
+[2025-08-03 18:56:53] Product 3 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 7, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 3 data at row 7: PhonoTest
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: ''
+[2025-08-03 18:56:53] Sizes field content: ''
+[2025-08-03 18:56:53] Data written: ['Phono', 'PhonoTest', 'testvINYLE', '1234124948481', 323, 0, 0, 0, 0, 0, 400, 23, 'OUI', '05/08/2025', '', 'NON', '', '', '', '', '']
+[2025-08-03 18:56:53] Finished processing all products. Final row: 7
+[2025-08-03 18:56:53] Processing worksheet: POD
+[2025-08-03 18:56:53] Could not find header rows - using default row 6 with safety buffer
+[2025-08-03 18:56:53] Will start inserting product data at row: 6
+[2025-08-03 18:56:53] Normal mode: Clearing existing product data...
+[2025-08-03 18:56:53] Starting to add 3 products at row 6
+[2025-08-03 18:56:53] Processing product 1/3: Hoodie
+[2025-08-03 18:56:53] Product 1 total stock: 1556 from stock_dict: {'XS': 324, 'M': 324, 'S': 232, 'L': 343, 'XL': 333}
+[2025-08-03 18:56:53] Product 1 size stocks: {'XS': 324, 'S': 232, 'M': 324, 'L': 343, 'XL': 333}
+[2025-08-03 18:56:53] Product 1 colors: [] -> ''
+[2025-08-03 18:56:53] Product 1 sizes: ['XS', 'M', 'S', 'L', 'XL'] -> 'XS, M, S, L, XL'
+[2025-08-03 18:56:53] Product 1 images: 5 images -> ''
+[2025-08-03 18:56:53] Product 1 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 1 - POD status: 'NON' (type_produit: 'Merch')
+[2025-08-03 18:56:53] Product 1 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 1 data at row 6: Hoodie
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: ''
+[2025-08-03 18:56:53] Sizes field content: 'XS, M, S, L, XL'
+[2025-08-03 18:56:53] Data written: ['Merch', 'Hoodie', 'Testing hoodie EC, Shopify and Doc generation last', '0000000000000', 1556, 324, 232, 324, 343, 333, 300, 22, 'NON', '05/08/2025', '', 'NON', '', '', '', 'XS, M, S, L, XL', '']
+[2025-08-03 18:56:53] Processing product 2/3: TeePod
+[2025-08-03 18:56:53] Product 2 total stock: 0 from stock_dict: {}
+[2025-08-03 18:56:53] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-08-03 18:56:53] Product 2 colors: ['Noir', 'Blanc'] -> 'Noir, Blanc'
+[2025-08-03 18:56:53] Product 2 sizes: [] -> ''
+[2025-08-03 18:56:53] Product 2 images: 3 images -> ''
+[2025-08-03 18:56:53] Product 2 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 2 - POD status: 'OUI' (type_produit: 'POD')
+[2025-08-03 18:56:53] Product 2 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 7, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 2 data at row 7: TeePod
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: 'Noir, Blanc'
+[2025-08-03 18:56:53] Sizes field content: ''
+[2025-08-03 18:56:53] Data written: ['POD', 'TeePod', 'Im a sexy yute u understand gal all over the globe wanna upkill me u understand', '0000000000000', 0, 0, 0, 0, 0, 0, 697, 69.69, 'NON', '05/08/2025', '', 'OUI', '', '', 'Noir, Blanc', '', '']
+[2025-08-03 18:56:53] Processing product 3/3: PhonoTest
+[2025-08-03 18:56:53] Product 3 total stock: 323 from stock_dict: {'default': 323}
+[2025-08-03 18:56:53] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-08-03 18:56:53] Product 3 colors: [] -> ''
+[2025-08-03 18:56:53] Product 3 sizes: [] -> ''
+[2025-08-03 18:56:53] Product 3 images: 1 images -> ''
+[2025-08-03 18:56:53] Product 3 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 3 - POD status: 'NON' (type_produit: 'Phono')
+[2025-08-03 18:56:53] Product 3 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 8, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 3 data at row 8: PhonoTest
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: ''
+[2025-08-03 18:56:53] Sizes field content: ''
+[2025-08-03 18:56:53] Data written: ['Phono', 'PhonoTest', 'testvINYLE', '1234124948481', 323, 0, 0, 0, 0, 0, 400, 23, 'OUI', '05/08/2025', '', 'NON', '', '', '', '', '']
+[2025-08-03 18:56:53] Finished processing all products. Final row: 8
+[2025-08-03 18:56:53] Processing worksheet: Feuil1
+[2025-08-03 18:56:53] 🎯 SPECIAL CELL C2: Set to 'E-SHOP : ' (was: 'T-SHIRT')
+[2025-08-03 18:56:53] 🎯 SPECIAL CELL F2: No formula/#### found (value: 'ROCKER')
+[2025-08-03 18:56:53] Could not find header rows - using default row 6 with safety buffer
+[2025-08-03 18:56:53] Will start inserting product data at row: 6
+[2025-08-03 18:56:53] Normal mode: Clearing existing product data...
+[2025-08-03 18:56:53] Starting to add 3 products at row 6
+[2025-08-03 18:56:53] Processing product 1/3: Hoodie
+[2025-08-03 18:56:53] Product 1 total stock: 1556 from stock_dict: {'XS': 324, 'M': 324, 'S': 232, 'L': 343, 'XL': 333}
+[2025-08-03 18:56:53] Product 1 size stocks: {'XS': 324, 'S': 232, 'M': 324, 'L': 343, 'XL': 333}
+[2025-08-03 18:56:53] Product 1 colors: [] -> ''
+[2025-08-03 18:56:53] Product 1 sizes: ['XS', 'M', 'S', 'L', 'XL'] -> 'XS, M, S, L, XL'
+[2025-08-03 18:56:53] Product 1 images: 5 images -> ''
+[2025-08-03 18:56:53] Product 1 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 1 - POD status: 'NON' (type_produit: 'Merch')
+[2025-08-03 18:56:53] Product 1 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 1 data at row 6: Hoodie
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: ''
+[2025-08-03 18:56:53] Sizes field content: 'XS, M, S, L, XL'
+[2025-08-03 18:56:53] Data written: ['Merch', 'Hoodie', 'Testing hoodie EC, Shopify and Doc generation last', '0000000000000', 1556, 324, 232, 324, 343, 333, 300, 22, 'NON', '05/08/2025', '', 'NON', '', '', '', 'XS, M, S, L, XL', '']
+[2025-08-03 18:56:53] Processing product 2/3: TeePod
+[2025-08-03 18:56:53] Product 2 total stock: 0 from stock_dict: {}
+[2025-08-03 18:56:53] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-08-03 18:56:53] Product 2 colors: ['Noir', 'Blanc'] -> 'Noir, Blanc'
+[2025-08-03 18:56:53] Product 2 sizes: [] -> ''
+[2025-08-03 18:56:53] Product 2 images: 3 images -> ''
+[2025-08-03 18:56:53] Product 2 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 2 - POD status: 'OUI' (type_produit: 'POD')
+[2025-08-03 18:56:53] Product 2 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 7, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 2 data at row 7: TeePod
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: 'Noir, Blanc'
+[2025-08-03 18:56:53] Sizes field content: ''
+[2025-08-03 18:56:53] Data written: ['POD', 'TeePod', 'Im a sexy yute u understand gal all over the globe wanna upkill me u understand', '0000000000000', 0, 0, 0, 0, 0, 0, 697, 69.69, 'NON', '05/08/2025', '', 'OUI', '', '', 'Noir, Blanc', '', '']
+[2025-08-03 18:56:53] Processing product 3/3: PhonoTest
+[2025-08-03 18:56:53] Product 3 total stock: 323 from stock_dict: {'default': 323}
+[2025-08-03 18:56:53] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-08-03 18:56:53] Product 3 colors: [] -> ''
+[2025-08-03 18:56:53] Product 3 sizes: [] -> ''
+[2025-08-03 18:56:53] Product 3 images: 1 images -> ''
+[2025-08-03 18:56:53] Product 3 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 3 - POD status: 'NON' (type_produit: 'Phono')
+[2025-08-03 18:56:53] Product 3 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 8, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 3 data at row 8: PhonoTest
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: ''
+[2025-08-03 18:56:53] Sizes field content: ''
+[2025-08-03 18:56:53] Data written: ['Phono', 'PhonoTest', 'testvINYLE', '1234124948481', 323, 0, 0, 0, 0, 0, 400, 23, 'OUI', '05/08/2025', '', 'NON', '', '', '', '', '']
+[2025-08-03 18:56:53] Finished processing all products. Final row: 8
+[2025-08-03 18:56:53] Processing worksheet: NE PAS MODIFIER
+[2025-08-03 18:56:53] 🎯 SPECIAL CELL A2: Set to 'CLIENT :' (was: 'CD')
+[2025-08-03 18:56:53] 🎯 SPECIAL CELL C2: Set to 'E-SHOP : ' (was: 'NON')
+[2025-08-03 18:56:53] Could not find header rows - using default row 6 with safety buffer
+[2025-08-03 18:56:53] Will start inserting product data at row: 6
+[2025-08-03 18:56:53] Normal mode: Clearing existing product data...
+[2025-08-03 18:56:53] Starting to add 3 products at row 6
+[2025-08-03 18:56:53] Processing product 1/3: Hoodie
+[2025-08-03 18:56:53] Product 1 total stock: 1556 from stock_dict: {'XS': 324, 'M': 324, 'S': 232, 'L': 343, 'XL': 333}
+[2025-08-03 18:56:53] Product 1 size stocks: {'XS': 324, 'S': 232, 'M': 324, 'L': 343, 'XL': 333}
+[2025-08-03 18:56:53] Product 1 colors: [] -> ''
+[2025-08-03 18:56:53] Product 1 sizes: ['XS', 'M', 'S', 'L', 'XL'] -> 'XS, M, S, L, XL'
+[2025-08-03 18:56:53] Product 1 images: 5 images -> ''
+[2025-08-03 18:56:53] Product 1 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 1 - POD status: 'NON' (type_produit: 'Merch')
+[2025-08-03 18:56:53] Product 1 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 6, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 1 data at row 6: Hoodie
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: ''
+[2025-08-03 18:56:53] Sizes field content: 'XS, M, S, L, XL'
+[2025-08-03 18:56:53] Data written: ['Merch', 'Hoodie', 'Testing hoodie EC, Shopify and Doc generation last', '0000000000000', 1556, 324, 232, 324, 343, 333, 300, 22, 'NON', '05/08/2025', '', 'NON', '', '', '', 'XS, M, S, L, XL', '']
+[2025-08-03 18:56:53] Processing product 2/3: TeePod
+[2025-08-03 18:56:53] Product 2 total stock: 0 from stock_dict: {}
+[2025-08-03 18:56:53] Product 2 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-08-03 18:56:53] Product 2 colors: ['Noir', 'Blanc'] -> 'Noir, Blanc'
+[2025-08-03 18:56:53] Product 2 sizes: [] -> ''
+[2025-08-03 18:56:53] Product 2 images: 3 images -> ''
+[2025-08-03 18:56:53] Product 2 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 2 - POD status: 'OUI' (type_produit: 'POD')
+[2025-08-03 18:56:53] Product 2 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 7, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 2 data at row 7: TeePod
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: 'Noir, Blanc'
+[2025-08-03 18:56:53] Sizes field content: ''
+[2025-08-03 18:56:53] Data written: ['POD', 'TeePod', 'Im a sexy yute u understand gal all over the globe wanna upkill me u understand', '0000000000000', 0, 0, 0, 0, 0, 0, 697, 69.69, 'NON', '05/08/2025', '', 'OUI', '', '', 'Noir, Blanc', '', '']
+[2025-08-03 18:56:53] Processing product 3/3: PhonoTest
+[2025-08-03 18:56:53] Product 3 total stock: 323 from stock_dict: {'default': 323}
+[2025-08-03 18:56:53] Product 3 size stocks: {'XS': 0, 'S': 0, 'M': 0, 'L': 0, 'XL': 0}
+[2025-08-03 18:56:53] Product 3 colors: [] -> ''
+[2025-08-03 18:56:53] Product 3 sizes: [] -> ''
+[2025-08-03 18:56:53] Product 3 images: 1 images -> ''
+[2025-08-03 18:56:53] Product 3 - Column N data: '05/08/2025' (from date_sortie: '2025-08-05', date_commercialisation: '2025-08-04')
+[2025-08-03 18:56:53] Product 3 - POD status: 'NON' (type_produit: 'Phono')
+[2025-08-03 18:56:53] Product 3 - Total shop stock: 1879
+[2025-08-03 18:56:53] 🎯 COLUMN N DEBUG: Row 8, Column N (14) set to: '05/08/2025' (combined_dates_ddmmyyyy)
+[2025-08-03 18:56:53] Successfully added product 3 data at row 8: PhonoTest
+[2025-08-03 18:56:53] Combined dates field content: 'DATE DE SORTIE (Album): 2025-08-05
+COMMERCIALISATION (Merch): 2025-08-04'
+[2025-08-03 18:56:53] Colors field content: ''
+[2025-08-03 18:56:53] Sizes field content: ''
+[2025-08-03 18:56:53] Data written: ['Phono', 'PhonoTest', 'testvINYLE', '1234124948481', 323, 0, 0, 0, 0, 0, 400, 23, 'OUI', '05/08/2025', '', 'NON', '', '', '', '', '']
+[2025-08-03 18:56:53] Finished processing all products. Final row: 8
+[2025-08-03 18:56:53] Merchandising XLSX file saved to /Users/achrafbayi/Desktop/Data processing alternative/Code/backend/src/services/temp/NEW_FICHES.PRODUITS_SHOPIFY_GZ_OMERTA57.xlsx
+[2025-08-03 18:56:53] Merchandising XLSX processing completed successfully

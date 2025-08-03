@@ -593,12 +593,19 @@ const MesProduits = () => {
         formData.append("productImages", file);
       });
 
-      // If replacing a specific image, add the index
-      if (replaceIndex !== null) {
-        formData.append("replaceIndex", replaceIndex.toString());
-      }
+      let apiUrl;
 
-      const apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/upload-images`;
+      if (replaceIndex !== null) {
+        // Use the new replace endpoint
+        apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/replace-image/${replaceIndex}`;
+        console.log(
+          `🔄 [IMAGE UPLOAD] Using REPLACE endpoint for index ${replaceIndex}`
+        );
+      } else {
+        // Use the append endpoint
+        apiUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/upload-images`;
+        console.log(`➕ [IMAGE UPLOAD] Using APPEND endpoint`);
+      }
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -617,52 +624,95 @@ const MesProduits = () => {
       const responseData = await response.json();
 
       // Update the local state instead of refreshing the entire product list
-      if (responseData.success && responseData.imageUrls) {
-        // The backend returns full S3 URLs, but we need to extract the S3 keys and generate signed URLs
-        const signedImageUrls = await Promise.all(
-          responseData.imageUrls.map(async (fullS3Url) => {
-            try {
-              // Extract S3 key from the full URL
-              const url = new URL(fullS3Url);
-              const s3Key = url.pathname.substring(1); // Remove leading slash
+      if (responseData.success) {
+        if (replaceIndex !== null) {
+          // REPLACE OPERATION: Update single image at specific index
+          console.log(
+            `🔄 [IMAGE UPLOAD] Processing replace response for index ${replaceIndex}`
+          );
 
-              // Generate signed URL using the existing signed URL generation from the products fetch
-              // We'll use the same approach as in the products fetch - just return the signed URL directly
-              const signedUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/image-proxy?imageKey=${encodeURIComponent(s3Key)}`;
+          // Generate signed URL for the replaced image
+          const signedUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/image-proxy?imageKey=${encodeURIComponent(responseData.s3Key)}`;
 
-              return signedUrl;
-            } catch (error) {
-              console.error("Error processing S3 URL:", error);
-              return fullS3Url; // Fallback to original URL if processing fails
-            }
-          })
-        );
+          setProducts((prevProducts) =>
+            prevProducts.map((p) => {
+              if (p.productId === productId) {
+                // Ensure imageUrls is always an array
+                const currentImageUrls = p.imageUrls || [];
 
-        setProducts((prevProducts) =>
-          prevProducts.map((p) => {
-            if (p.productId === productId) {
-              // Ensure imageUrls is always an array
-              const currentImageUrls = p.imageUrls || [];
-
-              if (replaceIndex !== null) {
-                // Replace specific image
+                // Replace the image at the specified index
                 const updatedImageUrls = [...currentImageUrls];
-                updatedImageUrls[replaceIndex] = signedImageUrls[0];
+                updatedImageUrls[replaceIndex] = signedUrl;
+
+                console.log(
+                  `🔄 [IMAGE UPLOAD] Replaced image at index ${replaceIndex}`
+                );
+                console.log(
+                  `🔄 [IMAGE UPLOAD] Updated image URLs:`,
+                  updatedImageUrls
+                );
+
                 return {
                   ...p,
                   imageUrls: updatedImageUrls,
                 };
-              } else {
+              }
+              return p;
+            })
+          );
+        } else {
+          // APPEND OPERATION: Add new images to existing ones
+          console.log(`➕ [IMAGE UPLOAD] Processing append response`);
+
+          // The backend returns full S3 URLs, but we need to extract the S3 keys and generate signed URLs
+          const signedImageUrls = await Promise.all(
+            responseData.imageUrls.map(async (fullS3Url) => {
+              try {
+                // Extract S3 key from the full URL
+                const url = new URL(fullS3Url);
+                const s3Key = url.pathname.substring(1); // Remove leading slash
+
+                // Generate signed URL using the existing signed URL generation from the products fetch
+                // We'll use the same approach as in the products fetch - just return the signed URL directly
+                const signedUrl = `/api/customer/shops/${userId}/${selectedShop.shopId}/products/${productId}/image-proxy?imageKey=${encodeURIComponent(s3Key)}`;
+
+                return signedUrl;
+              } catch (error) {
+                console.error("Error processing S3 URL:", error);
+                return fullS3Url; // Fallback to original URL if processing fails
+              }
+            })
+          );
+
+          setProducts((prevProducts) =>
+            prevProducts.map((p) => {
+              if (p.productId === productId) {
+                // Ensure imageUrls is always an array
+                const currentImageUrls = p.imageUrls || [];
+
                 // Append new images
+                const updatedImageUrls = [
+                  ...currentImageUrls,
+                  ...signedImageUrls,
+                ];
+
+                console.log(
+                  `➕ [IMAGE UPLOAD] Appended ${signedImageUrls.length} new images`
+                );
+                console.log(
+                  `➕ [IMAGE UPLOAD] Updated image URLs:`,
+                  updatedImageUrls
+                );
+
                 return {
                   ...p,
-                  imageUrls: [...currentImageUrls, ...signedImageUrls],
+                  imageUrls: updatedImageUrls,
                 };
               }
-            }
-            return p;
-          })
-        );
+              return p;
+            })
+          );
+        }
       }
     } catch (error) {
       console.error("Error uploading images:", error);

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { FiEdit2, FiX, FiCheck, FiCalendar } from "react-icons/fi";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { getInternalApiUrl, defaultFetchOptions } from "../../utils/apiHelper";
 
 const ClientDetails = (props) => {
   const params = useParams();
@@ -35,15 +36,8 @@ const ClientDetails = (props) => {
     setIsLoading(true);
     setError(null);
     try {
-      const apiUrl = `http://localhost:3000/api/internal/clients/${clientId}`;
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache",
-        },
-        credentials: "include",
-      });
+      const apiUrl = getInternalApiUrl(`/clients/${clientId}`);
+      const response = await fetch(apiUrl, defaultFetchOptions);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(
@@ -136,14 +130,10 @@ const ClientDetails = (props) => {
     setSaving(true);
     setSaveMessage(null);
     try {
-      const url = `http://localhost:3000/api/internal/clients/${clientId}`;
+      const url = getInternalApiUrl(`/clients/${clientId}`);
       const response = await fetch(url, {
+        ...defaultFetchOptions,
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache",
-        },
-        credentials: "include",
         body: JSON.stringify(pendingChanges),
       });
 

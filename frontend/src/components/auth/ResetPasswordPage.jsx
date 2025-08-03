@@ -133,17 +133,9 @@ const ResetPasswordPage = () => {
 
       if (data.success) {
         setSuccess(true);
-        // Redirect to appropriate login page based on user type after 3 seconds
+        // Redirect to appropriate login page after 3 seconds
         setTimeout(() => {
-          const redirectUrl =
-            data.userType === "client"
-              ? "/client/login"
-              : data.userType === "internal"
-                ? "/internal/login"
-                : data.userType === "admin"
-                  ? "/admin/login"
-                  : "/";
-          window.location.href = redirectUrl;
+          window.location.href = "/";
         }, 3000);
       } else {
         setErrors({
@@ -219,7 +211,7 @@ const ResetPasswordPage = () => {
             </h2>
             <p className="text-sm text-green-600 mb-6">
               Votre mot de passe a été modifié avec succès. Vous allez être
-              redirigé vers la page de connexion appropriée dans 3 secondes.
+              redirigé vers la page de connexion.
             </p>
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <p className="text-green-700 text-xs">

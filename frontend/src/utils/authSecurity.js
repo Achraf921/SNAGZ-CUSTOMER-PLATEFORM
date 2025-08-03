@@ -51,12 +51,6 @@ export const validateUserIdentity = () => {
   try {
     const userInfoStr = sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo');
     
-    console.log('🔍 SECURITY: Storage check:', {
-      sessionUserInfo: sessionStorage.getItem('userInfo'),
-      localUserInfo: localStorage.getItem('userInfo'),
-      userInfoStr
-    });
-    
     if (!userInfoStr) {
       console.log('ℹ️ SECURITY: No user info found - user not logged in');
       return { valid: false, reason: 'NO_USER_INFO' };

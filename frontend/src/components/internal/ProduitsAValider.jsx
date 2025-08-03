@@ -158,7 +158,6 @@ export default function ProduitsAValider() {
     { key: "skus", label: "SKUs" },
     { key: "sizes", label: "Tailles disponibles" },
     { key: "colors", label: "Couleurs disponibles" },
-    { key: "images", label: "Images produit" },
     { key: "occ", label: "OCC" },
     { key: "clientName", label: "Client" },
     { key: "shopName", label: "Boutique" },
@@ -425,7 +424,14 @@ export default function ProduitsAValider() {
 
     // Handle boolean fields first before the null check
     if (field === "occ") {
-      return value ? "Oui" : "Non";
+      // Check for both uppercase and lowercase OCC field names
+      const occValue =
+        product?.OCC !== undefined
+          ? product.OCC
+          : product?.occ !== undefined
+            ? product.occ
+            : value;
+      return occValue ? "Oui" : "Non";
     }
 
     if (!value && value !== 0) return "-";

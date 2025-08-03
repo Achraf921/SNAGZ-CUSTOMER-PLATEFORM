@@ -62,6 +62,10 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
   const [checkedPermissions, setCheckedPermissions] = useState({
     write_products: false,
     read_products: false,
+    write_inventory: false,
+    read_inventory: false,
+    write_locations: false,
+    read_locations: false,
     write_themes: false,
     read_themes: false,
     write_content: false,
@@ -120,6 +124,10 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
       setCheckedPermissions({
         write_products: false,
         read_products: false,
+        write_inventory: false,
+        read_inventory: false,
+        write_locations: false,
+        read_locations: false,
         write_themes: false,
         read_themes: false,
         write_content: false,
@@ -965,6 +973,29 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
                   description: "Consulter les produits et collections.",
                 },
                 {
+                  id: "write_inventory",
+                  label: "write_inventory",
+                  description: "Modifier les niveaux de stock et l'inventaire.",
+                },
+                {
+                  id: "read_inventory",
+                  label: "read_inventory",
+                  description:
+                    "Consulter les niveaux de stock et l'inventaire.",
+                },
+                {
+                  id: "write_locations",
+                  label: "write_locations",
+                  description:
+                    "Modifier les emplacements de stockage de la boutique.",
+                },
+                {
+                  id: "read_locations",
+                  label: "read_locations",
+                  description:
+                    "Consulter les emplacements de stockage de la boutique.",
+                },
+                {
                   id: "write_themes",
                   label: "write_themes",
                   description:
@@ -1054,7 +1085,7 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
     });
 
     return list;
-  }, [shop, isVendeur, hasMondialRelay]);
+  }, [shop, isVendeur, hasMondialRelay, email, partnerPassword]);
 
   const markStepCompleted = (stepId) => {
     setCompletedSteps((prev) => new Set(prev).add(stepId));
@@ -1216,109 +1247,158 @@ const ParametrizationWizardModal = ({ isOpen, onClose, shop }) => {
                                   if (stepIndex === 0) {
                                     return [
                                       elements,
-                                      <div key="email-box" className="mt-2">
-                                        <label className="text-sm font-medium text-gray-700 block mb-1">
-                                          Email
-                                        </label>
-                                        {isLoadingPartner ? (
-                                          <div className="flex items-center p-2 text-gray-500 text-sm">
-                                            <FaSpinner className="animate-spin mr-2" />{" "}
-                                            Chargement...
-                                          </div>
-                                        ) : partnerError ? (
-                                          <p className="text-sm text-red-500">
-                                            {partnerError}
-                                          </p>
-                                        ) : (
-                                          <div className="flex items-center border rounded-md px-3 py-2 bg-gray-100">
-                                            <span className="flex-1 text-sm text-gray-800 break-all">
-                                              {email || "Non configuré"}
-                                            </span>
-                                            <button
-                                              onClick={() =>
-                                                email &&
-                                                navigator.clipboard.writeText(
+                                      <div key="email-box" className="mt-4">
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                          <label className="text-sm font-medium text-blue-800 block mb-2">
+                                            Email Shopify
+                                          </label>
+                                          {isLoadingPartner ? (
+                                            <div className="flex items-center p-2 text-blue-600 text-sm">
+                                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                                              Chargement...
+                                            </div>
+                                          ) : partnerError ? (
+                                            <p className="text-sm text-red-500">
+                                              {partnerError}
+                                            </p>
+                                          ) : (
+                                            <div className="flex items-center border rounded-md px-3 py-2 bg-white">
+                                              <span className="flex-1 text-sm text-blue-900 break-all">
+                                                {email || "Non configuré"}
+                                              </span>
+                                              <button
+                                                onClick={() =>
+                                                  email &&
+                                                  navigator.clipboard.writeText(
+                                                    email
+                                                  )
+                                                }
+                                                className={`text-blue-600 hover:text-blue-800 ml-2 p-1 rounded hover:bg-blue-100 ${!email ? "opacity-50 cursor-not-allowed" : ""}`}
+                                                title={
                                                   email
-                                                )
-                                              }
-                                              className={`text-blue-600 hover:text-blue-800 ml-2 ${!email ? "opacity-50 cursor-not-allowed" : ""}`}
-                                              title={
-                                                email
-                                                  ? "Copier l'email"
-                                                  : "Email non configuré"
-                                              }
-                                              disabled={!email}
-                                            >
-                                              <FaCopy />
-                                            </button>
-                                          </div>
-                                        )}
+                                                    ? "Copier l'email"
+                                                    : "Email non configuré"
+                                                }
+                                                disabled={!email}
+                                              >
+                                                <svg
+                                                  className="w-4 h-4"
+                                                  fill="none"
+                                                  stroke="currentColor"
+                                                  viewBox="0 0 24 24"
+                                                >
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                  />
+                                                </svg>
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>,
                                     ];
                                   }
                                   if (stepIndex === 1) {
                                     return [
                                       elements,
-                                      <div key="pwd-box" className="mt-2">
-                                        <label className="text-sm font-medium text-gray-700 block mb-1">
-                                          Mot de passe
-                                        </label>
-                                        {isLoadingPartner ? (
-                                          <div className="flex items-center p-2 text-gray-500 text-sm">
-                                            <FaSpinner className="animate-spin mr-2" />{" "}
-                                            Chargement...
-                                          </div>
-                                        ) : partnerError ? (
-                                          <p className="text-sm text-red-500">
-                                            {partnerError}
-                                          </p>
-                                        ) : (
-                                          <div className="flex items-center border rounded-md px-3 py-2 bg-gray-100">
-                                            <span className="flex-1 text-sm text-gray-800 select-all">
-                                              {partnerPassword
-                                                ? showPassword
-                                                  ? partnerPassword
-                                                  : "••••••••••••"
-                                                : "Non configuré"}
-                                            </span>
-                                            <button
-                                              onClick={() =>
-                                                partnerPassword &&
-                                                setShowPassword(!showPassword)
-                                              }
-                                              className={`text-blue-600 hover:text-blue-800 ml-2 ${!partnerPassword ? "opacity-50 cursor-not-allowed" : ""}`}
-                                              title={
-                                                showPassword
-                                                  ? "Masquer"
-                                                  : "Afficher"
-                                              }
-                                              disabled={!partnerPassword}
-                                            >
-                                              {showPassword ? (
-                                                <FaEyeSlash />
-                                              ) : (
-                                                <FaEye />
-                                              )}
-                                            </button>
-                                            <button
-                                              onClick={() =>
-                                                partnerPassword &&
-                                                navigator.clipboard.writeText(
-                                                  partnerPassword
-                                                )
-                                              }
-                                              className={`text-blue-600 hover:text-blue-800 ml-2 ${!partnerPassword ? "opacity-50 cursor-not-allowed" : ""}`}
-                                              title={
-                                                partnerPassword
-                                                  ? "Copier le mot de passe"
-                                                  : "Mot de passe non configuré"
-                                              }
-                                              disabled={!partnerPassword}
-                                            >
-                                              <FaCopy />
-                                            </button>
-                                          </div>
-                                        )}
+                                      <div key="pwd-box" className="mt-4">
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                          <label className="text-sm font-medium text-green-800 block mb-2">
+                                            Mot de passe Shopify
+                                          </label>
+                                          {isLoadingPartner ? (
+                                            <div className="flex items-center p-2 text-green-600 text-sm">
+                                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></div>
+                                              Chargement...
+                                            </div>
+                                          ) : partnerError ? (
+                                            <p className="text-sm text-red-500">
+                                              {partnerError}
+                                            </p>
+                                          ) : (
+                                            <div className="flex items-center border rounded-md px-3 py-2 bg-white">
+                                              <span className="flex-1 text-sm text-green-900 break-all">
+                                                {partnerPassword
+                                                  ? showPassword
+                                                    ? partnerPassword
+                                                    : "••••••••••••••••"
+                                                  : "Non configuré"}
+                                              </span>
+                                              <div className="flex items-center ml-2 space-x-1">
+                                                <button
+                                                  onMouseDown={() =>
+                                                    setShowPassword(true)
+                                                  }
+                                                  onMouseUp={() =>
+                                                    setShowPassword(false)
+                                                  }
+                                                  onMouseLeave={() =>
+                                                    setShowPassword(false)
+                                                  }
+                                                  className={`text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-100 ${!partnerPassword ? "opacity-50 cursor-not-allowed" : ""}`}
+                                                  title={
+                                                    partnerPassword
+                                                      ? "Maintenir pour voir le mot de passe"
+                                                      : "Mot de passe non configuré"
+                                                  }
+                                                  disabled={!partnerPassword}
+                                                >
+                                                  <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                    />
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                    />
+                                                  </svg>
+                                                </button>
+                                                <button
+                                                  onClick={() =>
+                                                    partnerPassword &&
+                                                    navigator.clipboard.writeText(
+                                                      partnerPassword
+                                                    )
+                                                  }
+                                                  className={`text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-100 ${!partnerPassword ? "opacity-50 cursor-not-allowed" : ""}`}
+                                                  title={
+                                                    partnerPassword
+                                                      ? "Copier le mot de passe"
+                                                      : "Mot de passe non configuré"
+                                                  }
+                                                  disabled={!partnerPassword}
+                                                >
+                                                  <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                    />
+                                                  </svg>
+                                                </button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>,
                                     ];
                                   }

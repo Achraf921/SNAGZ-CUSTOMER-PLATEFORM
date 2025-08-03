@@ -1431,14 +1431,6 @@ const ShopifyConfiguration = () => {
                                 <FaTimes className="h-4 w-4 mr-2" />
                                 Retirer Shopify
                               </button>
-                              {!shop.shopifyConfig?.apiKey && (
-                                <button
-                                  onClick={() => promptApiKeys(shop)}
-                                  className="ml-2 text-xs text-purple-600 underline"
-                                >
-                                  Ajouter clés API
-                                </button>
-                              )}
                             </>
                           ) : (
                             <>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import CorruptedFileModal from "../common/CorruptedFileModal";
 
 const ProductForm = ({ product, onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,10 @@ const ProductForm = ({ product, onClose, onSave }) => {
     galleryImages: product?.galleryImages || [],
   });
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Corrupted file modal state
+  const [showCorruptedFileModal, setShowCorruptedFileModal] = useState(false);
+  const [corruptedFileName, setCorruptedFileName] = useState('');
 
   const productTypes = ["T-shirt", "Vinyle", "CD", "Autres"];
 
@@ -37,19 +42,81 @@ const ProductForm = ({ product, onClose, onSave }) => {
     }));
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const { name, files } = e.target;
     if (files && files[0]) {
-      if (name === "galleryImages") {
+      // Function to clear the file input immediately
+      const clearFileInput = () => {
+        e.target.value = '';
+      };
+      
+      try {
+        if (name === "galleryImages") {
+          // Validate all gallery images
+          const validFiles = [];
+          const invalidFiles = [];
+          
+          for (const file of Array.from(files)) {
+            try {
+              const reader = new FileReader();
+              await new Promise((resolve, reject) => {
+                reader.onload = resolve;
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+              });
+              validFiles.push(file);
+            } catch (error) {
+              invalidFiles.push(file.name);
+            }
+          }
+          
+          // IMMEDIATELY clear the file input if any files are corrupted
+          if (invalidFiles.length > 0) {
+            clearFileInput();
+            setCorruptedFileName(invalidFiles.join(', '));
+            setShowCorruptedFileModal(true);
+          }
+          
+          // Only add valid files to the form data
+          if (validFiles.length > 0) {
+            setFormData((prev) => ({
+              ...prev,
+              galleryImages: [...prev.galleryImages, ...validFiles],
+            }));
+          }
+        } else {
+          // Validate single file
+          const file = files[0];
+          const reader = new FileReader();
+          await new Promise((resolve, reject) => {
+            reader.onload = resolve;
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+          });
+          
+          // If we get here, the file is readable
+          setFormData((prev) => ({
+            ...prev,
+            [name]: file,
+          }));
+        }
+      } catch (error) {
+        // IMMEDIATELY clear the file input to prevent showing corrupted file name
+        clearFileInput();
+        
+        // Clear any existing file data for this field
         setFormData((prev) => ({
           ...prev,
-          galleryImages: [...prev.galleryImages, ...Array.from(files)],
+          [name]: name === "galleryImages" ? prev.galleryImages : null,
         }));
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          [name]: files[0],
-        }));
+        
+        // Handle corrupted or unreadable files
+        if (error?.name === 'NotReadableError' || error?.target?.error?.name === 'NotReadableError') {
+          setCorruptedFileName(files[0].name);
+          setShowCorruptedFileModal(true);
+        } else {
+          alert(`Erreur lors de la lecture du fichier "${files[0].name}": ${error.message || 'Fichier non valide'}`);
+        }
       }
     }
   };
@@ -337,6 +404,13 @@ const ProductForm = ({ product, onClose, onSave }) => {
           </div>
         </form>
       </div>
+      
+      {/* Corrupted File Modal */}
+      <CorruptedFileModal
+        isOpen={showCorruptedFileModal}
+        onClose={() => setShowCorruptedFileModal(false)}
+        fileName={corruptedFileName}
+      />
     </div>
   );
 };

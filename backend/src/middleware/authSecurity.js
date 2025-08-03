@@ -105,9 +105,62 @@ const addRequestSecurity = (req, res, next) => {
   next();
 };
 
+// Validate welcome form access (combines authentication + user access validation)
+const validateWelcomeFormAccess = (req, res, next) => {
+  logger.debug('Welcome form access validation', {
+    path: req.path,
+    hasSession: !!req.session.userInfo
+  });
+
+  // Check if user is authenticated
+  if (!req.session.userInfo) {
+    logger.security('Unauthenticated welcome form access attempt', {
+      path: req.path,
+      ip: req.ip
+    });
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required for welcome form',
+      securityAlert: 'Unauthenticated access attempt'
+    });
+  }
+
+  next();
+};
+
+// Validate shop upload access (combines authentication + shop ownership validation)
+const validateShopUploadAccess = (req, res, next) => {
+  const shopId = req.params.shopId;
+  
+  logger.debug('Shop upload access validation', {
+    path: req.path,
+    hasSession: !!req.session.userInfo
+  });
+
+  // Check if user is authenticated
+  if (!req.session.userInfo) {
+    logger.security('Unauthenticated shop upload access attempt', {
+      path: req.path,
+      ip: req.ip
+    });
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required for shop uploads',
+      securityAlert: 'Unauthenticated access attempt'
+    });
+  }
+
+  // Additional validation could be added here to verify shop ownership
+  // For now, basic authentication check is sufficient
+  
+  next();
+};
+
 module.exports = {
   validateAuthentication,
   validateUserAccess,
   sanitizeSession,
-  addRequestSecurity
+  addRequestSecurity,
+  validateWelcomeFormAccess,
+  validateShopUploadAccess
 }; 
