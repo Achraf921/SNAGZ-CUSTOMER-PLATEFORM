@@ -19,20 +19,20 @@ Pour chaque boutique, vous devez avoir dans le document :
 {
   // ... autres champs de la boutique
   "shopifyConfig": {
-    "apiKey": "a1a24b2111885620b14c2bb93364e4eb",
-    "apiSecret": "c8f5ec7ea9c321f9c5ff1a36dd049499", 
-    "accessToken": "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"
+    "apiKey": "yourShopifyApiKey",
+    "apiSecret": "yourShopifyApiSecret", 
+    "accessToken": "yourShopifyToken"
   },
-  "shopifyDomain": "ejinbc-dn"
+  "shopifyDomain": "yourShopifyDomain"
 }
 ```
 
 **Format alternatif supporté (aplati) :**
 ```javascript
 {
-  "shopifyConfig.apiKey": "a1a24b2111885620b14c2bb93364e4eb",
-  "shopifyConfig.apiSecret": "c8f5ec7ea9c321f9c5ff1a36dd049499",
-  "shopifyConfig.accessToken": "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"
+  "shopifyConfig.apiKey": "yourShopifyApiKey",
+  "shopifyConfig.apiSecret": "yourShopifyApiSecret",
+  "shopifyConfig.accessToken": "yourShopifyToken"
 }
 ```
 
